@@ -6,7 +6,7 @@ These specifications break **M0** into bounded units of work. They are instructi
 
 | Task | Scope | Prerequisites | Current status |
 | --- | --- | --- | --- |
-| [001 — Development bootstrap](001-development-bootstrap.md) | Minimal Rust crate, reproducible tools and command entry point | None | Pending; first eligible task |
+| [001 — Development bootstrap](001-development-bootstrap.md) | Minimal Rust crate, reproducible tools and command entry point | None | Complete; [evidence](../docs/evidence/001.md) |
 | [002 — Pinned upstream oracle](002-pinned-oracle.md) | Reproducible C++ reference build and semantic dump format | 001 complete | Pending |
 | [003 — Oracle fixture corpus](003-oracle-fixtures.md) | Independently specified fixtures, manifests and negative cases | 002 complete | Pending |
 | [004 — Verified v7 specification](004-v7-format-specification.md) | Byte layout, semantic rules and complete API inventory | 003 complete | Pending |
@@ -49,4 +49,4 @@ Run from the repository root. Use Python's standard library for the development 
 
 ## Scope of this documentation change
 
-Only `AGENTS.md`, these task specifications, and a navigation link in the architecture plan are being added now. No task has been executed, no oracle has been built, and no Rust functionality has been validated.
+Only `AGENTS.md`, these task specifications, and a navigation link in the architecture plan are being added now. Task 001 is complete. No oracle has been built and no GDX functionality has been validated. See the queue and evidence records for current execution status.
