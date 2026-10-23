@@ -2,6 +2,8 @@
 
 Status: design and implementation roadmap only; no implementation or performance claims yet.
 
+Execution guidance: read [AGENTS.md](AGENTS.md) and the [numbered M0 task specifications](tasks/README.md) before implementation. Those tasks turn the initial milestone into concrete deliverables and acceptance gates; none has been executed yet.
+
 ## 1. Goal and priorities
 
 Build an independent Rust implementation of the GAMS GDX library, with interoperable GDX reads and writes, fast sequential throughput, and symbol slicing that works when the records **and metadata** exceed RAM. The eventual consumer is `enioarz/polars-gdx`; the core must remain usable without Polars, Arrow, Python, a GAMS installation, C++, or a native GDX library.
