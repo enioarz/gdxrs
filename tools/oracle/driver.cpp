@@ -85,6 +85,8 @@ static void smoke(const char *path, int compression) {
     if (g.gdxClose()) throw std::runtime_error("close write failed");
 }
 
+#include "fixture_generator.hpp"
+
 static void dump(const char *path, std::ostream &out) {
     TGXFileObj g;
     int error{};
@@ -165,6 +167,10 @@ int main(int argc, char **argv) {
             std::string level = argv[3];
             if (level != "0" && level != "1") throw std::runtime_error("compression must be 0 or 1");
             smoke(argv[2], level == "1");
+        } else if (argc == 5 && std::string(argv[1]) == "recipe") {
+            std::string level = argv[4];
+            if (level != "0" && level != "1") throw std::runtime_error("compression must be 0 or 1");
+            recipe(argv[2], argv[3], level == "1");
         } else if ((argc == 3 || argc == 4) && std::string(argv[1]) == "dump") {
             if (argc == 3) dump(argv[2], std::cout);
             else {

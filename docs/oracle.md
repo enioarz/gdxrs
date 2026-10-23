@@ -20,10 +20,13 @@ The runner prefers a `cmake` on PATH, otherwise the local wheel's native executa
 
 ```text
 gdxrs-oracle smoke FILE {0|1}
+gdxrs-oracle recipe FILE RECIPE {0|1}
 gdxrs-oracle dump FILE [OUTPUT]
 ```
 
 `smoke` creates an upstream-written fixture in uncompressed/block-compressed mode. `dump` streams its public raw API representation to stdout or OUTPUT. OUTPUT is a caller-chosen file and is truncated; do not specify the input file as output. Driver failures return 1, successes return 0. `oracle-self-test` additionally checks missing/truncated files and invalid commands. Production use of the driver is unsupported; upstream eagerly allocates metadata and does not provide this project's future hostile-input or memory guarantees.
+
+Task 003 adds `recipe` for deterministic fixture generation and `fixtures-check`/`fixtures-regenerate-check` for corpus verification; see [tests/fixtures/README.md](../tests/fixtures/README.md). These replace neither production Rust tests nor the independent M0 review.
 
 ## Semantic dump version 1
 
