@@ -3,6 +3,7 @@
 import hashlib
 import json
 from pathlib import Path
+import re
 import subprocess
 
 import benchmark
@@ -16,17 +17,26 @@ CHECKLIST = {'source-pins','fixture-independence','format-evidence','api-invento
              'reader-resource-contracts','benchmark-method','m1-prerequisites'}
 
 
-def content_fingerprint():
-    paths=subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=ROOT).split(b'\0')
+def content_fingerprint(revision=None):
+    if revision is None:
+        argv=['git','ls-files','-z','--cached','--others','--exclude-standard']
+    else:
+        if not re.fullmatch(r'[0-9a-f]{40}',revision): raise ValueError('full reviewed commit SHA required')
+        argv=['git','ls-tree','-r','-z','--name-only',revision]
+    paths=subprocess.check_output(argv,cwd=ROOT).split(b'\0')
     digest=hashlib.sha256()
     excluded={'tasks/README.md','docs/reviews/m0.md','docs/reviews/m0.json',
               'docs/benchmarks/baseline.md','docs/benchmarks/oracle-small.json'}
     for raw in sorted(set(p for p in paths if p)):
         name=raw.decode()
         if name in excluded or name.startswith('docs/evidence/'): continue
-        path=ROOT/name
-        if not path.is_file(): raise ValueError('missing M0 review content '+name)
-        digest.update(raw+b'\0');digest.update(path.read_bytes());digest.update(b'\0')
+        if revision is None:
+            path=ROOT/name
+            if path.is_symlink() or not path.is_file(): raise ValueError('missing/symlinked M0 review content '+name)
+            data=path.read_bytes()
+        else:
+            data=subprocess.check_output(['git','show',f'{revision}:{name}'],cwd=ROOT)
+        digest.update(raw+b'\0');digest.update(data);digest.update(b'\0')
     return digest.hexdigest()
 
 
@@ -51,6 +61,8 @@ def validate_review(review,current_content=None):
     revision=review.get('reviewed_revision')
     if not revision: raise ValueError('reviewed revision missing')
     subprocess.run(['git','merge-base','--is-ancestor',revision,'HEAD'],cwd=ROOT,check=True)
+    if content_fingerprint(revision)!=identity:
+        raise ValueError('reviewed revision does not contain the reviewed content')
     changed=subprocess.check_output(['git','diff','--name-only',revision,'HEAD'],cwd=ROOT,text=True).splitlines()
     return dict(status='accepted',reviewer=review['reviewer'],reviewed_revision=revision,
                 current_content_sha256=identity,post_review_changes=changed)

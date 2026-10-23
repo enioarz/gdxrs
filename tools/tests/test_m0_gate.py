@@ -4,6 +4,7 @@ import copy
 import json
 from pathlib import Path
 import sys
+import subprocess
 import unittest
 
 sys.path.insert(0,str(Path(__file__).parents[1]))
@@ -32,6 +33,14 @@ class ReviewGate(unittest.TestCase):
         workload=dict(rows=1,dimension=0,fields=1)
         result=dict(schema=1,rows=1,digest='incorrect',scan_seconds=1,peak_rss_bytes=1)
         with self.assertRaisesRegex(ValueError,'digest/count mismatch'):benchmark.validate_scan(result,workload)
+
+    def test_old_revision_cannot_claim_current_reviewed_content(self):
+        old=subprocess.check_output(['git','rev-list','--max-parents=0','HEAD'],cwd=m0.ROOT,text=True).strip()
+        identity=m0.content_fingerprint()
+        review=dict(schema=1,status='accepted',implementation_author='test-author',reviewer='test-independent',
+                    reviewer_role='independent-human',content_sha256=identity,reviewed_revision=old,
+                    checklist={key:dict(accepted=True,notes='unit test only') for key in m0.CHECKLIST},findings=[])
+        with self.assertRaisesRegex(ValueError,'does not contain'):m0.validate_review(review,identity)
 
 
 if __name__=='__main__':unittest.main()
