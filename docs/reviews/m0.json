@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "status": "pending",
+  "implementation_author": "Codex implementation author",
+  "reviewer": null,
+  "reviewer_role": null,
+  "reviewed_revision": null,
+  "content_sha256": null,
+  "findings": [],
+  "checklist": {
+    "source-pins": {"accepted": false, "notes": ""},
+    "fixture-independence": {"accepted": false, "notes": ""},
+    "format-evidence": {"accepted": false, "notes": ""},
+    "api-inventory": {"accepted": false, "notes": ""},
+    "reader-resource-contracts": {"accepted": false, "notes": ""},
+    "benchmark-method": {"accepted": false, "notes": ""},
+    "m1-prerequisites": {"accepted": false, "notes": ""}
+  }
+}

@@ -16,7 +16,10 @@ WORK = ROOT / ".work"
 
 
 class CheckFailure(Exception):
-    pass
+    def __init__(self,message,result=None,exit_code=1):
+        super().__init__(message)
+        self.result=result
+        self.exit_code=exit_code
 
 
 def run(argv, *, cwd=ROOT, timeout=180, capture=False, env=None):
@@ -57,6 +60,10 @@ def report_check(name, operation):
     except (CheckFailure, OSError, ValueError, subprocess.SubprocessError) as exc:
         record["status"] = "failed"
         record["error"] = str(exc)
+        if isinstance(exc,CheckFailure):
+            record['result']=exc.result
+            exit_code=exc.exit_code
+            if exit_code==2: record['status']='blocked'
         print(f"ERROR: {exc}", file=sys.stderr)
         if isinstance(exc, subprocess.CalledProcessError):
             exit_code = exc.returncode if exc.returncode > 0 else 1
@@ -103,17 +110,27 @@ def check_bootstrap():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check"])
+    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check"])
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--profile", choices=['small'], default='small')
     args = parser.parse_args()
     from oracle import build, self_test
     import fixtures
     import specification
     import contracts
+    import benchmark
+    import m0
     if args.command == 'fixtures-generate' and args.output is None:
         parser.error('fixtures-generate requires --output NEW_DIRECTORY')
     if args.output is not None and args.command != 'fixtures-generate':
         parser.error('--output only applies to fixtures-generate')
+    if '--profile' in sys.argv and args.command != 'benchmark-oracle':
+        parser.error('--profile only applies to benchmark-oracle')
+    def m0_check():
+        result=m0.check(run,check_bootstrap)
+        if not result['m1_eligible']:
+            raise CheckFailure('independent M0 review pending; automated checks passed',result,2)
+        return result
     actions = {
         "check-bootstrap": check_bootstrap,
         "oracle-build": lambda: build(run),
@@ -123,6 +140,8 @@ def main():
         "fixtures-regenerate-check": lambda: fixtures.regeneration_check(run),
         "spec-check": lambda: specification.check(run),
         "contracts-check": contracts.check,
+        "benchmark-oracle": lambda: benchmark.execute(run,args.profile),
+        "m0-check": m0_check,
     }
     return report_check(args.command, actions[args.command])
 
