@@ -103,9 +103,15 @@ def check_bootstrap():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["check-bootstrap"])
+    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test"])
     args = parser.parse_args()
-    return report_check(args.command, check_bootstrap)
+    from oracle import build, self_test
+    actions = {
+        "check-bootstrap": check_bootstrap,
+        "oracle-build": lambda: build(run),
+        "oracle-self-test": lambda: self_test(run),
+    }
+    return report_check(args.command, actions[args.command])
 
 
 if __name__ == "__main__":

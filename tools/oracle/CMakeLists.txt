@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.16)
+project(gdxrs_oracle LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT EXISTS "${GDX_ROOT}/src/gdx.hpp" OR NOT EXISTS "${GDX_LIBRARY}")
+  message(FATAL_ERROR "Explicit GDX_ROOT and built GDX_LIBRARY are required")
+endif()
+add_executable(gdxrs-oracle driver.cpp)
+target_include_directories(gdxrs-oracle PRIVATE
+  "${GDX_ROOT}/src" "${GDX_ROOT}/generated" "${GDX_ROOT}/src/gdlib"
+  "${GDX_ROOT}/src/global" "${GDX_ROOT}/src/rtl" "${GDX_ROOT}/zlib")
+target_link_libraries(gdxrs-oracle PRIVATE "${GDX_LIBRARY}" ${CMAKE_DL_LIBS})
+if(UNIX)
+  target_link_libraries(gdxrs-oracle PRIVATE pthread m)
+endif()

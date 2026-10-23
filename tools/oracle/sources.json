@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "gdx": {
+    "url": "https://github.com/GAMS-dev/gdx.git",
+    "commit": "9e2a8c8932412010cd7d2f94727d1740143bf3da",
+    "license": "MIT"
+  },
+  "zlib": {
+    "url": "https://github.com/madler/zlib.git",
+    "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
+    "license": "Zlib"
+  },
+  "unused_submodules": {
+    "src/apigenerator": "a2db931c5066d7e2253c68609b8d17a5be2016a4"
+  },
+  "build_options": [
+    "-DCMAKE_BUILD_TYPE=Release",
+    "-DNO_TESTS=ON",
+    "-DNO_EXAMPLES=ON",
+    "-DNO_TOOLS=ON",
+    "-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=TRUE",
+    "-DGDX_THREAD_SAFE=OFF"
+  ]
+}
