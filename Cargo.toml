@@ -1,0 +1,9 @@
+[package]
+name = "gdxrs"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99.1"
+description = "Independent streaming GDX v7 library (development bootstrap)"
+publish = false
+
+[dependencies]
