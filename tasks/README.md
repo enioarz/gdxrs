@@ -10,7 +10,7 @@ These specifications break **M0** into bounded units of work. They are instructi
 | [002 — Pinned upstream oracle](002-pinned-oracle.md) | Reproducible C++ reference build and semantic dump format | 001 complete | Complete; [evidence](../docs/evidence/002.md) |
 | [003 — Oracle fixture corpus](003-oracle-fixtures.md) | Independently specified fixtures, manifests and negative cases | 002 complete | Complete; [evidence](../docs/evidence/003.md) |
 | [004 — Verified v7 specification](004-v7-format-specification.md) | Byte layout, semantic rules and complete API inventory | 003 complete | Complete; [evidence](../docs/evidence/004.md) |
-| [005 — Reader and resource contracts](005-reader-resource-contracts.md) | Concrete types, ownership, error and memory contracts for M1 | 004 complete | Pending |
+| [005 — Reader and resource contracts](005-reader-resource-contracts.md) | Concrete types, ownership, error and memory contracts for M1 | 004 complete | Complete; [evidence](../docs/evidence/005.md) |
 | [006 — Baseline and M0 review](006-baseline-and-m0-review.md) | Measured oracle baseline, repeatability and independent review | 005 complete | Pending |
 
 Dependencies mean the task's acceptance checks passed and its evidence record is present, not merely that its files exist. Task 006 additionally requires the independent review described there before M1 implementation is eligible. Source research may reveal missing fixtures; add them in the current task, record the change, and rerun the affected prior gates instead of treating this table as a reason to ignore new evidence.
