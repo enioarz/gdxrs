@@ -40,6 +40,15 @@ class Reports(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             dev.run(["/no/such/gdxrs-tool"])
 
+    def test_unexpected_error_records_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(dev,"WORK",Path(directory)),patch.object(dev,"ROOT",Path(directory)),patch.object(dev,"revision",return_value="test"):
+                def fail(): raise KeyError('missing report field')
+                self.assertEqual(dev.report_check('unexpected',fail),1)
+            reports=list(Path(directory).glob('reports/*.json'))
+            self.assertEqual(len(reports),1)
+            self.assertEqual(json.loads(reports[0].read_text())['status'],'failed')
+
 
 if __name__ == "__main__":
     unittest.main()

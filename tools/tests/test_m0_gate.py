@@ -25,6 +25,8 @@ class ReviewGate(unittest.TestCase):
                       checklist={key:dict(accepted=True,notes='verified') for key in m0.CHECKLIST},
                       content_sha256='old')
         with self.assertRaisesRegex(ValueError,'stale'):m0.validate_review(review,'candidate')
+        review.update(content_sha256='candidate',findings=[dict(requires_action=True,disposition='accepted-with-rationale')])
+        with self.assertRaisesRegex(ValueError,'unresolved required findings'):m0.validate_review(review,'candidate')
 
     def test_corrupt_scan_result_cannot_be_a_baseline(self):
         workload=dict(rows=1,dimension=0,fields=1)

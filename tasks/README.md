@@ -47,6 +47,6 @@ python3 tools/dev.py m0-check
 
 Run from the repository root. Use Python's standard library for the development runner; it is not a runtime dependency. Subcommands must preserve child exit failures, avoid shell-string interpolation, validate their input/output paths, and emit a fresh report under ignored `.work/reports/`. Reports record revision and run identity; an old artifact cannot make a failed new command pass. Store compact reviewed results/provenance in version control where useful, not build trees or large generated files.
 
-## Scope of this documentation change
+## Current implementation scope
 
-Only `AGENTS.md`, these task specifications, and a navigation link in the architecture plan are being added now. Tasks 001 and 002 are complete. The development oracle is verified; Rust GDX functionality is not yet implemented. See the queue and evidence records for current execution status.
+Tasks 001–005 are complete with evidence. Task 006's baseline and automated checks are implemented; independent review remains required before its status can become complete. The crate is still a bootstrap with no GDX decoder/writer. Do not infer runtime readiness from development tooling or documentation gates.

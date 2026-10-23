@@ -57,7 +57,7 @@ def report_check(name, operation):
         record["result"] = operation()
         record["status"] = "passed"
         exit_code = 0
-    except (CheckFailure, OSError, ValueError, subprocess.SubprocessError) as exc:
+    except Exception as exc:
         record["status"] = "failed"
         record["error"] = str(exc)
         if isinstance(exc,CheckFailure):

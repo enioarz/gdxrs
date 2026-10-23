@@ -46,7 +46,7 @@ def validate_review(review,current_content=None):
     if review.get('content_sha256')!=identity:
         raise ValueError('independent review is stale for current M0 content')
     for finding in review.get('findings',[]):
-        if finding.get('requires_action') and finding.get('disposition') not in ('fixed-and-verified','accepted-with-rationale'):
+        if finding.get('requires_action') and (finding.get('disposition')!='fixed-and-verified' or not finding.get('verification') or not finding.get('fix')):
             raise ValueError('independent review has unresolved required findings')
     revision=review.get('reviewed_revision')
     if not revision: raise ValueError('reviewed revision missing')
