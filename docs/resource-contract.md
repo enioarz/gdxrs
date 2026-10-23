@@ -15,6 +15,7 @@ Reservation ownership follows storage, not a temporary function scope. On alloca
 | Owner | Bound / reservation rule |
 | --- | --- |
 | Shared file/header/options/diagnostic context | 16 KiB conservative fixed reservation; longer diagnostic paths are explicitly truncated, not retained without accounting |
+| Temporary path conversion at open | Before calling `File::open`, reserve checked `2 * path.as_os_str().len() + 32 KiB` for platform path conversion/scratch; release after the open operation. Reject an insufficient budget before that call. This reservation is separate from retained diagnostic context. |
 | Metadata page cache | At most `metadata_cache_bytes`, default 128 KiB; 32 KiB decoded pages, bounded page-directory entries included in the same allowance |
 | Encoded block buffer per active decoder | At most 65,535 bytes from the u16 length, rounded reservation at most 64 KiB; no whole compressed section buffer |
 | Decoded block buffer per active decoder | At most 32 KiB; bounded decoder output, including checksum validation |
@@ -30,6 +31,8 @@ A reservation's measured implementation can be smaller than a conservative table
 ## Worked examples
 
 With a 1 MiB cap, 16 KiB source state, 128 KiB metadata cache, one decoder at 64+32+128 KiB, 16 KiB cursor state, and a 64 KiB batch consume at most 448 KiB before charged small column-header/layout overhead. There is headroom for another bounded metadata decoder, not an arbitrary full metadata table. If a retained cache/second cursor would exceed the root cap, evict reclaimable cache pages or return `BudgetTooSmall`; never silently raise the cap.
+
+That scan example occurs after open, when temporary path-conversion scratch has been released. Do not charge only the truncated diagnostic name while a platform open call converts a much longer input path. OS/runtime/allocator hidden overhead remains part of measured RSS headroom, not a claim of exact physical allocation control.
 
 For a two-key parameter, each output row costs `2 * size_of::<UelId>() + size_of::<Value>()`. Compute rather than assume the enum size. For a 20-key/five-field row, the same formula is `20 * size_of::<UelId>() + 5 * size_of::<Value>()`. With a 64 KiB batch, fewer wide rows fit; do not reserve `record_count * row_size`. On an empty projection, enforce the 65,536-row ceiling despite zero payload bytes. A batch cap smaller than one selected row is `BatchTooSmall`.
 
