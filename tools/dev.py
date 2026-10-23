@@ -103,12 +103,13 @@ def check_bootstrap():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check"])
+    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check"])
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     from oracle import build, self_test
     import fixtures
     import specification
+    import contracts
     if args.command == 'fixtures-generate' and args.output is None:
         parser.error('fixtures-generate requires --output NEW_DIRECTORY')
     if args.output is not None and args.command != 'fixtures-generate':
@@ -121,6 +122,7 @@ def main():
         "fixtures-check": lambda: fixtures.check(run),
         "fixtures-regenerate-check": lambda: fixtures.regeneration_check(run),
         "spec-check": lambda: specification.check(run),
+        "contracts-check": contracts.check,
     }
     return report_check(args.command, actions[args.command])
 
