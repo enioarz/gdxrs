@@ -6,7 +6,7 @@ Read [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), [tasks/README.md](tasks/R
 
 Use the existing checkout. Each cloud task is already isolated; do not create a Git worktree unless explicitly requested. Check `git status` first and preserve existing work. Do not modify the research repositories or `polars-gdx` as part of a core task.
 
-The repository currently contains planning documents only. Commands and files specified under a task's **Deliverables** are future work, not existing capabilities. Do not claim that tests, fixtures, or performance baselines already exist.
+The repository contains planning documents and development bootstrap/oracle tooling. Consult the task queue and evidence for current capabilities. Commands and files specified under a pending task's **Deliverables** are future work; do not claim that its tests, fixtures, or performance baselines already exist.
 
 ## Scope and task discipline
 
