@@ -1,0 +1,708 @@
+{
+  "schema": 1,
+  "source_revision": "9e2a8c8932412010cd7d2f94727d1740143bf3da",
+  "source_sha256": {
+    "generated/gclgms.h": "952ffc61240318d691b9c17bf055565ecfcb284aad625b4181077f45da22c928",
+    "src/gdlib/gmsstrm.cpp": "c86fcbe62ab7b92f2511ecb74d9ca09f6d43fe06bbb6ee7913edf75917fd97e8",
+    "src/gdlib/gmsstrm.hpp": "66a3553476cdba2da20d6c6c84f914adb2474a6006bd7a72976af107a78d29fe",
+    "src/gdlib/strhash.hpp": "c4b4d0acdc607c8b5e486681691d95bb31f2f6a4cec53befc621fda331c11e2e",
+    "src/gdlib/utils.cpp": "47981037fea863ad657a357d92a54bfa6ccaaf348e54a265eb6727b7b868e6b4",
+    "src/gdxapi.yaml": "39b6a0e7aeae3b86a12780281651afffc52fe0673c691b4e479c52835bcf0f4f",
+    "src/gxfile.cpp": "e49a09a4b9d2b01fcb1a2ad0afe84e1890aa7a7756713cc50663c77fa90b84ac",
+    "src/gxfile.hpp": "97e209dea9dd552ad9cdec936aefa35f684cd3deef87d21803bf6a7440404141"
+  },
+  "rules": [
+    {
+      "id": "F01",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0",
+        "semantics-0-be"
+      ],
+      "sources": [
+        {
+          "path": "src/gdlib/gmsstrm.cpp",
+          "line": 787,
+          "anchor": "TMiBufferedStream::TMiBufferedStream(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gdlib/gmsstrm.cpp#L787"
+        }
+      ],
+      "expected_observations": {
+        "little_prefix": "023412047856341208182d4454fb210940",
+        "big_prefix": "021234041234567808400921fb54442d18"
+      }
+    },
+    {
+      "id": "F02",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 396,
+          "anchor": "int TGXFileObj::gdxOpenWriteEx(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L396"
+        }
+      ],
+      "expected_observations": {
+        "version_offset": 26,
+        "identifier": "0747414d53474458",
+        "producer": "67647872732d6669787475726573"
+      }
+    },
+    {
+      "id": "F03",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 532,
+          "anchor": "int TGXFileObj::gdxClose()",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L532"
+        }
+      ],
+      "expected_observations": {
+        "reserved_bytes": 80,
+        "index_marker": 19510624,
+        "append_equals_symbol_table": true
+      }
+    },
+    {
+      "id": "F04",
+      "status": "verified",
+      "fixtures": [
+        "blocks",
+        "semantics-1"
+      ],
+      "sources": [
+        {
+          "path": "src/gdlib/gmsstrm.cpp",
+          "line": 582,
+          "anchor": "bool TBufferedFileStream::FillBuffer()",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gdlib/gmsstrm.cpp#L582"
+        },
+        {
+          "path": "src/gdlib/gmsstrm.cpp",
+          "line": 667,
+          "anchor": "bool TBufferedFileStream::FlushBuffer()",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gdlib/gmsstrm.cpp#L667"
+        }
+      ],
+      "expected_observations": {
+        "decoded_block_max": 32768,
+        "stored_blocks": 2,
+        "crossing_records": 1
+      }
+    },
+    {
+      "id": "F05",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 1943,
+          "anchor": "int TGXFileObj::gdxOpenReadXX(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L1943"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 532,
+          "anchor": "int TGXFileObj::gdxClose()",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L532"
+        }
+      ],
+      "expected_observations": {
+        "types": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "dimensions": [
+          0,
+          1,
+          2,
+          20
+        ],
+        "max_name": 63,
+        "max_description": 255
+      }
+    },
+    {
+      "id": "F06",
+      "status": "verified",
+      "fixtures": [
+        "key-widths",
+        "semantics-0"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 1854,
+          "anchor": "int TGXFileObj::ReadUELTable(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L1854"
+        },
+        {
+          "path": "src/gdlib/strhash.hpp",
+          "line": 414,
+          "anchor": "void SaveToStream(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gdlib/strhash.hpp#L414"
+        }
+      ],
+      "expected_observations": {
+        "large_uel_count": 65536,
+        "byte_labels": [
+          "7a",
+          "61",
+          "43",
+          "ff",
+          "6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c"
+        ]
+      }
+    },
+    {
+      "id": "F07",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 1897,
+          "anchor": "int TGXFileObj::ReadSetTextList(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L1897"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 3169,
+          "anchor": "int TGXFileObj::gdxSetTextNodeNr(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L3169"
+        }
+      ],
+      "expected_observations": {
+        "set_texts": [
+          "",
+          "656c656d656e742074657874"
+        ]
+      }
+    },
+    {
+      "id": "F08",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 3997,
+          "anchor": "void TAcronymList::SaveToStream(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L3997"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 4173,
+          "anchor": "void TAcronym::SaveToStream(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L4173"
+        }
+      ],
+      "expected_observations": {
+        "acronyms": [
+          [
+            "6163",
+            "6163726f6e796d",
+            7
+          ]
+        ]
+      }
+    },
+    {
+      "id": "F09",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0",
+        "optional-domains-absent"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 2433,
+          "anchor": "int TGXFileObj::gdxSymbolGetDomainX(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L2433"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 2600,
+          "anchor": "int TGXFileObj::gdxSymbolSetDomainX(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L2600"
+        }
+      ],
+      "expected_observations": {
+        "strict": [
+          1,
+          0
+        ],
+        "relaxed": [
+          [
+            8,
+            [
+              1
+            ]
+          ]
+        ],
+        "absent_pointer": 0
+      }
+    },
+    {
+      "id": "F10",
+      "status": "verified",
+      "fixtures": [
+        "operations",
+        "semantics-0"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 1170,
+          "anchor": "void TGXFileObj::InitDoWrite(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L1170"
+        }
+      ],
+      "expected_observations": {
+        "operations_header_counts": [
+          2,
+          2,
+          -1,
+          -1,
+          -1
+        ],
+        "empty_scalar_stored": 0
+      }
+    },
+    {
+      "id": "F11",
+      "status": "verified",
+      "fixtures": [
+        "key-widths"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 351,
+          "anchor": "static TgdxElemSize GetIntegerSize(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L351"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 2278,
+          "anchor": "int TGXFileObj::gdxDataWriteRawStart(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L2278"
+        }
+      ],
+      "expected_observations": {
+        "widths": [
+          [
+            1
+          ],
+          [
+            2
+          ],
+          [
+            2
+          ],
+          [
+            4
+          ]
+        ],
+        "cardinalities": [
+          255,
+          256,
+          65535,
+          65536
+        ]
+      }
+    },
+    {
+      "id": "F12",
+      "status": "verified",
+      "fixtures": [
+        "key-widths"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 1382,
+          "anchor": "bool TGXFileObj::DoRead(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L1382"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 1234,
+          "anchor": "bool TGXFileObj::DoWrite(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L1234"
+        }
+      ],
+      "expected_observations": {
+        "prefix_records": [
+          "0100000000000000000a0000000000000ac0",
+          "030a0000000000000ac0",
+          "fe0a0000000000000ac0",
+          "02fb0100000a0000000000000ac0"
+        ],
+        "prefix_keys": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            254
+          ],
+          [
+            1,
+            508
+          ]
+        ]
+      }
+    },
+    {
+      "id": "F13",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.hpp",
+          "line": 156,
+          "anchor": "enum TgdxIntlValTyp",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.hpp#L156"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 1234,
+          "anchor": "bool TGXFileObj::DoWrite(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L1234"
+        }
+      ],
+      "expected_observations": {
+        "tags": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "ordinary_2_5": "0a0000000000000440"
+      }
+    },
+    {
+      "id": "F14",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 1605,
+          "anchor": "void TGXFileObj::GetDefaultRecord(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L1605"
+        },
+        {
+          "path": "generated/gclgms.h",
+          "line": 189,
+          "anchor": "static const double gmsDefRecVar",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/generated/gclgms.h#L189"
+        },
+        {
+          "path": "generated/gclgms.h",
+          "line": 203,
+          "anchor": "static const double gmsDefRecEqu",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/generated/gclgms.h#L203"
+        }
+      ],
+      "expected_observations": {
+        "variable_subtypes": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "equation_subtypes": [
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "empty_scalar_physical": 0
+      }
+    },
+    {
+      "id": "F15",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 2142,
+          "anchor": "int TGXFileObj::gdxAddAlias(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L2142"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 877,
+          "anchor": "int TGXFileObj::PrepareSymbolRead(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L877"
+        }
+      ],
+      "expected_observations": {
+        "aliases": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "id": "F16",
+      "status": "verified",
+      "fixtures": [
+        "operations"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 2783,
+          "anchor": "int TGXFileObj::gdxDataWriteMap(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L2783"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 1234,
+          "anchor": "bool TGXFileObj::DoWrite(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L1234"
+        }
+      ],
+      "expected_observations": {
+        "record_order": [
+          [
+            [
+              1
+            ],
+            [
+              2
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              3
+            ]
+          ]
+        ],
+        "stored_error_count": 2
+      }
+    },
+    {
+      "id": "F17",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0",
+        "case-distinct-labels"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 95,
+          "anchor": "bool GoodUELString(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L95"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 312,
+          "anchor": "int MakeGoodExplText(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L312"
+        },
+        {
+          "path": "src/gdlib/strhash.hpp",
+          "line": 62,
+          "anchor": "template<typename T, bool caseInsensitive = true",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gdlib/strhash.hpp#L62"
+        },
+        {
+          "path": "src/gdlib/utils.cpp",
+          "line": 189,
+          "anchor": "const char *trimRight(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gdlib/utils.cpp#L189"
+        }
+      ],
+      "expected_observations": {
+        "registered_labels": [
+          "7a",
+          "61",
+          "43",
+          "ff",
+          "6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c"
+        ],
+        "case_distinct_labels": [
+          "7a",
+          "61",
+          "41",
+          "ff",
+          "6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c"
+        ]
+      }
+    },
+    {
+      "id": "F18",
+      "status": "verified",
+      "fixtures": [
+        "operations"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 3504,
+          "anchor": "int TGXFileObj::gdxOpenAppend(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L3504"
+        }
+      ],
+      "expected_observations": {
+        "appended_last_name": "617070656e646564",
+        "retained_symbol_names": [
+          "6d6170706564",
+          "737472696e6773",
+          "69",
+          "6572726f7273"
+        ],
+        "append_pointer": true
+      }
+    },
+    {
+      "id": "F19",
+      "status": "verified",
+      "fixtures": [
+        "blocks",
+        "optional-domains"
+      ],
+      "sources": [
+        {
+          "path": "src/gdlib/gmsstrm.cpp",
+          "line": 582,
+          "anchor": "bool TBufferedFileStream::FillBuffer()",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gdlib/gmsstrm.cpp#L582"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 1943,
+          "anchor": "int TGXFileObj::gdxOpenReadXX(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L1943"
+        }
+      ],
+      "expected_observations": {
+        "invalid_cases": 12,
+        "checksum_probe_rejected": true
+      }
+    },
+    {
+      "id": "F20",
+      "status": "verified",
+      "fixtures": [
+        "key-widths",
+        "blocks"
+      ],
+      "sources": [
+        {
+          "path": "src/gxfile.cpp",
+          "line": 1382,
+          "anchor": "bool TGXFileObj::DoRead(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L1382"
+        },
+        {
+          "path": "src/gdlib/gmsstrm.cpp",
+          "line": 767,
+          "anchor": "void TBufferedFileStream::SetCompression(",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gdlib/gmsstrm.cpp#L767"
+        }
+      ],
+      "expected_observations": {
+        "delta_records_present": true,
+        "cross_block_record": true
+      }
+    },
+    {
+      "id": "F21",
+      "status": "verified",
+      "fixtures": [
+        "semantics-0",
+        "semantics-0-be",
+        "optional-domains",
+        "optional-domains-absent"
+      ],
+      "sources": [
+        {
+          "path": "src/gdxapi.yaml",
+          "line": 30,
+          "anchor": "functions:",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gdxapi.yaml#L30"
+        },
+        {
+          "path": "src/gxfile.cpp",
+          "line": 140,
+          "anchor": "constexpr int  VERSION = 7",
+          "url": "https://github.com/GAMS-dev/gdx/blob/9e2a8c8932412010cd7d2f94727d1740143bf3da/src/gxfile.cpp#L140"
+        }
+      ],
+      "expected_observations": {
+        "uniform_orders": [
+          "little",
+          "big"
+        ],
+        "domain_variants": [
+          true,
+          false
+        ]
+      }
+    }
+  ]
+}
