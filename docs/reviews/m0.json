@@ -8,12 +8,35 @@
   "content_sha256": null,
   "findings": [],
   "checklist": {
-    "source-pins": {"accepted": false, "notes": ""},
-    "fixture-independence": {"accepted": false, "notes": ""},
-    "format-evidence": {"accepted": false, "notes": ""},
-    "api-inventory": {"accepted": false, "notes": ""},
-    "reader-resource-contracts": {"accepted": false, "notes": ""},
-    "benchmark-method": {"accepted": false, "notes": ""},
-    "m1-prerequisites": {"accepted": false, "notes": ""}
-  }
+    "source-pins": {
+      "accepted": false,
+      "notes": ""
+    },
+    "fixture-independence": {
+      "accepted": false,
+      "notes": ""
+    },
+    "format-evidence": {
+      "accepted": false,
+      "notes": ""
+    },
+    "api-inventory": {
+      "accepted": false,
+      "notes": ""
+    },
+    "reader-resource-contracts": {
+      "accepted": false,
+      "notes": ""
+    },
+    "benchmark-method": {
+      "accepted": false,
+      "notes": ""
+    },
+    "m1-prerequisites": {
+      "accepted": false,
+      "notes": ""
+    }
+  },
+  "candidate_revision": "6a10db96e89a0cc40473aadd34ec16db43c46d70",
+  "candidate_content_sha256": "b4ab1c19be21d80665d911f78333681dc5e34583d15f2c4041a085fa87df96cf"
 }
