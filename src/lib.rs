@@ -7,6 +7,7 @@ mod error;
 mod format;
 mod model;
 mod source;
+mod stream;
 pub use budget::BudgetStatistics;
 pub use error::{Error, ErrorKind, Result};
 pub use model::{

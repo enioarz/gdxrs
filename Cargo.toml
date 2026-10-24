@@ -3,7 +3,12 @@ name = "gdxrs"
 version = "0.0.0"
 edition = "2024"
 rust-version = "1.99.1"
-description = "Independent streaming GDX v7 library (development bootstrap)"
+description = "Independent bounded-memory GDX v7 reader"
 publish = false
 
 [dependencies]
+miniz_oxide = { version = "=0.9.1", default-features = false, optional = true }
+
+[features]
+default = ["compression"]
+compression = ["dep:miniz_oxide"]
