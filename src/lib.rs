@@ -8,6 +8,7 @@ mod format;
 mod metadata;
 mod model;
 mod reader;
+mod records;
 mod source;
 mod stream;
 pub use budget::BudgetStatistics;
