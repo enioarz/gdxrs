@@ -28,8 +28,24 @@ class ReviewGate(unittest.TestCase):
             with patch.object(benchmark,'ROOT',root):
                 with self.assertRaisesRegex(ValueError,'no current baseline'):benchmark.current_baseline()
                 (directory/'current.json').write_text(json.dumps({'artifact':'.work/bench/runs/fresh/baseline.json'}))
-                self.assertEqual(benchmark.current_baseline(),root/'.work/bench/runs/fresh/baseline.json')
+                self.assertEqual(benchmark.current_baseline(),(root/'.work/bench/runs/fresh/baseline.json').resolve())
                 (directory/'current.json').write_text(json.dumps({'artifact':'../outside.json'}))
+                with self.assertRaisesRegex(ValueError,'outside'):benchmark.current_baseline()
+
+    def test_symlinked_baseline_root_and_escape(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            actual=Path(tmp).resolve()/'actual';actual.mkdir()
+            alias=actual.parent/'alias';alias.symlink_to(actual,target_is_directory=True)
+            bench=actual/'.work/bench';bench.mkdir(parents=True)
+            runs=bench/'runs';runs.mkdir()
+            artifact=runs/'baseline.json';artifact.write_text('{}')
+            pointer=bench/'current.json'
+            pointer.write_text(json.dumps({'artifact':'.work/bench/runs/baseline.json'}))
+            with patch.object(benchmark,'ROOT',alias):
+                self.assertEqual(benchmark.current_baseline(),artifact)
+                outside=actual.parent/'outside';outside.mkdir()
+                (runs/'escape').symlink_to(outside,target_is_directory=True)
+                pointer.write_text(json.dumps({'artifact':'.work/bench/runs/escape/baseline.json'}))
                 with self.assertRaisesRegex(ValueError,'outside'):benchmark.current_baseline()
 
     def test_failed_baseline_preserves_component_outcomes(self):

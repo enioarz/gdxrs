@@ -14,6 +14,22 @@ spec.loader.exec_module(oracle)
 
 
 class Identity(unittest.TestCase):
+    def test_symlinked_area_and_executable_escape(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve()
+            area=root/'actual';area.mkdir()
+            alias=root/'alias';alias.symlink_to(area,target_is_directory=True)
+            binary=area/'driver';binary.write_bytes(b'original')
+            metadata=dict(source_fingerprint='source-a',executable=str(alias/'driver'),
+                          executable_sha256=hashlib.sha256(b'original').hexdigest())
+            (area/'current.json').write_text(json.dumps(metadata))
+            with patch.object(oracle,'AREA',alias), patch.object(oracle,'source_fingerprint',return_value='source-a'):
+                self.assertEqual(oracle.executable(),binary)
+                outside=root/'outside';outside.write_bytes(b'original')
+                binary.unlink();binary.symlink_to(outside)
+                with self.assertRaisesRegex(ValueError,'invalid oracle path'):
+                    oracle.executable()
+
     def test_missing_changed_binary_and_changed_source_fail(self):
         with tempfile.TemporaryDirectory() as directory:
             area = Path(directory)
@@ -23,7 +39,7 @@ class Identity(unittest.TestCase):
                         "executable_sha256": hashlib.sha256(b"original").hexdigest()}
             (area / "current.json").write_text(json.dumps(metadata))
             with patch.object(oracle, "AREA", area), patch.object(oracle, "source_fingerprint", return_value="source-a"):
-                self.assertEqual(oracle.executable(), binary)
+                self.assertEqual(oracle.executable(), binary.resolve())
                 binary.write_bytes(b"different")
                 with self.assertRaisesRegex(ValueError, "executable changed"):
                     oracle.executable()
