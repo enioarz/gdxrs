@@ -32,7 +32,7 @@ python3 tools/dev.py benchmark-oracle --profile small
 python3 tools/dev.py m0-check
 ```
 
-The benchmark runner writes a fresh ignored `.work/bench/runs/<run-id>/baseline.json` and preserves the four input artifacts; reviewed results can then be deliberately retained here. It rejects missing trials, incorrect counts/ordered digests, stale measured-source identities, tampered input bytes and inconsistent summaries. An isolated native CMake target builds only the benchmark driver against the pinned archive; Cargo stays independent. A fresh checkout without the ignored input artifacts must rerun the benchmark rather than claim current-instance validation from this report.
+The benchmark runner writes a fresh ignored `.work/bench/runs/<run-id>/baseline.json` and preserves the four input artifacts; reviewed results can then be deliberately retained here. After validation it atomically selects that report in ignored `.work/bench/current.json`; `m0-check` uses this selection. Use `m0-check --baseline PATH` to select a report explicitly. Benchmark source changes must be committed before measurement, so recorded revision hashes match executed sources. It rejects missing trials, incorrect counts/ordered digests, stale measured-source identities, tampered input bytes and inconsistent summaries. An isolated native CMake target builds only the benchmark driver against the pinned archive; Cargo stays independent. A fresh checkout without the ignored input artifacts must rerun the benchmark rather than claim current-instance validation from this report.
 
 While independent review is pending, `m0-check` must exit 2 even when the automated and baseline checks pass. It cannot approve the author's work.
 

@@ -243,6 +243,11 @@ def verify_coverage(probes):
     if not set(range(53,60)) <= {s['user'] for s in symbols if s['type']==3}: raise ValueError('equation defaults')
     if probes['key-widths'].summary()['widths'] != [1,2,4]: raise ValueError('key-width coverage')
     if probes['semantics-0'].summary()['tags'] != list(range(11)): raise ValueError('value-tag coverage')
+    for name in ('semantics-0', 'semantics-1'):
+        p = probes[name]
+        equations = {s['id'] for s in p.symbols if s['type'] == 3}
+        if not any(r['symbol'] in equations and any(len(values) == 5 and len(set(values)) == 5 for _, values in r['rows']) for r in p.records):
+            raise ValueError('stored five-field equation coverage')
     b = probes['blocks'].summary()
     if not b['compressed_blocks'] or not b['stored_blocks'] or not b['crossing_records'] or not b['multiple_records_per_block']:
         raise ValueError('compression-boundary coverage')

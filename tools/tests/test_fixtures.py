@@ -13,6 +13,16 @@ import fixtures
 
 
 class FixtureChecks(unittest.TestCase):
+    def test_equation_physical_coverage_is_required(self):
+        from format_probe import Probe
+        probes={name:Probe((fixtures.FIXTURES/'v7'/f'{name}.gdx').read_bytes()) for name in fixtures.REQUIRED}
+        p=probes['semantics-0']
+        ids={s['id'] for s in p.symbols if s['type']==3}
+        for record in p.records:
+            if record['symbol'] in ids:record['rows']=[]
+        with self.assertRaisesRegex(ValueError,'stored five-field equation'):
+            fixtures.verify_coverage(probes)
+
     def copy(self, directory):
         root = Path(directory)/'fixtures'
         shutil.copytree(fixtures.FIXTURES,root)

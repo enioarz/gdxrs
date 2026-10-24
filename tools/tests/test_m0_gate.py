@@ -6,6 +6,8 @@ from pathlib import Path
 import sys
 import subprocess
 import unittest
+import tempfile
+from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).parents[1]))
 import benchmark
@@ -13,6 +15,23 @@ import m0
 
 
 class ReviewGate(unittest.TestCase):
+    def test_measured_revision_must_contain_exact_sources(self):
+        old=subprocess.check_output(['git','rev-list','--max-parents=0','HEAD'],cwd=m0.ROOT,text=True).strip()
+        with self.assertRaisesRegex(ValueError,'lacks benchmark source'):
+            benchmark.fingerprint(old)
+        prior='2941d6641b77eea03fc408f521e91b8fc38c4646'
+        self.assertNotEqual(benchmark.fingerprint(prior),benchmark.fingerprint())
+
+    def test_current_baseline_selection_and_escape(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); directory=root/'.work/bench';directory.mkdir(parents=True)
+            with patch.object(benchmark,'ROOT',root):
+                with self.assertRaisesRegex(ValueError,'no current baseline'):benchmark.current_baseline()
+                (directory/'current.json').write_text(json.dumps({'artifact':'.work/bench/runs/fresh/baseline.json'}))
+                self.assertEqual(benchmark.current_baseline(),root/'.work/bench/runs/fresh/baseline.json')
+                (directory/'current.json').write_text(json.dumps({'artifact':'../outside.json'}))
+                with self.assertRaisesRegex(ValueError,'outside'):benchmark.current_baseline()
+
     def test_pending_review_stays_pending(self):
         review=json.loads((m0.ROOT/'docs/reviews/m0.json').read_text())
         review.update(status='pending',reviewer=None)

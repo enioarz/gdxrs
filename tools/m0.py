@@ -68,19 +68,33 @@ def validate_review(review,current_content=None):
                 current_content_sha256=identity,post_review_changes=changed)
 
 
-def check(run,bootstrap):
-    # These run now; a retained report cannot substitute for a failing new check.
-    automated={
-        'bootstrap':bootstrap(),
-        'oracle_build':oracle.build(run),
-        'oracle_self_test':oracle.self_test(run),
-        'fixtures':fixtures.check(run),
-        'specification':specification.check(run),
-        'reader_contracts':contracts.check(),
-    }
-    run(['python3','-W','error::ResourceWarning','-m','unittest','discover','-s','tools/tests','-v'],timeout=180)
-    automated['tooling_tests']={'status':'passed','command':'python3 -W error::ResourceWarning -m unittest discover -s tools/tests -v'}
-    baseline=benchmark.validate_baseline(ROOT/'docs/benchmarks/oracle-small.json')
-    review=validate_review(json.loads((ROOT/'docs/reviews/m0.json').read_text()))
-    return dict(automated_status='passed',automated=automated,baseline=baseline,independent_review=review,
-                m1_eligible=review['status']=='accepted')
+def check(run,bootstrap,baseline_path=None):
+    from dev import CheckFailure
+    result=dict(automated_status='failed',automated={},baseline={'status':'unrun'},
+                independent_review={'status':'unavailable'},m1_eligible=False)
+    operations = [('bootstrap',bootstrap),('oracle_build',lambda:oracle.build(run)),
+                  ('oracle_self_test',lambda:oracle.self_test(run)),('fixtures',lambda:fixtures.check(run)),
+                  ('specification',lambda:specification.check(run)),('reader_contracts',contracts.check),
+                  ('tooling_tests',lambda:run(['python3','-W','error::ResourceWarning','-m','unittest','discover','-s','tools/tests','-v'],timeout=180))]
+    errors=[]
+    for name,operation in operations:
+        try:
+            value=operation()
+            result['automated'][name]=value if name!='tooling_tests' else {'status':'passed'}
+        except Exception as exc:
+            result['automated'][name]={'status':'failed','error':str(exc)}
+            errors.append(name+': '+str(exc))
+    if not errors: result['automated_status']='passed'
+    try:
+        result['baseline']=benchmark.validate_baseline(baseline_path or benchmark.current_baseline())
+    except Exception as exc:
+        result['baseline']={'status':'failed','error':str(exc)}
+        errors.append('baseline: '+str(exc))
+    try:
+        result['independent_review']=validate_review(json.loads((ROOT/'docs/reviews/m0.json').read_text()))
+    except Exception as exc:
+        result['independent_review']={'status':'failed','error':str(exc)}
+        errors.append('review: '+str(exc))
+    if errors: raise CheckFailure('; '.join(errors),result)
+    result['m1_eligible']=result['independent_review']['status']=='accepted'
+    return result

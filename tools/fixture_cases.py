@@ -103,6 +103,9 @@ def semantic(compression):
         high = 's:pinf' if subtype in (1,3,5) else finite(0)
         item = c.symbol('e'+str(subtype), 0, 3, 53+subtype); c.end()
         item['records'] = [([], [finite(0), finite(0), low, high, finite(1)])]
+    c.symbol('equation_values', 1, 3, 53)
+    c.row([1], [finite(1.25), finite(-2.5), finite(-3.75), finite(4.5), finite(5.25)])
+    c.end()
     return c
 
 
