@@ -16,7 +16,11 @@ def apply_limits(platform=sys.platform):
         try:
             soft, hard = resource.getrlimit(kind)
             candidates = [requested] + [n for n in (soft, hard) if n != resource.RLIM_INFINITY]
-            resource.setrlimit(kind, (min(candidates), hard))
+            # Darwin may report an unlimited hard limit that it refuses to
+            # accept again in setrlimit (EINVAL / Python ValueError). This
+            # dedicated exec child never needs to raise its limits later.
+            child_hard = min(requested, hard) if hard != resource.RLIM_INFINITY else requested
+            resource.setrlimit(kind, (min(candidates), child_hard if platform == 'darwin' else hard))
         except (ValueError, OSError) as exc:
             raise RuntimeError(f'{label} limit setup failed: {exc}') from exc
 
