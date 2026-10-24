@@ -568,7 +568,7 @@ impl DomainCursor {
                     );
                 }
                 let current = reader.lookup_record(SymbolId::new(id as u32)?)?;
-                for d in 0..usize::from(current.dimension) {
+                for relaxed_id in relaxed.iter_mut().take(usize::from(current.dimension)) {
                     let index = u32::try_from(stream.i32()?).map_err(|_| {
                         stream.error(ErrorKind::InvalidReference, "negative domain-name ID")
                     })?;
@@ -577,7 +577,7 @@ impl DomainCursor {
                             .error(ErrorKind::InvalidReference, "domain-name ID outside table"));
                     }
                     if current.id == record.id {
-                        relaxed[d] = index;
+                        *relaxed_id = index;
                         mode = DomainMode::Relaxed;
                     }
                 }
@@ -664,5 +664,26 @@ impl DomainCursor {
             relaxed_name: (self.mode == DomainMode::Relaxed).then_some(name),
             name,
         }))
+    }
+}
+
+#[cfg(test)]
+mod resource_tests {
+    use super::*;
+    #[test]
+    fn metadata_control_state_fits_charged_fixed_allowances() {
+        // Streaming cursor wrappers share their stream's conservative fixed
+        // reservation; explicit handle/domain/comment states have their own.
+        for size in [
+            std::mem::size_of::<SymbolCursor>(),
+            std::mem::size_of::<UelCursor>(),
+            std::mem::size_of::<SetTextCursor>(),
+            std::mem::size_of::<AcronymCursor>(),
+            std::mem::size_of::<CommentCursor>(),
+            std::mem::size_of::<DomainCursor>(),
+            std::mem::size_of::<HandleState>(),
+        ] {
+            assert!(size <= 16 * 1024, "metadata control storage {size}");
+        }
     }
 }

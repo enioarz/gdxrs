@@ -9,6 +9,7 @@ mod metadata;
 mod model;
 mod reader;
 mod records;
+mod scan;
 mod source;
 mod stream;
 pub use budget::BudgetStatistics;
@@ -23,3 +24,5 @@ pub use model::{
 };
 pub use reader::{FileInformation, Reader};
 pub use source::IoStatistics;
+
+pub use scan::{BatchView, RecordView, ScanCursor};

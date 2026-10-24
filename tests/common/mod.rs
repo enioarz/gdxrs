@@ -14,6 +14,12 @@ pub fn hex(bytes: &[u8]) -> String {
     s
 }
 pub fn metadata(reader: &Reader) -> Result<String> {
+    dump(reader, false)
+}
+pub fn full_dump(reader: &Reader) -> Result<String> {
+    dump(reader, true)
+}
+fn dump(reader: &Reader, records: bool) -> Result<String> {
     // Test-only bounded corpus output. Production views never collect catalogs.
     let mut s = String::new();
     let info = reader.information()?;
@@ -87,8 +93,55 @@ pub fn metadata(reader: &Reader) -> Result<String> {
                 writeln!(&mut s, "C\t{n}\t{}\t{}", c.ordinal, hex(c.text)).unwrap();
             }
         }
+        if records {
+            let mut cursor = reader.scan(&handle, reader.scan_options())?;
+            let mut count = 0;
+            while let Some(batch) = cursor.next_batch()? {
+                for i in 0..batch.len() {
+                    write!(&mut s, "R\t{n}\t").unwrap();
+                    for (index, dimension) in batch.key_dimensions().iter().enumerate() {
+                        write!(
+                            &mut s,
+                            "{}{}",
+                            if index == 0 { "" } else { "," },
+                            batch.key_column(*dimension).unwrap()[i].get()
+                        )
+                        .unwrap();
+                    }
+                    s.push('\t');
+                    for (index, field) in batch.value_fields().iter().enumerate() {
+                        write!(
+                            &mut s,
+                            "{}{}",
+                            if index == 0 { "" } else { "," },
+                            value(batch.value_column(*field).unwrap()[i])
+                        )
+                        .unwrap();
+                    }
+                    s.push('\n');
+                    count += 1;
+                }
+            }
+            writeln!(&mut s, "E\t{n}\t{count}").unwrap();
+        }
     }
     Ok(s)
+}
+pub fn value(v: Value) -> String {
+    match v {
+        Value::NumberBits(bits) => format!("f:{bits:016x}"),
+        Value::Acronym { id, .. } => format!("a:{}", id.get()),
+        Value::Special(v) => format!(
+            "s:{}",
+            match v {
+                SpecialValue::Undefined => "undef",
+                SpecialValue::NotAvailable => "na",
+                SpecialValue::PositiveInfinity => "pinf",
+                SpecialValue::NegativeInfinity => "minf",
+                SpecialValue::Epsilon => "eps",
+            }
+        ),
+    }
 }
 pub struct TempFile {
     pub path: PathBuf,

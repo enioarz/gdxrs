@@ -4,6 +4,7 @@
 import argparse
 import datetime
 import json
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -102,15 +103,58 @@ def check_bootstrap():
     metadata = json.loads(run([
         "cargo", "metadata", "--locked", "--format-version", "1", "--offline",
     ], capture=True).stdout)
-    if len(metadata["packages"]) != 1 or metadata["packages"][0]["dependencies"]:
-        raise CheckFailure("bootstrap must have zero third-party dependencies")
+    audit_dependencies(metadata)
     run(["cargo", "tree", "--locked"])
-    return {"versions": versions, "runtime_dependencies": 0, "gdx_tests": 0}
+    return {"versions": versions, "runtime_dependencies": 2, "runtime_tests_executed": 0,
+            "dependency_audit": "docs/decisions/0004-compression.md"}
+
+
+def audit_dependencies(metadata, compression=True):
+    expected = {("gdxrs", "0.0.0")}
+    if compression:
+        expected |= {("miniz_oxide", "0.9.1"), ("adler2", "2.0.1")}
+    actual = {(p["name"], p["version"]) for p in metadata["packages"]}
+    if actual != expected:
+        raise CheckFailure("resolved dependencies differ from audited codec graph")
+    names = {p["id"]: p["name"] for p in metadata["packages"]}
+    for node in metadata["resolve"]["nodes"]:
+        if names[node["id"]] != "gdxrs" and node["features"]:
+            raise CheckFailure("codec dependency features differ from bounded no-alloc audit")
+
+
+def reader_check():
+    bootstrap = check_bootstrap()
+    run(["cargo", "clippy", "--locked", "--all-targets", "--no-default-features", "--", "-D", "warnings"])
+    minimal = json.loads(run(["cargo", "metadata", "--locked", "--format-version", "1", "--offline", "--no-default-features"], capture=True).stdout)
+    audit_dependencies(minimal, compression=False)
+    suites = []
+    for features in ([], ["--no-default-features"], ["--all-features"]):
+        args = ["cargo", "test", "--locked", *features]
+        result = run(args, capture=True)
+        summaries = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out", result.stdout)
+        if len(summaries) != 3 or any(int(row[0]) == 0 or any(int(n) for n in row[1:]) for row in summaries):
+            raise CheckFailure("reader suites must execute unit, integration and compile-fail tests without skips")
+        suites.append({"command": args, "unit_integration_doctest_passed": [int(row[0]) for row in summaries]})
+    # Small frozen fixtures only: collecting the textual comparison here is
+    # development tooling, never part of the production reader or dump example.
+    paths = sorted((ROOT/"tests/fixtures/v7").glob("*.gdx"))
+    if len(paths) != 10:
+        raise CheckFailure("reader differential corpus must contain ten frozen fixtures")
+    records = 0
+    for path in paths:
+        result = run(["cargo", "run", "--locked", "--quiet", "--example", "dump", "--", path], capture=True)
+        expected = path.with_suffix(".expected.tsv").read_text()
+        if result.stdout != expected:
+            raise CheckFailure("Rust dump differs from authored expectation: " + path.name)
+        records += sum(line.startswith("R\t") for line in result.stdout.splitlines())
+    return {"bootstrap": bootstrap, "suites": suites, "differential_fixtures":len(paths),
+            "public_records_compared":records, "no_compression_dependencies":0,
+            "m2_scale_and_selection":"not implemented or measured"}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check"])
+    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check"])
     parser.add_argument("--output", type=Path)
     parser.add_argument("--profile", choices=['small'], default='small')
     args = parser.parse_args()
@@ -133,6 +177,7 @@ def main():
         return result
     actions = {
         "check-bootstrap": check_bootstrap,
+        "reader-check": reader_check,
         "oracle-build": lambda: build(run),
         "oracle-self-test": lambda: self_test(run),
         "fixtures-generate": lambda: fixtures.generate(run,args.output),

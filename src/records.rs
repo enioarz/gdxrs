@@ -12,6 +12,9 @@ pub(crate) struct Record {
 }
 impl Record {
     pub fn key(&self, d: usize) -> Option<UelId> {
+        if d >= usize::from(self.dimension) {
+            return None;
+        }
         self.keys.get(d).copied().flatten()
     }
 }

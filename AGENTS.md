@@ -6,7 +6,7 @@ Read [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), [tasks/README.md](tasks/R
 
 Use the existing checkout. Each cloud task is already isolated; do not create a Git worktree unless explicitly requested. Check `git status` first and preserve existing work. Do not modify the research repositories or `polars-gdx` as part of a core task.
 
-The repository contains the development bootstrap, pinned oracle, verified fixture corpus, format/API specification, reader contracts and baseline/review tooling; it has no Rust GDX decoder yet. Consult the task queue and evidence for current capabilities. Commands and files specified under a pending task's **Deliverables** are future work; do not claim that its tests, fixtures, or performance baselines already exist.
+The repository contains a bounded serial Rust GDX v7 reader, pinned oracle, verified fixture corpus, format/API specification, reader contracts and baseline/review tooling. M0 is released by explicit user confirmation. Writing, selections, indexes, parallel reads and Polars integration remain future work. Consult the task queue and evidence for current capabilities. Commands and files specified under a pending task's **Deliverables** are future work; do not claim that its tests, fixtures, or performance baselines already exist.
 
 ## Scope and task discipline
 

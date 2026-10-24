@@ -11,53 +11,6 @@ pub struct Reader {
     pub(crate) source: Arc<Source>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::{io, sync::Mutex};
-    struct Spy {
-        data: Vec<u8>,
-        ranges: Arc<Mutex<Vec<(u64, usize)>>>,
-    }
-    impl crate::source::ReadAt for Spy {
-        fn read_at(&self, at: u64, out: &mut [u8]) -> io::Result<usize> {
-            let at_usize = usize::try_from(at).map_err(io::Error::other)?;
-            let rest = self.data.get(at_usize..).unwrap_or(&[]);
-            let n = rest.len().min(out.len()).min(3);
-            out[..n].copy_from_slice(&rest[..n]);
-            self.ranges.lock().unwrap().push((at, n));
-            Ok(n)
-        }
-        fn unchanged(&self) -> io::Result<bool> {
-            Ok(true)
-        }
-    }
-    #[test]
-    fn opening_and_catalogs_never_read_data_sections() {
-        let data = std::fs::read("tests/fixtures/v7/semantics-0.gdx").unwrap();
-        let len = data.len() as u64;
-        let ranges = Arc::new(Mutex::new(Vec::new()));
-        let source = Source::testing(
-            Box::new(Spy {
-                data,
-                ranges: Arc::clone(&ranges),
-            }),
-            len,
-        );
-        let reader = Reader::from_source(source).unwrap();
-        let mut symbols = reader.symbols().unwrap();
-        while symbols.next().unwrap().is_some() {}
-        let header = reader.source.header().unwrap();
-        assert!(
-            ranges
-                .lock()
-                .unwrap()
-                .iter()
-                .all(|(start, n)| *start + *n as u64 <= header.data_start
-                    || *start >= header.offsets[0])
-        );
-    }
-}
 pub struct FileInformation<'a> {
     pub version: u8,
     pub compression_level: u8,
@@ -216,5 +169,53 @@ impl Reader {
     pub fn domains(&self, symbol: &SymbolHandle) -> Result<DomainCursor> {
         self.check_handle(symbol)?;
         DomainCursor::new(self.clone(), symbol.inner.record.clone())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{io, sync::Mutex};
+    struct Spy {
+        data: Vec<u8>,
+        ranges: Arc<Mutex<Vec<(u64, usize)>>>,
+    }
+    impl crate::source::ReadAt for Spy {
+        fn read_at(&self, at: u64, out: &mut [u8]) -> io::Result<usize> {
+            let at_usize = usize::try_from(at).map_err(io::Error::other)?;
+            let rest = self.data.get(at_usize..).unwrap_or(&[]);
+            let n = rest.len().min(out.len()).min(3);
+            out[..n].copy_from_slice(&rest[..n]);
+            self.ranges.lock().unwrap().push((at, n));
+            Ok(n)
+        }
+        fn unchanged(&self) -> io::Result<bool> {
+            Ok(true)
+        }
+    }
+    #[test]
+    fn opening_and_catalogs_never_read_data_sections() {
+        let data = std::fs::read("tests/fixtures/v7/semantics-0.gdx").unwrap();
+        let len = data.len() as u64;
+        let ranges = Arc::new(Mutex::new(Vec::new()));
+        let source = Source::testing(
+            Box::new(Spy {
+                data,
+                ranges: Arc::clone(&ranges),
+            }),
+            len,
+        );
+        let reader = Reader::from_source(source).unwrap();
+        let mut symbols = reader.symbols().unwrap();
+        while symbols.next().unwrap().is_some() {}
+        let header = reader.source.header().unwrap();
+        assert!(
+            ranges
+                .lock()
+                .unwrap()
+                .iter()
+                .all(|(start, n)| *start + *n as u64 <= header.data_start
+                    || *start >= header.offsets[0])
+        );
     }
 }

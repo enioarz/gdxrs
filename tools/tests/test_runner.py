@@ -49,6 +49,20 @@ class Reports(unittest.TestCase):
             self.assertEqual(len(reports),1)
             self.assertEqual(json.loads(reports[0].read_text())['status'],'failed')
 
+class DependencyAudit(unittest.TestCase):
+    def model(self, extra_features=None):
+        return {
+            'packages': [{'id': n, 'name': n, 'version': v} for n,v in [('gdxrs','0.0.0'),('miniz_oxide','0.9.1'),('adler2','2.0.1')]],
+            'resolve': {'nodes':[{'id':n, 'features':extra_features if n=='miniz_oxide' and extra_features else []} for n in ['gdxrs','miniz_oxide','adler2']]}
+        }
+    def test_audited_graph_rejects_changed_versions_and_features(self):
+        dev.audit_dependencies(self.model())
+        changed = self.model()
+        changed['packages'][1]['version'] = '0.9.2'
+        with self.assertRaises(dev.CheckFailure): dev.audit_dependencies(changed)
+        with self.assertRaises(dev.CheckFailure): dev.audit_dependencies(self.model(['with-alloc']))
+        with self.assertRaises(dev.CheckFailure): dev.audit_dependencies(self.model(), compression=False)
+
 
 if __name__ == "__main__":
     unittest.main()

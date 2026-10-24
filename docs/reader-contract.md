@@ -1,10 +1,10 @@
 # M1 reader contract
 
-Status: chosen design; the Rust API below is not implemented. Rule references point to [the v7 specification](format-v7.md). The [acceptance scenarios](reader-acceptance.json) specify future behavior; `contracts-check` validates their evidence/coverage, not a working reader.
+Status: implemented for M1; see [runtime evidence](evidence/011.md) and [runtime details](decisions/0005-m1-runtime-details.md). Rule references point to [the v7 specification](format-v7.md). The immutable M0 [acceptance blueprint](reader-acceptance.json) remains documentation coverage; `reader-check` executes runtime tests. M2 scenarios remain future work.
 
 ## Surface and ownership
 
-Implement these types/methods, with concrete names and return semantics. Supporting structs may have private fields; do not expose unchecked constructors. This task intentionally adds no panicking stubs.
+The reader exposes these types/methods, with concrete names and return semantics. Supporting structs may have private fields; do not expose unchecked constructors. This task intentionally adds no panicking stubs.
 
 ```rust,ignore
 Reader::open(path: impl AsRef<Path>, options: OpenOptions) -> Result<Reader>
@@ -54,7 +54,7 @@ Alias resolution performs at most `symbol_count` target hops using bounded state
 
 ## Scanning and batches
 
-`ScanOptions` contains `key_projection: KeyProjection` (`All` or `Mask(u32)`, default `All`), `value_projection: ValueProjection` (`All` or `Mask(u8)`, default `All`), `limit: Option<u64>` (default none), and `batch_bytes: usize` (default the reader's maximum, nonzero and no larger). `All` is expanded after the symbol is known, rather than using an invalid all-bits-set numeric mask. Explicit mask bits outside the symbol dimension or value arity are `InvalidProjection`. `ValueField` is `Level`, `Marginal`, `Lower`, `Upper`, `Scale`; sets/parameters/universe/alias-set rows expose level only. Requested columns are always in original dimension/field order.
+`ScanOptions` contains `key_projection: KeyProjection` (`All` or `Mask(u32)`, default `All`), `value_projection: ValueProjection` (`All` or `Mask(u8)`, default `All`), `limit: Option<u64>` (default none), and `batch_bytes: usize` (default 64 KiB; `Reader::scan_options()` uses the reader's maximum; nonzero and no larger). `All` is expanded after the symbol is known, rather than using an invalid all-bits-set numeric mask. Explicit mask bits outside the symbol dimension or value arity are `InvalidProjection`. `ValueField` is `Level`, `Marginal`, `Lower`, `Upper`, `Scale`; sets/parameters/universe/alias-set rows expose level only. Requested columns are always in original dimension/field order.
 
 The cursor keeps all previous keys in fixed storage even when some key columns are not projected. The decoder consumes all encoded value tags/payloads; projection avoids allocation/conversion/output work, not necessary framing reads. A batch is columnar primitive-ID arrays plus typed-value arrays, all with a common row count, and bounded metadata identifying the projected fields/dimensions. Empty projection is valid: row counts/limits still work, with no key/value output columns. Column access by an absent dimension/field and row access out of range return `None`.
 

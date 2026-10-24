@@ -1,6 +1,6 @@
 # Numbered implementation tasks
 
-These specifications break **M0** into bounded units of work. They are instructions for future implementation; adding them does not start implementation. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
+These specifications break **M0 and M1** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
 
 ## Execution order
 
@@ -15,7 +15,7 @@ These specifications break **M0** into bounded units of work. They are instructi
 
 Dependencies mean the task's acceptance checks passed and its evidence record is present, not merely that its files exist. Task 006 required independent review; the user confirmed on 2026-10-24 that M0 is reviewed and released. The older pending snapshot is historical. Source research may reveal missing fixtures; add them in the current task, record the change, and rerun the affected prior gates instead of treating this table as a reason to ignore new evidence.
 
-M1 and later implementation tickets will be written from the verified format and contracts. Do not infer authorization to implement them from this queue. The next tickets must separate checked primitives, compression blocks, metadata navigation, record decoding, and batch scanning into reviewable changes with exact fixture references.
+M1 tasks 007–011 follow the verified format and contracts under explicit user authorization. Later milestone tickets must retain the same bounded scopes and exact fixture references.
 
 ## Required completion record
 
@@ -32,7 +32,7 @@ Use statuses `pending`, `in progress`, `blocked`, or `complete`. Keep verificati
 
 ## Command convention
 
-The command surface below is a **future contract**. Task 001 creates `tools/dev.py`; later tasks add the named subcommands. Until implemented, commands must fail clearly rather than return success or generate placeholder reports.
+The command surface below is implemented by `tools/dev.py`. Unknown commands fail clearly.
 
 ```sh
 python3 tools/dev.py check-bootstrap
@@ -43,13 +43,14 @@ python3 tools/dev.py spec-check
 python3 tools/dev.py contracts-check
 python3 tools/dev.py benchmark-oracle --profile small
 python3 tools/dev.py m0-check
+python3 tools/dev.py reader-check
 ```
 
 Run from the repository root. Use Python's standard library for the development runner; it is not a runtime dependency. Subcommands must preserve child exit failures, avoid shell-string interpolation, validate their input/output paths, and emit a fresh report under ignored `.work/reports/`. Reports record revision and run identity; an old artifact cannot make a failed new command pass. Store compact reviewed results/provenance in version control where useful, not build trees or large generated files.
 
 ## Current implementation scope
 
-Tasks 001–006 are complete; the user confirmed the M0 review/release after identifying a stale snapshot. The crate is still a bootstrap with no GDX decoder/writer. Do not infer runtime readiness from development tooling or documentation gates.
+Tasks 001–006 are complete; the user confirmed the M0 review/release after identifying a stale snapshot. M1 provides the bounded serial GDX v7 reader. Runtime evidence is separate from documentation checks. The crate has no writer yet.
 
 ## M1 — user-directed advancement (2026-10-24)
 

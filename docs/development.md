@@ -1,29 +1,31 @@
 # Development
 
-The bootstrap is a single dependency-free Rust library. No GDX functionality is implemented yet. Cargo does not invoke Python, CMake or a native library.
+The crate implements the M1 bounded serial GDX v7 reader. Cargo invokes no Python, CMake or native library. Default compression uses the audited pure-Rust `miniz_oxide`/`adler2` pair; `--no-default-features` has no third-party dependencies and explicitly rejects compressed files.
 
-Use Rust **1.99.1**, including Cargo, Clippy and rustfmt. `rust-toolchain.toml` selects it when using rustup. The initial MSRV is also 1.99.1; lower releases are not claimed. Edition 2024 is supported by this release.
-
-Install through official rustup, preserving TLS and checksum verification:
+Use Rust **1.99.1**, Cargo, Clippy and rustfmt. `rust-toolchain.toml` and the MSRV select that version; lower releases are untested. Install through official rustup with TLS/checksum verification:
 
 ```sh
 rustup toolchain install 1.99.1 --profile minimal --component rustfmt --component clippy
 ```
 
-Alternatively install the official component archives into a local prefix. Verify each against its `xz_hash` in the official 2026-10-15 stable distribution manifest. The current cloud instance uses `.work/toolchains/1.99.1`; activate it for each shell:
+Alternatively use official component archives verified against their `xz_hash` in the official 2026-10-15 distribution manifest. This cloud instance has a local prefix/cache:
 
 ```sh
 export PATH="$PWD/.work/toolchains/1.99.1/bin:$PATH"
+export CARGO_HOME="$PWD/.work/cargo-home"
 ```
 
-Python 3.11+ is needed only for development commands (`tomllib` is standard-library). Run from the repository root:
+Run from the repository root. Python 3.11+ is development tooling only.
 
 ```sh
-cargo generate-lockfile
-python3 tools/dev.py check-bootstrap
-python3 -m unittest discover -s tools/tests -v
+python3 tools/dev.py reader-check
+python3 tools/dev.py m0-check
 ```
 
-Fresh JSON reports are saved under ignored `.work/reports/`. Unknown commands fail; future oracle/fixture commands are not implemented until their tasks are completed. The runner checks exact tool versions, formatting, compilation, Clippy and absence of dependencies. It does not interpret a zero-test crate as GDX functionality.
+`reader-check` checks formatting, locked compilation, Clippy with warnings denied for default/no-default features, the audited dependency graphs, and default/no-default/all-feature Rust suites. It executes the streaming dump example against all ten frozen expectations, including full metadata and 141,354 public records. Unit tests include I/O fault injection and budget accounting; integration tests include exact projections/limits, malformed input, a deterministic byte-mutation smoke test and real truncation. A compile-fail doctest checks batch borrowing. This is not a fuzz campaign or larger-than-RAM performance certification.
 
-Current validation is on Debian 13, Linux x86_64. Other platforms are untested. Later oracle tasks require a C++17 compiler and CMake as development dependencies only. Large generated datasets and native sources/builds belong under `.work/`, never in production Cargo dependencies.
+`m0-check` rebuilds/checks the pinned C++ oracle, fixtures, format coverage, initial contract blueprint, development tests and retained baseline identity. The user confirmed M0 is reviewed/released; the stale local pending review is historical. M0 blueprint checks do not execute Rust reader behavior. The legacy `check-bootstrap` command now enforces the audited M1 dependency graph rather than its historical zero-dependency bootstrap policy.
+
+Each command creates a fresh report in ignored `.work/reports/` and propagates failures. Do not regenerate Cargo.lock or fixture expectations as a routine workaround. See [task evidence](evidence/011.md) for exact executed counts, commands and limitations. [Oracle setup](oracle.md) requires C++17 and CMake only for development. Native sources/builds and generated datasets stay under `.work/`.
+
+Current validation is Linux x86_64, Debian 13. Windows positioned I/O is implemented but untested here; native big-endian hardware, >4 GiB inputs and OS-capped oversized workloads remain unrun. Selection predicates and their scale gates belong to M2; writing belongs to M3/M4.

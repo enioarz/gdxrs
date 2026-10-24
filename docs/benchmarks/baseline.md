@@ -34,7 +34,7 @@ python3 tools/dev.py m0-check
 
 The benchmark runner writes a fresh ignored `.work/bench/runs/<run-id>/baseline.json` and preserves the four input artifacts; reviewed results can then be deliberately retained here. It rejects missing trials, incorrect counts/ordered digests, stale measured-source identities, tampered input bytes and inconsistent summaries. An isolated native CMake target builds only the benchmark driver against the pinned archive; Cargo stays independent. A fresh checkout without the ignored input artifacts must rerun the benchmark rather than claim current-instance validation from this report.
 
-While independent review is pending, `m0-check` must exit 2 even when the automated and baseline checks pass. It cannot approve the author's work.
+The original pending review made `m0-check` exit 2 even when automated checks passed. The user subsequently confirmed M0 was reviewed and released; decision 0003 resolves that stale snapshot. Tooling does not fabricate an independent review.
 
 ## Large profile recipe (deferred and unrun)
 

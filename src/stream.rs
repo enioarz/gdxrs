@@ -360,6 +360,25 @@ mod tests {
     }
     #[cfg(feature = "compression")]
     #[test]
+    fn truncated_block_probe_reports_eof_when_decoding_its_data_section() {
+        let source = Source::open(
+            std::path::Path::new("tests/fixtures/invalid/truncated-block.gdx"),
+            crate::OpenOptions::default(),
+        )
+        .unwrap();
+        let end = source.length;
+        let mut stream = Stream::new(source, 194, end, true, Order::Little, "records").unwrap();
+        let mut byte = [0];
+        let error = loop {
+            match stream.read_exact(&mut byte) {
+                Ok(()) => {}
+                Err(e) => break e,
+            }
+        };
+        assert_eq!(error.kind, ErrorKind::UnexpectedEof);
+    }
+    #[cfg(feature = "compression")]
+    #[test]
     fn damaged_checksum_is_rejected() {
         let source = Source::open(
             std::path::Path::new("tests/fixtures/invalid/damaged-zlib-checksum.gdx"),

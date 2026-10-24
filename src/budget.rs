@@ -80,6 +80,13 @@ impl<T> Buffer<T> {
             .filter(|_| size_of::<T>() != 0)
             .ok_or_else(|| Error::new(ErrorKind::AllocationFailed, "buffer layout overflow"))?;
         let reservation = budget.reserve(bytes)?;
+        #[cfg(test)]
+        if FAIL_ALLOCATION.with(|flag| flag.replace(false)) {
+            return Err(Error::new(
+                ErrorKind::AllocationFailed,
+                "injected allocation failure",
+            ));
+        }
         let mut data = Vec::new();
         data.try_reserve_exact(capacity)
             .map_err(|_| Error::new(ErrorKind::AllocationFailed, "buffer allocation failed"))?;
@@ -114,8 +121,22 @@ impl Buffer<u8> {
 }
 
 #[cfg(test)]
+thread_local! { static FAIL_ALLOCATION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+
+#[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn allocation_failure_releases_reserved_layout() {
+        let budget = Budget::new(100);
+        FAIL_ALLOCATION.with(|flag| flag.set(true));
+        assert_eq!(
+            Buffer::<u32>::new(&budget, 10).err().unwrap().kind,
+            ErrorKind::AllocationFailed
+        );
+        assert_eq!(budget.statistics().current_bytes, 0);
+        assert_eq!(budget.statistics().peak_bytes, 40);
+    }
     #[test]
     fn reservations_reject_overflow_and_release() {
         let b = Budget::new(100);

@@ -109,7 +109,7 @@ impl Source {
     ) -> Result<Arc<Self>> {
         static NEXT: AtomicU64 = AtomicU64::new(1);
         let id = NEXT
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1))
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1))
             .map_err(|_| {
                 Error::new(ErrorKind::InvalidOptions, "source identity space exhausted")
             })?;
@@ -125,6 +125,16 @@ impl Source {
             bytes: AtomicU64::new(0),
             _root: root,
         }))
+    }
+    pub fn check_unchanged(&self) -> Result<()> {
+        let error = |e: Error| e.at(self.id, "physical source", 0, None);
+        if !self.backend.unchanged().map_err(|e| error(Error::io(e)))? {
+            return Err(error(Error::new(
+                ErrorKind::SourceChanged,
+                "file changed after open",
+            )));
+        }
+        Ok(())
     }
     pub fn read_exact(&self, mut at: u64, mut out: &mut [u8]) -> Result<()> {
         let error = |e: Error, offset| e.at(self.id, "physical source", offset, None);
