@@ -1,0 +1,121 @@
+{
+  "schema": 1,
+  "command": "m0-check",
+  "run_id": "95e21b31c04242dc8dda976e5c6f0372",
+  "revision": "f89e2c02f7e8bda01c101409264572ba97d63e5e",
+  "cwd": "/workspace/gdxrs",
+  "started_utc": "2026-10-24T09:50:36.631378+00:00",
+  "status": "blocked",
+  "result": {
+    "automated_status": "passed",
+    "automated": {
+      "bootstrap": {
+        "versions": {
+          "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)"
+        },
+        "runtime_dependencies": 0,
+        "gdx_tests": 0
+      },
+      "oracle_build": {
+        "identity": "34e4739ec820da487ff5ff2b702044f4b9c8673dc7c8c94ce916a5899e68a5b0",
+        "source_fingerprint": "1c4844bca1cf0b5df89516f72b8fbc68a342845375f9f9a00c929c04b0b0e208",
+        "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+        "cmake": "cmake version 4.4.4",
+        "pins": {
+          "schema": 1,
+          "gdx": {
+            "url": "https://github.com/GAMS-dev/gdx.git",
+            "commit": "9e2a8c8932412010cd7d2f94727d1740143bf3da",
+            "license": "MIT"
+          },
+          "zlib": {
+            "url": "https://github.com/madler/zlib.git",
+            "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
+            "license": "Zlib"
+          },
+          "unused_submodules": {
+            "src/apigenerator": "a2db931c5066d7e2253c68609b8d17a5be2016a4"
+          },
+          "build_options": [
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DNO_TESTS=ON",
+            "-DNO_EXAMPLES=ON",
+            "-DNO_TOOLS=ON",
+            "-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=TRUE",
+            "-DGDX_THREAD_SAFE=OFF"
+          ]
+        },
+        "executable": "/workspace/gdxrs/.work/oracle/builds/34e4739ec820da487ff5ff2b702044f4b9c8673dc7c8c94ce916a5899e68a5b0/driver/gdxrs-oracle",
+        "executable_sha256": "68baa9fb82b79da1eace4e4bc8fe14b579bb5a48d6de8ad82d84d85bb4296b31"
+      },
+      "oracle_self_test": {
+        "cases": [
+          {
+            "compression": 0,
+            "symbols": 3,
+            "records": 6,
+            "universe_records": 3
+          },
+          {
+            "compression": 1,
+            "symbols": 3,
+            "records": 6,
+            "universe_records": 3
+          }
+        ],
+        "negative_invocations": 3,
+        "expected_source": "tools/oracle.py:smoke_expectation"
+      },
+      "fixtures": {
+        "valid_fixtures": 10,
+        "negative_fixtures": 12,
+        "binary_bytes": 1049685,
+        "symbols": 122,
+        "stored_records": 5153,
+        "verified_coverage": "all required task-003 groups",
+        "unverified": []
+      },
+      "specification": {
+        "rules": 21,
+        "verified": 21,
+        "unverified": 0,
+        "public_functions": 92,
+        "property_accessors": 6,
+        "observations": "exact source anchors/digests and fixture byte/semantic assertions",
+        "runtime_rust_tests": 0
+      },
+      "reader_contracts": {
+        "validation_kind": "documentation-contract-coverage-only",
+        "specified_scenarios": 25,
+        "m1_scenarios": 23,
+        "future_m2_scenarios": 2,
+        "contract_areas": 9,
+        "runtime_scenarios_executed": 0,
+        "resource_measurements_executed": 0,
+        "codec_ceiling_measured": false
+      },
+      "tooling_tests": {
+        "status": "passed"
+      }
+    },
+    "baseline": {
+      "status": "verified",
+      "scenarios": 4,
+      "measured_scans": 20,
+      "measured_writes": 20,
+      "write_validation_scans": 20,
+      "large_profile": "unrun",
+      "revision": "b847c77789c0fb87b2362ca7d381d2bc8a1952bd"
+    },
+    "independent_review": {
+      "status": "pending",
+      "current_content_sha256": "e3db09502b3ed7f11dec7046f78eeaf1a7f1a6433528f6ca7f0a8697d4e57806",
+      "reason": "Independent reviewer has not accepted M0; author self-review is insufficient."
+    },
+    "m1_eligible": false
+  },
+  "error": "independent M0 review pending; automated checks passed",
+  "elapsed_seconds": 3.312606907999907,
+  "exit_code": 2
+}
