@@ -50,3 +50,15 @@ Run from the repository root. Use Python's standard library for the development 
 ## Current implementation scope
 
 Tasks 001–005 are complete with evidence. Task 006's baseline and automated checks are implemented; independent review remains required before its status can become complete. The crate is still a bootstrap with no GDX decoder/writer. Do not infer runtime readiness from development tooling or documentation gates.
+
+## M1 start authorized after PR #1 merge
+
+The user explicitly requested beginning M1 in a new PR after merging M0. This authorizes task 007 development despite the still-pending recorded independent M0 gate; it does not manufacture M0 acceptance. The new PR remains draft pending that review.
+
+| Task | Status |
+| --- | --- |
+| [007 — Checked header](007-checked-header.md) | Implemented; review pending |
+| [008 — Compression](008-bounded-compression.md) | Pending |
+| [009 — Metadata](009-lazy-metadata.md) | Pending |
+| [010 — Records](010-record-decoding.md) | Pending |
+| [011 — Batches](011-serial-batches.md) | Pending |
