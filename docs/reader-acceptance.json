@@ -1,0 +1,638 @@
+{
+  "schema": 1,
+  "validation_kind": "documentation-contract-coverage-only",
+  "areas": [
+    "ids",
+    "values",
+    "labels",
+    "sources",
+    "batches",
+    "metadata",
+    "limits",
+    "errors",
+    "resources"
+  ],
+  "choices": {
+    "source": "path-based-positioned-file",
+    "batch_ownership": "cursor-owned-lending",
+    "uel_matching": "exact-stored-bytes",
+    "registration_compatibility": "explicit-ascii-folded-adapter",
+    "values": "typed-enum-retaining-ordinary-and-acronym-bits",
+    "minimum_budget_bytes": 1048576,
+    "default_budget_bytes": 67108864,
+    "default_batch_bytes": 65536,
+    "maximum_batch_rows": 65536,
+    "codec_scratch_ceiling_bytes": 131072,
+    "codec_ceiling_measured": false,
+    "workers_in_m1": 0
+  },
+  "scenarios": [
+    {
+      "id": "open-no-record-scan",
+      "areas": [
+        "sources",
+        "metadata",
+        "resources"
+      ],
+      "rule_ids": [
+        "F01",
+        "F02",
+        "F03",
+        "F05"
+      ],
+      "fixture": "semantics-0",
+      "stage": "M1",
+      "operation": "open then enumerate symbol metadata",
+      "expected": {
+        "record_sections_read": 0
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Only metadata/necessary metadata-block bytes; no UEL-wide vector and no record-section reads",
+      "test_method": "counting positioned source",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "first-batch",
+      "areas": [
+        "sources",
+        "batches",
+        "resources"
+      ],
+      "rule_ids": [
+        "F04",
+        "F10",
+        "F12"
+      ],
+      "fixture": "blocks",
+      "stage": "M1",
+      "operation": "scan with 4096-byte batch then stop",
+      "expected": {
+        "nonempty": true,
+        "whole_symbol_prescan": false
+      },
+      "semantic_lines": [
+        "R\t1\t1\tf:3ff32d2335df4552"
+      ],
+      "resource_assertion": "Read/decode at most required prefix blocks and bounded lookahead, not all 5000 rows",
+      "test_method": "counted read ranges plus semantic prefix comparison",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "zero-limit",
+      "areas": [
+        "limits",
+        "resources"
+      ],
+      "rule_ids": [
+        "F10",
+        "F14"
+      ],
+      "fixture": "blocks",
+      "stage": "M1",
+      "operation": "scan limit=0",
+      "expected": {
+        "batches": 0,
+        "record_sections_read": 0
+      },
+      "semantic_lines": [],
+      "resource_assertion": "No data decoder/output allocation; metadata validation only",
+      "test_method": "counting positioned source",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "scalar-explicit",
+      "areas": [
+        "values",
+        "batches"
+      ],
+      "rule_ids": [
+        "F10",
+        "F13",
+        "F14"
+      ],
+      "fixture": "semantics-0",
+      "stage": "M1",
+      "operation": "scan scalar",
+      "expected": {
+        "rows": 1,
+        "key_columns": 0
+      },
+      "semantic_lines": [
+        "R\t5\t\tf:4004000000000000"
+      ],
+      "resource_assertion": "Fixed working set independent of source row count",
+      "test_method": "typed record comparison",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "scalar-default",
+      "areas": [
+        "values",
+        "metadata"
+      ],
+      "rule_ids": [
+        "F10",
+        "F14"
+      ],
+      "fixture": "semantics-0",
+      "stage": "M1",
+      "operation": "scan default_scalar",
+      "expected": {
+        "physical_rows": 0,
+        "public_rows": 1
+      },
+      "semantic_lines": [
+        "R\t6\t\tf:0000000000000000"
+      ],
+      "resource_assertion": "No fabricated record read or extra default row",
+      "test_method": "metadata plus typed row comparison",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "empty-indexed",
+      "areas": [
+        "batches",
+        "metadata"
+      ],
+      "rule_ids": [
+        "F05",
+        "F10"
+      ],
+      "fixture": "semantics-0",
+      "stage": "M1",
+      "operation": "scan empty set",
+      "expected": {
+        "rows": 0
+      },
+      "semantic_lines": [
+        "E\t4\t0"
+      ],
+      "resource_assertion": "No large output allocation for an empty set",
+      "test_method": "typed EOF comparison",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "all-kinds-and-fields",
+      "areas": [
+        "ids",
+        "values"
+      ],
+      "rule_ids": [
+        "F05",
+        "F13",
+        "F14",
+        "F15"
+      ],
+      "fixture": "semantics-0",
+      "stage": "M1",
+      "operation": "scan every public symbol including 20D variable",
+      "expected": {
+        "kinds": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "dimensions": [
+          0,
+          1,
+          2,
+          20
+        ],
+        "variable_fields": 5
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Fixed 20-key state; no per-record label strings",
+      "test_method": "complete oracle semantic comparison",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "universe-and-alias",
+      "areas": [
+        "ids",
+        "metadata",
+        "values"
+      ],
+      "rule_ids": [
+        "F06",
+        "F15"
+      ],
+      "fixture": "semantics-0",
+      "stage": "M1",
+      "operation": "scan universe and aliases ii/all",
+      "expected": {
+        "universe_rows": 5,
+        "alias_set_rows": 5,
+        "alias_own_stream": false
+      },
+      "semantic_lines": [
+        "E\t0\t5",
+        "E\t2\t5",
+        "E\t3\t5"
+      ],
+      "resource_assertion": "Alias hops bounded by symbol count; no eager visited catalog",
+      "test_method": "typed IDs/values and public counts",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "special-identities",
+      "areas": [
+        "values"
+      ],
+      "rule_ids": [
+        "F08",
+        "F13"
+      ],
+      "fixture": "semantics-0",
+      "stage": "M1",
+      "operation": "scan special/acronym parameter",
+      "expected": {
+        "special_classes": 5,
+        "acronym_id": 7
+      },
+      "semantic_lines": [],
+      "resource_assertion": "No lossy global numeric remapping",
+      "test_method": "compare Value variants and ordinary/acronym payload bits",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "raw-label-bytes",
+      "areas": [
+        "labels",
+        "ids",
+        "metadata"
+      ],
+      "rule_ids": [
+        "F06",
+        "F17"
+      ],
+      "fixture": "case-distinct-labels",
+      "stage": "M1",
+      "operation": "iterate UELs and resolve exact byte labels",
+      "expected": {
+        "case_distinct": true,
+        "invalid_utf8_is_stored_bytes": true
+      },
+      "semantic_lines": [
+        "U\t2\t61",
+        "U\t3\t41",
+        "U\t4\tff"
+      ],
+      "resource_assertion": "No full reverse dictionary",
+      "test_method": "byte equality and fallible UTF-8 conversion",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "metadata-cold-lookup",
+      "areas": [
+        "metadata",
+        "resources"
+      ],
+      "rule_ids": [
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09"
+      ],
+      "fixture": "key-widths",
+      "stage": "M1",
+      "operation": "lookup late symbol/UEL through paged catalog",
+      "expected": {
+        "uel_count": 65536,
+        "catalog_scan_allowed": true
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Cache pages capped; no offset Vec or map proportional to 65536 labels",
+      "test_method": "metadata read counters and reservation accounting",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "projection-framing",
+      "areas": [
+        "batches",
+        "values"
+      ],
+      "rule_ids": [
+        "F12",
+        "F13"
+      ],
+      "fixture": "semantics-0",
+      "stage": "M1",
+      "operation": "select key dimension 19 and scale only for twenty",
+      "expected": {
+        "key_columns": 1,
+        "value_fields": [
+          "Scale"
+        ],
+        "framing_consumed": true
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Unselected output columns allocate zero payload",
+      "test_method": "compare selected columns and decoder read ranges",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "empty-projection",
+      "areas": [
+        "batches",
+        "limits"
+      ],
+      "rule_ids": [
+        "F10",
+        "F13"
+      ],
+      "fixture": "blocks",
+      "stage": "M1",
+      "operation": "scan with zero masks and limit=12",
+      "expected": {
+        "rows": 12,
+        "columns": 0
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Still enforce 65536-row ceiling with zero payload",
+      "test_method": "batch row counts plus EOF/limit counters",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "unknown-version",
+      "areas": [
+        "errors"
+      ],
+      "rule_ids": [
+        "F02",
+        "F19"
+      ],
+      "fixture": "optional-domains",
+      "stage": "M1",
+      "operation": "open version probes 5/6/8",
+      "expected": {
+        "errors": [
+          "UnsupportedVersion"
+        ]
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Fail before modern section decode",
+      "test_method": "negative artifact error-kind assertions",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "malformed-fields",
+      "areas": [
+        "errors",
+        "ids"
+      ],
+      "rule_ids": [
+        "F03",
+        "F05",
+        "F12",
+        "F13",
+        "F19"
+      ],
+      "fixture": "optional-domains",
+      "stage": "M1",
+      "operation": "open/scan malformed offsets/counts/dimensions/tags",
+      "expected": {
+        "errors": [
+          "InvalidOffset",
+          "InvalidCount",
+          "InvalidDimension",
+          "InvalidKeyTag",
+          "InvalidValueTag"
+        ]
+      },
+      "semantic_lines": [],
+      "resource_assertion": "No unvalidated count allocation, overflow or unsafe indexing",
+      "test_method": "negative artifact assertions and panic detection",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "checksum-integrity",
+      "areas": [
+        "errors",
+        "sources"
+      ],
+      "rule_ids": [
+        "F04",
+        "F19"
+      ],
+      "fixture": "blocks",
+      "stage": "M1",
+      "operation": "read damaged-zlib-checksum",
+      "expected": {
+        "error": "InvalidCompression"
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Decoded output bounded to 32768 despite upstream permissiveness",
+      "test_method": "mutated payload checksum failure",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "short-reads-and-terminal-error",
+      "areas": [
+        "sources",
+        "errors",
+        "resources"
+      ],
+      "rule_ids": [
+        "F04",
+        "F10",
+        "F19"
+      ],
+      "fixture": "blocks",
+      "stage": "M1",
+      "operation": "inject short reads then I/O failure while filling a batch",
+      "expected": {
+        "short_reads_looped": true,
+        "partial_batch_exposed": false,
+        "terminal": true
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Drop/error release reservations once; no restart/duplicate rows",
+      "test_method": "scripted counting/fault-injection source",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "batch-too-small",
+      "areas": [
+        "batches",
+        "errors",
+        "resources"
+      ],
+      "rule_ids": [
+        "F13"
+      ],
+      "fixture": "semantics-0",
+      "stage": "M1",
+      "operation": "request 1-byte batch for projected 20D five-field row",
+      "expected": {
+        "error": "BatchTooSmall"
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Checked row layout; no capacity based on total record count",
+      "test_method": "allocation hook must observe no oversized output allocation",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "budget-rejection-and-drop",
+      "areas": [
+        "resources",
+        "errors"
+      ],
+      "rule_ids": [
+        "F04",
+        "F05",
+        "F06"
+      ],
+      "fixture": "blocks",
+      "stage": "M1",
+      "operation": "open below 1MiB; separately exhaust a valid root quota with retained cursors",
+      "expected": {
+        "error": "BudgetTooSmall",
+        "post_drop_reservations": 0
+      },
+      "semantic_lines": [],
+      "resource_assertion": "All metadata/codec/output capacities charged; no allocation after failed reservation",
+      "test_method": "reservation and failure injection",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "borrowed-batch-reuse",
+      "areas": [
+        "resources",
+        "batches"
+      ],
+      "rule_ids": [
+        "F10",
+        "F12"
+      ],
+      "fixture": "blocks",
+      "stage": "M1",
+      "operation": "consume/drop each view and request the next",
+      "expected": {
+        "capacity_reused": true,
+        "retained_batches_per_cursor": 1
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Old internal batch cannot be borrowed across next fill",
+      "test_method": "borrow-check compile-fail test and allocation accounting",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "source-handle-mismatch",
+      "areas": [
+        "sources",
+        "ids",
+        "errors"
+      ],
+      "rule_ids": [
+        "F03",
+        "F15"
+      ],
+      "fixture": "semantics-0",
+      "stage": "M1",
+      "operation": "use symbol handle from a different Reader",
+      "expected": {
+        "error": "SourceMismatch"
+      },
+      "semantic_lines": [],
+      "resource_assertion": "No seek on mismatched handle",
+      "test_method": "two-reader identity test",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "source-truncation",
+      "areas": [
+        "sources",
+        "errors"
+      ],
+      "rule_ids": [
+        "F03",
+        "F19"
+      ],
+      "fixture": "blocks",
+      "stage": "M1",
+      "operation": "truncate copied source after open",
+      "expected": {
+        "error": "SourceChanged"
+      },
+      "semantic_lines": [],
+      "resource_assertion": "No silent partial EOF success or switch to path replacement",
+      "test_method": "real filesystem test",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "both-byte-orders",
+      "areas": [
+        "sources",
+        "values",
+        "ids"
+      ],
+      "rule_ids": [
+        "F01",
+        "F11",
+        "F12",
+        "F13"
+      ],
+      "fixture": "key-widths-be",
+      "stage": "M1",
+      "operation": "scan opposite-endian fixture and compare little-endian public records",
+      "expected": {
+        "identical_raw_view": true
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Choose order once; no whole-file byte reversal",
+      "test_method": "cross-fixture typed record comparison",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "m2-empty-selection",
+      "areas": [
+        "limits",
+        "labels",
+        "resources"
+      ],
+      "rule_ids": [
+        "F06",
+        "F12"
+      ],
+      "fixture": "case-distinct-labels",
+      "stage": "M2",
+      "operation": "resolve empty/unknown exact selection then scan",
+      "expected": {
+        "rows": 0,
+        "record_sections_read": 0
+      },
+      "semantic_lines": [],
+      "resource_assertion": "No eager UEL table or unnecessary index build",
+      "test_method": "future selection plus counted source",
+      "status": "specified-not-executed"
+    },
+    {
+      "id": "m2-large-scale",
+      "areas": [
+        "resources",
+        "metadata",
+        "limits"
+      ],
+      "rule_ids": [
+        "F03",
+        "F06",
+        "F20"
+      ],
+      "fixture": "key-widths",
+      "stage": "M2",
+      "operation": "runtime-generate separately oversized records and metadata and stream to a validating sink",
+      "expected": {
+        "library_budget_bytes": 268435456,
+        "os_cap_bytes": 536870912,
+        "file_to_os_cap_ratio_min": 4
+      },
+      "semantic_lines": [],
+      "resource_assertion": "Growth in records/labels does not produce proportional retained RAM; fixture is only the small semantic seed",
+      "test_method": "OS-capped process plus RSS and allocation peak measurements",
+      "status": "specified-not-executed"
+    }
+  ]
+}

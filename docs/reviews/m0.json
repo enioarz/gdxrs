@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "status": "pending",
+  "implementation_author": "Codex implementation author",
+  "reviewer": null,
+  "reviewer_role": null,
+  "reviewed_revision": null,
+  "content_sha256": null,
+  "findings": [],
+  "checklist": {
+    "source-pins": {
+      "accepted": false,
+      "notes": ""
+    },
+    "fixture-independence": {
+      "accepted": false,
+      "notes": ""
+    },
+    "format-evidence": {
+      "accepted": false,
+      "notes": ""
+    },
+    "api-inventory": {
+      "accepted": false,
+      "notes": ""
+    },
+    "reader-resource-contracts": {
+      "accepted": false,
+      "notes": ""
+    },
+    "benchmark-method": {
+      "accepted": false,
+      "notes": ""
+    },
+    "m1-prerequisites": {
+      "accepted": false,
+      "notes": ""
+    }
+  },
+  "candidate_revision": "f89e2c02f7e8bda01c101409264572ba97d63e5e",
+  "candidate_content_sha256": "e3db09502b3ed7f11dec7046f78eeaf1a7f1a6433528f6ca7f0a8697d4e57806"
+}

@@ -1,0 +1,572 @@
+{
+  "schema": 1,
+  "upstream": {
+    "schema": 1,
+    "gdx": {
+      "url": "https://github.com/GAMS-dev/gdx.git",
+      "commit": "9e2a8c8932412010cd7d2f94727d1740143bf3da",
+      "license": "MIT"
+    },
+    "zlib": {
+      "url": "https://github.com/madler/zlib.git",
+      "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
+      "license": "Zlib"
+    },
+    "unused_submodules": {
+      "src/apigenerator": "a2db931c5066d7e2253c68609b8d17a5be2016a4"
+    },
+    "build_options": [
+      "-DCMAKE_BUILD_TYPE=Release",
+      "-DNO_TESTS=ON",
+      "-DNO_EXAMPLES=ON",
+      "-DNO_TOOLS=ON",
+      "-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=TRUE",
+      "-DGDX_THREAD_SAFE=OFF"
+    ]
+  },
+  "generator": {
+    "base_revision": "48e5b86e766c47a6782fde19b3ca7c6e33642673",
+    "files": {
+      "tools/fixture_cases.py": "cbe24fe2b03a7415009f3b947cd9cd04ad15ff9911a8217c4afedce9bb25bb3f",
+      "tools/fixtures.py": "774c39589f76c1f056c330a421ca1c3361f9e07dde58f840779bfa943171e649",
+      "tools/format_probe.py": "9f0a38be5031503afc72f8af241acc6d78291983319775c1b390b94c0a791cc7",
+      "tools/oracle/driver.cpp": "56af08ac7c15659e6a77e3c24b74d672b02035676eda2bb63b8d9371e610832e",
+      "tools/oracle/fixture_generator.hpp": "5b7d3426fc5f60da0bd13e0680e6db6c3b481213ff7fa12e7147fd0e74973671"
+    }
+  },
+  "fixtures": [
+    {
+      "id": "semantics-0",
+      "path": "v7/semantics-0.gdx",
+      "sha256": "c78b782fbb1e606ea33022eea8c94b3125eac7efba70838805aa0e49f0f58c06",
+      "expectation": "v7/semantics-0.expected.tsv",
+      "expectation_sha256": "4e4fb40f2728cc2ac4d3d3a8b348fff0c73f31046ca3ea2d6c48d26739c3f1d6",
+      "recipe": "v7/semantics-0.recipe.tsv",
+      "recipe_sha256": "7c82017534326ea76cb05493d339d19d853ee2ca0d763009fba1a0a76bc80e27",
+      "transform": null,
+      "expected_events": "",
+      "observations": {
+        "byte_order": "little",
+        "compression": 0,
+        "symbols": 26,
+        "uels": 5,
+        "widths": [
+          4
+        ],
+        "tags": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "stored_records": 25,
+        "compressed_blocks": 0,
+        "stored_blocks": 0,
+        "crossing_records": 0,
+        "multiple_records_per_block": false
+      }
+    },
+    {
+      "id": "semantics-1",
+      "path": "v7/semantics-1.gdx",
+      "sha256": "2de1fbb37d38a6f34371b5bf34554e5e1ba3494bbaa24042c41ff5b1607e00ca",
+      "expectation": "v7/semantics-1.expected.tsv",
+      "expectation_sha256": "7723fbe429a64f3c3a4005f892e08451d523052f3bebee0066afa44606621912",
+      "recipe": "v7/semantics-1.recipe.tsv",
+      "recipe_sha256": "7c82017534326ea76cb05493d339d19d853ee2ca0d763009fba1a0a76bc80e27",
+      "transform": null,
+      "expected_events": "",
+      "observations": {
+        "byte_order": "little",
+        "compression": 1,
+        "symbols": 26,
+        "uels": 5,
+        "widths": [
+          4
+        ],
+        "tags": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "stored_records": 25,
+        "compressed_blocks": 8,
+        "stored_blocks": 3,
+        "crossing_records": 0,
+        "multiple_records_per_block": true
+      }
+    },
+    {
+      "id": "key-widths",
+      "path": "v7/key-widths.gdx",
+      "sha256": "d01fd28436bb821593e13dab2c4adab719d6e7e68abf490c3de4f4efb6f102ac",
+      "expectation": "v7/key-widths.expected.tsv",
+      "expectation_sha256": "6a71f51411b743f2639bfbd671d10eecc8be7c72773914af4ca08e1024af1f07",
+      "recipe": "v7/key-widths.recipe.tsv",
+      "recipe_sha256": "3276e2518cf8292069dda82bc8c20ca10ac11204755f84649a30d52c9d5e818b",
+      "transform": null,
+      "expected_events": "",
+      "observations": {
+        "byte_order": "little",
+        "compression": 0,
+        "symbols": 5,
+        "uels": 65536,
+        "widths": [
+          1,
+          2,
+          4
+        ],
+        "tags": [
+          10
+        ],
+        "stored_records": 22,
+        "compressed_blocks": 0,
+        "stored_blocks": 0,
+        "crossing_records": 0,
+        "multiple_records_per_block": false
+      }
+    },
+    {
+      "id": "blocks",
+      "path": "v7/blocks.gdx",
+      "sha256": "bbc1fc6ba20d4f1c236517926c65af6b865bf50367d2fb0946970c7c756a1417",
+      "expectation": "v7/blocks.expected.tsv",
+      "expectation_sha256": "6e298978dbfb8ee8cef203e98527f13fd701f851216878942ab3156d228a8480",
+      "recipe": "v7/blocks.recipe.tsv",
+      "recipe_sha256": "0e4e3e32d5d7b721889d58c1abf296fa4af52c2867c26f4fb3d81a93eac68db3",
+      "transform": null,
+      "expected_events": "",
+      "observations": {
+        "byte_order": "little",
+        "compression": 1,
+        "symbols": 1,
+        "uels": 5000,
+        "widths": [
+          4
+        ],
+        "tags": [
+          10
+        ],
+        "stored_records": 5000,
+        "compressed_blocks": 5,
+        "stored_blocks": 2,
+        "crossing_records": 1,
+        "multiple_records_per_block": true
+      }
+    },
+    {
+      "id": "operations",
+      "path": "v7/operations.gdx",
+      "sha256": "7cf1972b4998d7bbe758a933e431005f2ab9adb84c7d3cd5e8ef7a475dc88a23",
+      "expectation": "v7/operations.expected.tsv",
+      "expectation_sha256": "7886c57cb2d9d5cf039bc3c1e108f86869b7e9b8c25a54c8fb3f9b7972d46bc2",
+      "recipe": "v7/operations.recipe.tsv",
+      "recipe_sha256": "aabf383990757b8767ce64bbf3f404fc2f13da4747c7a770f2927b21936ab8fd",
+      "transform": null,
+      "expected_events": "REJECT\tK\t-100009\t1\nREJECT\tK\t-100058\t2\nREJECT\tS\t-100007\t0\n",
+      "observations": {
+        "byte_order": "little",
+        "compression": 0,
+        "symbols": 5,
+        "uels": 3,
+        "widths": [
+          1,
+          4
+        ],
+        "tags": [
+          5,
+          9,
+          10
+        ],
+        "stored_records": 7,
+        "compressed_blocks": 0,
+        "stored_blocks": 0,
+        "crossing_records": 0,
+        "multiple_records_per_block": false
+      }
+    },
+    {
+      "id": "optional-domains",
+      "path": "v7/optional-domains.gdx",
+      "sha256": "56b6c7012097b04a898c77e4cedc71b910606a0c140903c17eb2c1b443749091",
+      "expectation": "v7/optional-domains.expected.tsv",
+      "expectation_sha256": "08c4bd752f85bbd7d2dec0b7d1428ab9f023cee0330dfa245609eb116740f3b2",
+      "recipe": "v7/optional-domains.recipe.tsv",
+      "recipe_sha256": "2296d9d9d1f5c9510538706dbb2adc7c46dc580d504586004df56e3c682ddf86",
+      "transform": null,
+      "expected_events": "",
+      "observations": {
+        "byte_order": "little",
+        "compression": 0,
+        "symbols": 1,
+        "uels": 1,
+        "widths": [
+          4
+        ],
+        "tags": [
+          10
+        ],
+        "stored_records": 1,
+        "compressed_blocks": 0,
+        "stored_blocks": 0,
+        "crossing_records": 0,
+        "multiple_records_per_block": false
+      }
+    },
+    {
+      "id": "case-distinct-labels",
+      "path": "v7/case-distinct-labels.gdx",
+      "sha256": "49e1810646524ea8b57fc80a96188c7d912df2457b2d7f21ec358725e044052a",
+      "expectation": "v7/case-distinct-labels.expected.tsv",
+      "expectation_sha256": "3322c2f6941f48f8bfefd1ea5007b8917e8603af2c70e2631d40b8512eef8ac9",
+      "recipe": null,
+      "recipe_sha256": null,
+      "transform": {
+        "source": "semantics-0",
+        "kind": "rename-one-label-byte",
+        "offset": 2645,
+        "from_hex": "43",
+        "to_hex": "41"
+      },
+      "expected_events": "",
+      "observations": {
+        "byte_order": "little",
+        "compression": 0,
+        "symbols": 26,
+        "uels": 5,
+        "widths": [
+          4
+        ],
+        "tags": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "stored_records": 25,
+        "compressed_blocks": 0,
+        "stored_blocks": 0,
+        "crossing_records": 0,
+        "multiple_records_per_block": false
+      }
+    },
+    {
+      "id": "key-widths-be",
+      "path": "v7/key-widths-be.gdx",
+      "sha256": "b375ab19c04b90666cb83aeb0755bacf52cad784ec5c7b0ef6c08e5d4db1217f",
+      "expectation": "v7/key-widths-be.expected.tsv",
+      "expectation_sha256": "6a71f51411b743f2639bfbd671d10eecc8be7c72773914af4ca08e1024af1f07",
+      "recipe": null,
+      "recipe_sha256": null,
+      "transform": {
+        "source": "key-widths",
+        "kind": "reverse-annotated-numeric-fields"
+      },
+      "expected_events": "",
+      "observations": {
+        "byte_order": "big",
+        "compression": 0,
+        "symbols": 5,
+        "uels": 65536,
+        "widths": [
+          1,
+          2,
+          4
+        ],
+        "tags": [
+          10
+        ],
+        "stored_records": 22,
+        "compressed_blocks": 0,
+        "stored_blocks": 0,
+        "crossing_records": 0,
+        "multiple_records_per_block": false
+      }
+    },
+    {
+      "id": "semantics-0-be",
+      "path": "v7/semantics-0-be.gdx",
+      "sha256": "d5e1ee0a2dd43ae70b19952ad548426d68312d492ce6a18a75d7ae32fca2e8f8",
+      "expectation": "v7/semantics-0-be.expected.tsv",
+      "expectation_sha256": "4e4fb40f2728cc2ac4d3d3a8b348fff0c73f31046ca3ea2d6c48d26739c3f1d6",
+      "recipe": null,
+      "recipe_sha256": null,
+      "transform": {
+        "source": "semantics-0",
+        "kind": "reverse-annotated-numeric-fields"
+      },
+      "expected_events": "",
+      "observations": {
+        "byte_order": "big",
+        "compression": 0,
+        "symbols": 26,
+        "uels": 5,
+        "widths": [
+          4
+        ],
+        "tags": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "stored_records": 25,
+        "compressed_blocks": 0,
+        "stored_blocks": 0,
+        "crossing_records": 0,
+        "multiple_records_per_block": false
+      }
+    },
+    {
+      "id": "optional-domains-absent",
+      "path": "v7/optional-domains-absent.gdx",
+      "sha256": "4f9714ccbc51eab724ce02c9437834686aa50651bfad5a0d1c8dbef0552b946a",
+      "expectation": "v7/optional-domains-absent.expected.tsv",
+      "expectation_sha256": "08c4bd752f85bbd7d2dec0b7d1428ab9f023cee0330dfa245609eb116740f3b2",
+      "recipe": null,
+      "recipe_sha256": null,
+      "transform": {
+        "source": "optional-domains",
+        "kind": "omit-empty-domain-section"
+      },
+      "expected_events": "",
+      "observations": {
+        "byte_order": "little",
+        "compression": 0,
+        "symbols": 1,
+        "uels": 1,
+        "widths": [
+          4
+        ],
+        "tags": [
+          10
+        ],
+        "stored_records": 1,
+        "compressed_blocks": 0,
+        "stored_blocks": 0,
+        "crossing_records": 0,
+        "multiple_records_per_block": false
+      }
+    }
+  ],
+  "negatives": [
+    {
+      "id": "version-5-probe",
+      "path": "invalid/version-5-probe.gdx",
+      "sha256": "15ce339331c439f657a4b4cbb4c5ebc8c181b4a962a519a3d994d9a7a8c4f15b",
+      "intended_rust_error": "UnsupportedVersion",
+      "mutation": {
+        "source": "optional-domains",
+        "offset": 26,
+        "replace_hex": "05000000"
+      },
+      "genuine_old_format": false,
+      "upstream_observation": {
+        "outcome": "failed",
+        "exit_code": 1
+      }
+    },
+    {
+      "id": "version-6-probe",
+      "path": "invalid/version-6-probe.gdx",
+      "sha256": "d581334d57a02a8070c8a32e8170ef7aa1d1c40b7336c2c7b3a5a0d738a0ae41",
+      "intended_rust_error": "UnsupportedVersion",
+      "mutation": {
+        "source": "optional-domains",
+        "offset": 26,
+        "replace_hex": "06000000"
+      },
+      "genuine_old_format": false,
+      "upstream_observation": {
+        "outcome": "failed",
+        "exit_code": 1
+      }
+    },
+    {
+      "id": "future-version-probe",
+      "path": "invalid/future-version-probe.gdx",
+      "sha256": "4fa8ad85b833caa953786ec772da11266d28ab8a08a1055ab12da1fab841586e",
+      "intended_rust_error": "UnsupportedVersion",
+      "mutation": {
+        "source": "optional-domains",
+        "offset": 26,
+        "replace_hex": "08000000"
+      },
+      "genuine_old_format": false,
+      "upstream_observation": {
+        "outcome": "failed",
+        "exit_code": 1
+      }
+    },
+    {
+      "id": "bad-offset",
+      "path": "invalid/bad-offset.gdx",
+      "sha256": "07ac5ffe67c219e3701ad9b8d74ba20d564b04500617d28a20d72c8bf0b9b14f",
+      "intended_rust_error": "InvalidOffset",
+      "mutation": {
+        "source": "optional-domains",
+        "offset": 118,
+        "replace_hex": "7101000000000000"
+      },
+      "genuine_old_format": null,
+      "upstream_observation": {
+        "outcome": "failed",
+        "exit_code": 1
+      }
+    },
+    {
+      "id": "bad-dimension",
+      "path": "invalid/bad-dimension.gdx",
+      "sha256": "321f8fdeccccac3464b740c3c45b65d607c03ee9cf6bd2ef159ef386c10d8749",
+      "intended_rust_error": "InvalidDimension",
+      "mutation": {
+        "source": "optional-domains",
+        "offset": 201,
+        "replace_hex": "15"
+      },
+      "genuine_old_format": null,
+      "upstream_observation": {
+        "outcome": "failed",
+        "exit_code": 1
+      }
+    },
+    {
+      "id": "bad-key-tag",
+      "path": "invalid/bad-key-tag.gdx",
+      "sha256": "9701cc176f8aa7bf268315175cce1e6e7422b6604ebbf133e8d0b436ae71d8c5",
+      "intended_rust_error": "InvalidKeyTag",
+      "mutation": {
+        "source": "optional-domains",
+        "offset": 214,
+        "replace_hex": "00"
+      },
+      "genuine_old_format": null,
+      "upstream_observation": {
+        "outcome": "failed",
+        "exit_code": 1
+      }
+    },
+    {
+      "id": "bad-value-tag",
+      "path": "invalid/bad-value-tag.gdx",
+      "sha256": "7fb11daa94e5c389d8ebc2b9d261e44dbde9456c0de97bdf3eb8cc165cd7c464",
+      "intended_rust_error": "InvalidValueTag",
+      "mutation": {
+        "source": "optional-domains",
+        "offset": 219,
+        "replace_hex": "0b"
+      },
+      "genuine_old_format": null,
+      "upstream_observation": {
+        "outcome": "failed",
+        "exit_code": 1
+      }
+    },
+    {
+      "id": "bad-count",
+      "path": "invalid/bad-count.gdx",
+      "sha256": "08b1dde86c6ed38ee5ed59dc1f02accea56c1a11d56404cc15a15bef864a011b",
+      "intended_rust_error": "InvalidCount",
+      "mutation": {
+        "source": "optional-domains",
+        "offset": 236,
+        "replace_hex": "ffffffff"
+      },
+      "genuine_old_format": null,
+      "upstream_observation": {
+        "outcome": "failed",
+        "exit_code": 1
+      }
+    },
+    {
+      "id": "truncated-header",
+      "path": "invalid/truncated-header.gdx",
+      "sha256": "c3d62fab2d08a5cbf9ea687cfb19514e790f7f53f573327dd6ac7f71e1f360ef",
+      "intended_rust_error": "UnexpectedEof",
+      "mutation": {
+        "source": "optional-domains",
+        "truncate_to": 12
+      },
+      "genuine_old_format": null,
+      "upstream_observation": {
+        "outcome": "failed",
+        "exit_code": 1
+      }
+    },
+    {
+      "id": "truncated-section",
+      "path": "invalid/truncated-section.gdx",
+      "sha256": "90a012f9ae1cec6663f7ab88a936514bc51a4566f1c43804a76d0ed1c9836783",
+      "intended_rust_error": "UnexpectedEof",
+      "mutation": {
+        "source": "optional-domains",
+        "truncate_to": 367
+      },
+      "genuine_old_format": null,
+      "upstream_observation": {
+        "outcome": "failed",
+        "exit_code": 1
+      }
+    },
+    {
+      "id": "damaged-zlib-checksum",
+      "path": "invalid/damaged-zlib-checksum.gdx",
+      "sha256": "086a10da17d2bbc325e4a19befc904238e7a57365379d3a5f5b0b16a1f94b4ea",
+      "intended_rust_error": "InvalidCompression",
+      "mutation": {
+        "source": "blocks",
+        "xor_offset": 39060,
+        "xor": 1
+      },
+      "genuine_old_format": null,
+      "upstream_observation": {
+        "outcome": "accepted",
+        "exit_code": 0
+      }
+    },
+    {
+      "id": "truncated-block",
+      "path": "invalid/truncated-block.gdx",
+      "sha256": "b77651b737e85a24a234110555bdda0aed33fd73ca0af59633a6c11790a5312b",
+      "intended_rust_error": "UnexpectedEof",
+      "mutation": {
+        "source": "blocks",
+        "truncate_to": 39021
+      },
+      "genuine_old_format": null,
+      "upstream_observation": {
+        "outcome": "failed",
+        "exit_code": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "checked_revision": "6a10db96e89a0cc40473aadd34ec16db43c46d70",
+  "run_id": "ea3c9fef81f940f1b9c20a7350022f72",
+  "exit_code": 2,
+  "automated_status": "passed",
+  "fixtures": {
+    "valid_fixtures": 10,
+    "negative_fixtures": 12,
+    "binary_bytes": 1049253,
+    "symbols": 118,
+    "stored_records": 5149,
+    "verified_coverage": "all required task-003 groups",
+    "unverified": []
+  },
+  "specification": {
+    "rules": 21,
+    "verified": 21,
+    "unverified": 0,
+    "public_functions": 92,
+    "property_accessors": 6,
+    "observations": "exact source anchors/digests and fixture byte/semantic assertions",
+    "runtime_rust_tests": 0
+  },
+  "reader_contracts": {
+    "validation_kind": "documentation-contract-coverage-only",
+    "specified_scenarios": 25,
+    "m1_scenarios": 23,
+    "future_m2_scenarios": 2,
+    "contract_areas": 9,
+    "runtime_scenarios_executed": 0,
+    "resource_measurements_executed": 0,
+    "codec_ceiling_measured": false
+  },
+  "tooling_tests": {
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0
+  },
+  "baseline": {
+    "status": "verified",
+    "scenarios": 4,
+    "measured_scans": 20,
+    "measured_writes": 20,
+    "write_validation_scans": 20,
+    "large_profile": "unrun",
+    "revision": "2941d6641b77eea03fc408f521e91b8fc38c4646"
+  },
+  "independent_review": {
+    "status": "pending",
+    "current_content_sha256": "b4ab1c19be21d80665d911f78333681dc5e34583d15f2c4041a085fa87df96cf",
+    "reason": "Independent reviewer has not accepted M0; author self-review is insufficient."
+  },
+  "m1_eligible": false,
+  "unrun": [
+    "independent M0 review",
+    "large-profile/memory-cap experiments",
+    "Rust reader/writer functionality"
+  ]
+}
