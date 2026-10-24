@@ -227,6 +227,19 @@ impl Default for Bytes {
     }
 }
 impl Bytes {
+    pub const fn literal(value: &[u8]) -> Self {
+        assert!(value.len() <= 255);
+        let mut data = [0; 255];
+        let mut n = 0;
+        while n < value.len() {
+            data[n] = value[n];
+            n += 1;
+        }
+        Self {
+            data,
+            len: value.len() as u8,
+        }
+    }
     pub fn from_slice(value: &[u8]) -> Result<Self> {
         let len = u8::try_from(value.len())
             .map_err(|_| Error::new(ErrorKind::InvalidCount, "short string too long"))?;
