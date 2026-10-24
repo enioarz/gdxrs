@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 
 import fixture_cases
@@ -44,7 +45,7 @@ def compare(expected, actual, label):
 
 def generator_identity():
     paths = ['tools/fixture_cases.py', 'tools/fixtures.py', 'tools/format_probe.py',
-             'tools/oracle/driver.cpp', 'tools/oracle/fixture_generator.hpp']
+             'tools/oracle/driver.cpp', 'tools/oracle/fixture_generator.hpp', 'tools/oracle_limits.py']
     return {name: digest(ROOT/name) for name in paths}
 
 
@@ -164,17 +165,16 @@ def negative_cases(root, exe):
 
 
 def observe_invalid(exe, path):
-    # POSIX development oracle only; no resource policy is added to production.
-    import resource
-    def limits():
-        resource.setrlimit(resource.RLIMIT_AS, (256*1024*1024, 256*1024*1024))
-        resource.setrlimit(resource.RLIMIT_CPU, (2, 2))
-        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-        resource.setrlimit(resource.RLIMIT_FSIZE, (1024*1024, 1024*1024))
+    if sys.platform not in ('linux', 'darwin'):
+        raise RuntimeError('native oracle isolation is only supported on Linux/macOS')
     try:
         with tempfile.TemporaryFile() as output:
-            result = subprocess.run([str(exe),'dump',str(path)],stdout=output,stderr=output,
-                                    timeout=5,preexec_fn=limits)
+            result = subprocess.run([sys.executable,str(ROOT/'tools/oracle_limits.py'),str(exe),'dump',str(path)],
+                                    stdout=output,stderr=output,timeout=5)
+            if result.returncode == 125:
+                output.seek(0)
+                detail = output.read(4096).decode('utf-8', errors='replace')
+                raise RuntimeError('native oracle isolation failed: '+detail)
             return dict(outcome='accepted' if result.returncode == 0 else 'failed', exit_code=result.returncode)
     except subprocess.TimeoutExpired:
         return dict(outcome='timeout', exit_code=None)
