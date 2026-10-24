@@ -57,7 +57,7 @@ The user explicitly instructed proceeding with M1. [Decision 0003](../docs/decis
 
 | Task | Scope | Status |
 | --- | --- | --- |
-| [007](007-checked-foundation.md) | Checked source I/O, quota, errors and v7 headers | Pending |
+| [007](007-checked-foundation.md) | Checked source I/O, quota, errors and v7 headers | Complete; [evidence](../docs/evidence/007.md) |
 | [008](008-bounded-compression.md) | Bounded raw/zlib section streams | Pending |
 | [009](009-lazy-metadata.md) | Lazy symbols, labels, text, comments, acronyms and domains | Pending |
 | [010](010-record-decoder.md) | Stateful serial raw record decoding | Pending |
