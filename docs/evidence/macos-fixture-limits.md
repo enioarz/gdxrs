@@ -13,3 +13,9 @@ Only generator provenance hashes were deliberately updated in the manifest becau
 Follow-up: the user’s actual macOS rerun rejected the reported unlimited hard RLIMIT_DATA ceiling with `current limit exceeds maximum limit`. The child now supplies finite hard ceilings on Darwin for all four limits, preserving any tighter inherited soft/hard bounds. Two regressions model rejection of unlimited hard values and preservation of tighter Darwin bounds. Actual macOS rerun remains required; mock checks do not prove kernel behavior.
 
 Follow-up validation on Linux: fixtures-check (10 valid / 12 negative) and full 10-fixture regeneration passed; 28 tooling tests passed with no failures/skips. Binary and expectation hashes remain unchanged. Only launcher provenance changed.
+
+## Superseding macOS policy after second failed native rerun
+
+The finite-hard-ceiling workaround also failed on the user's Mac with the same memory-limit error. The current launcher therefore does not attempt either RLIMIT_AS or RLIMIT_DATA on Darwin. This is an explicit platform limitation, not a successful memory-isolation test: command reports expose `oracle_isolation.memory_limit = unavailable`, and fixtures-check prints the limitation. CPU/output/core limits and the five-second timeout remain mandatory; their setup errors still fail. Linux retains its address-space cap. Do not use macOS fixture runs as evidence of memory containment.
+
+Validation of this change on Linux: all 10 valid / 12 negative fixture checks passed, all 10 regenerated fixtures compared successfully, and 28 tooling tests passed with zero failures/skips. The Darwin mock now rejects both memory APIs and unlimited hard ceilings while verifying that the three supported controls are applied. Actual Darwin execution remains unrun in this environment. Fixture artifacts and semantic expectations remain unchanged; provenance hashes track the changed launcher/runner.

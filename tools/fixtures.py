@@ -11,6 +11,7 @@ import tempfile
 import fixture_cases
 from format_probe import Probe, Cursor, LIMIT
 import oracle
+from oracle_limits import isolation_policy
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / 'tests/fixtures'
@@ -113,7 +114,7 @@ def generate(run, destination):
                     generator=dict(base_revision=run(['git','rev-parse','HEAD'],capture=True).stdout.strip(), files=generator_identity()),
                     fixtures=items, negatives=negatives)
     save_json(destination/'manifest.json', manifest)
-    return dict(valid_fixtures=len(items), negative_fixtures=len(negatives), output=str(destination))
+    return dict(valid_fixtures=len(items), negative_fixtures=len(negatives), output=str(destination), oracle_isolation=isolation_policy())
 
 
 def entry(file, expectation, recipe, root, events, transform=None):
@@ -188,6 +189,8 @@ def checked_path(root, relative):
 
 
 def check(run, root=FIXTURES):
+    if sys.platform == 'darwin':
+        print('Oracle isolation: macOS memory limit unavailable; CPU/output/core limits and timeout remain.', flush=True)
     root = Path(root)
     manifest = json.loads((root/'manifest.json').read_text())
     if manifest.get('schema') != 1:
@@ -232,7 +235,7 @@ def check(run, root=FIXTURES):
     return dict(valid_fixtures=len(items), negative_fixtures=len(negative_ids), binary_bytes=total,
                 symbols=sum(len(p.symbols) for p in probes.values()),
                 stored_records=sum(p.summary()['stored_records'] for p in probes.values()),
-                verified_coverage='all required task-003 groups', unverified=[])
+                verified_coverage='all required task-003 groups', unverified=[], oracle_isolation=isolation_policy())
 
 
 def verify_coverage(probes):
@@ -276,4 +279,4 @@ def regeneration_check(run, root=FIXTURES):
                 at = p.version_offset+8
                 size = data[at]; data[at+1:at+1+size] = b'\0'*size
             if left != right: raise ValueError('nondeterministic bytes outside creation/system string')
-        return dict(regenerated=len(regenerated['fixtures']), comparisons='full semantics, byte properties, bytes except audit string')
+        return dict(regenerated=len(regenerated['fixtures']), comparisons='full semantics, byte properties, bytes except audit string', oracle_isolation=isolation_policy())
