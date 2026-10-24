@@ -1,42 +1,88 @@
 {
   "schema": 1,
-  "status": "pending",
-  "implementation_author": "Codex implementation author",
-  "reviewer": null,
-  "reviewer_role": null,
-  "reviewed_revision": null,
-  "content_sha256": null,
-  "findings": [],
+  "status": "accepted",
+  "implementation_author": "Codex implementation author (prior sessions)",
+  "reviewer": "Codex independent review session, 2026-10-24, /root",
+  "reviewer_role": "independent-agent",
+  "reviewed_revision": "914c6fc4f29407ea34d010e2c1d8faf1c3eb420d",
+  "content_sha256": "02f2c96ac7f088b2b2252476cb6c6855bb55d8d370f70171e226a1e8fcd42b70",
+  "candidate_revision": "914c6fc4f29407ea34d010e2c1d8faf1c3eb420d",
+  "candidate_content_sha256": "02f2c96ac7f088b2b2252476cb6c6855bb55d8d370f70171e226a1e8fcd42b70",
+  "independence_statement": "This user-assigned review session did not author the reviewed implementation or prior fixes. It changed review/evidence/status documents only; no sub-agent or human approval is represented.",
+  "findings": [
+    {
+      "id": "PR1-R1",
+      "severity": "major",
+      "artifact": "tools/benchmark.py; tools/dev.py; tools/m0.py",
+      "finding": "Fresh baseline was not selected consistently and aggregate failure evidence could be lost.",
+      "requires_action": true,
+      "required_action": "Select a validated fresh baseline and preserve per-component results.",
+      "fix": "Existing b847c77/4621898/f89e2c0 changes add atomic current report selection, explicit --baseline and retained aggregate outcomes.",
+      "disposition": "fixed-and-verified",
+      "verification": "Inspected selection/exception paths; fresh benchmark and pre-signoff m0-check verified the current baseline; selection/escape and failed-baseline component tests passed."
+    },
+    {
+      "id": "PR1-R2",
+      "severity": "major",
+      "artifact": "tools/fixture_cases.py; tools/fixtures.py; tests/fixtures",
+      "finding": "Equation defaults alone did not establish decoding of physically stored five-field equation records.",
+      "requires_action": true,
+      "required_action": "Add independently expected nonempty equation records in both compression modes and enforce coverage.",
+      "fix": "Existing b847c77 equation_values recipe supplies five distinct fields; coverage rejects their absence.",
+      "disposition": "fixed-and-verified",
+      "verification": "Inspected authored recipe and expected values; all ten fixtures regenerated; both compression modes passed full oracle semantics; equation physical-coverage regression passed. Corpus now 5153 stored rows."
+    },
+    {
+      "id": "PR1-R3",
+      "severity": "major",
+      "artifact": "tools/benchmark.py",
+      "finding": "Benchmark provenance could claim a revision that did not contain the executed benchmark sources.",
+      "requires_action": true,
+      "required_action": "Bind report implementation hashes to both current files and measured Git revision; refuse dirty measured sources.",
+      "fix": "Existing b847c77 adds revision fingerprint comparison during execution and validation.",
+      "disposition": "fixed-and-verified",
+      "verification": "Inspected both code paths; old-source revision regression passed; new report measures exact clean 914c6fc source and passes aggregate validation."
+    },
+    {
+      "id": "IR-01",
+      "severity": "informational",
+      "artifact": "tools/oracle_limits.py; docs/evidence/macos-fixture-limits.md",
+      "finding": "Darwin has no demonstrated native memory containment; platform mocks do not qualify macOS.",
+      "requires_action": false,
+      "required_action": "Retain the documented platform limitation; require native platform evidence for a later portability claim.",
+      "fix": "Existing ef65266 reports memory_limit unavailable on Darwin; 914c6fc canonicalizes executable paths without allowing directory escapes.",
+      "disposition": "accepted-with-rationale",
+      "verification": "Linux native malformed-input checks and six isolation/two executable-identity tests passed. No native Darwin run was performed; M0 required Linux small-profile evidence is complete."
+    }
+  ],
   "checklist": {
     "source-pins": {
-      "accepted": false,
-      "notes": ""
+      "accepted": true,
+      "notes": "Checked clean GDX 9e2a8c8932412010cd7d2f94727d1740143bf3da and bundled zlib da607da739fa6047df13e66a2af6b8bec7c2a498 checkouts; fresh Release static build, explicit archive link, ldd without GDX/system zlib, and byte-identical complete license notices. Official Rust 1.99.1 component SHA-256 values match the distribution manifest. Cargo bootstrap has zero third-party dependencies and no native build script."
     },
     "fixture-independence": {
-      "accepted": false,
-      "notes": ""
+      "accepted": true,
+      "notes": "Inspected fixture_cases.py input/expected model, expectation-before-generation ordering, native recipe execution and narrowly annotated endian/case/domain transforms. Fresh 10-fixture regeneration compared all semantic lines and bytes except the audit string. Aggregate checked 10 valid/12 negative fixtures, 122 symbol entries and 5153 stored rows. Both compression modes now include physically stored five-distinct-field equations. Actual tampering/missing/empty-selection and equation-coverage regressions passed."
     },
     "format-evidence": {
-      "accepted": false,
-      "notes": ""
+      "accepted": true,
+      "notes": "Read all F01-F21 rules and checked pinned source against primitive reversal, 80-byte major-index reservation and pointer order, symbol fields, count sentinel, 255/65535 width thresholds, explicit/delta keys, scalar defaults, all value tags, acronym encoding and UEL case behavior. Fresh spec-check verified 21 source/fixture bindings; blocks proves a crossing record and stored/zlib payloads. Checksum and invalid-tag rejection remain intentional Rust hardening, not copied upstream permissiveness."
     },
     "api-inventory": {
-      "accepted": false,
-      "notes": ""
+      "accepted": true,
+      "notes": "Reviewed all 92 function dispositions and six property accessors against the pinned YAML inventory and checker. Native planned equivalents, M4 mapped/value policies, M8 callback/call-state properties and explicit external conversion have owners/milestones and test requirements. No current runtime parity is claimed; missing-function/property regressions passed."
     },
     "reader-resource-contracts": {
-      "accepted": false,
-      "notes": ""
+      "accepted": true,
+      "notes": "Reviewed lending buffers, shared source/root quota, positioned reads, lazy metadata, bounded alias hops, exact stored labels, all-field framing, accepted-row limits and terminal errors. Capacity/layout, codec scratch, metadata pages, paths and simultaneous decoders are charged; no mandatory eager catalog/record allocation. Contracts-check verified 25 specified scenarios in nine areas, with zero runtime/resource executions. Codec 128 KiB ceiling remains an M1 measurement prerequisite."
     },
     "benchmark-method": {
-      "accepted": false,
-      "notes": ""
+      "accepted": true,
+      "notes": "Fresh small profile at this exact revision passed four scenarios with independent Python recipe-derived ordered digests, one warmup and five measured reads/writes each. All 24 writes and 44 scans validated; full raw trials retained. Reviewed C++ timing boundaries, five-field hashing, label/symbol validation, CPU/getrusage RSS, warm-cache disclosure and separate setup/write-finalization. Prior R1/R3 fixes select current evidence and bind measured hashes to the claimed Git revision. Large profile and Rust performance remain unrun."
     },
     "m1-prerequisites": {
-      "accepted": false,
-      "notes": ""
+      "accepted": true,
+      "notes": "No unresolved prerequisite for the documented v7 uniform-endian M1 profile. Checked prior review fixes and subsequent Darwin isolation/path corrections without modifying implementation. Native Linux checks pass; actual Darwin execution and memory containment are not certified. Compression dependency/allocator audit and codec ceiling belong to the bounded codec task; scale/index/writer work remains later. Five pending M1 drafts restate these verified contracts and were written only after the accepted gate passed; no M1 implementation was started."
     }
-  },
-  "candidate_revision": "f89e2c02f7e8bda01c101409264572ba97d63e5e",
-  "candidate_content_sha256": "e3db09502b3ed7f11dec7046f78eeaf1a7f1a6433528f6ca7f0a8697d4e57806"
+  }
 }

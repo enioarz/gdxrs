@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "command": "m0-check",
+  "run_id": "ec783f7532794eb8abc04a4ed9270d56",
+  "revision": "914c6fc4f29407ea34d010e2c1d8faf1c3eb420d",
+  "cwd": "/workspace/gdxrs",
+  "started_utc": "2026-10-24T20:47:35.158960+00:00",
+  "status": "passed",
+  "result": {
+    "automated_status": "passed",
+    "automated": {
+      "bootstrap": {
+        "versions": {
+          "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)"
+        },
+        "runtime_dependencies": 0,
+        "gdx_tests": 0
+      },
+      "oracle_build": {
+        "identity": "b28f8cb0e43762deb6c3b346b532fecf56e0dffd4051df62fa41ec0b44c06718",
+        "source_fingerprint": "1c4844bca1cf0b5df89516f72b8fbc68a342845375f9f9a00c929c04b0b0e208",
+        "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+        "cmake": "cmake version 3.31.10",
+        "pins": {
+          "schema": 1,
+          "gdx": {
+            "url": "https://github.com/GAMS-dev/gdx.git",
+            "commit": "9e2a8c8932412010cd7d2f94727d1740143bf3da",
+            "license": "MIT"
+          },
+          "zlib": {
+            "url": "https://github.com/madler/zlib.git",
+            "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
+            "license": "Zlib"
+          },
+          "unused_submodules": {
+            "src/apigenerator": "a2db931c5066d7e2253c68609b8d17a5be2016a4"
+          },
+          "build_options": [
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DNO_TESTS=ON",
+            "-DNO_EXAMPLES=ON",
+            "-DNO_TOOLS=ON",
+            "-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=TRUE",
+            "-DGDX_THREAD_SAFE=OFF"
+          ]
+        },
+        "executable": "/workspace/gdxrs/.work/oracle/builds/b28f8cb0e43762deb6c3b346b532fecf56e0dffd4051df62fa41ec0b44c06718/driver/gdxrs-oracle",
+        "executable_sha256": "0ec92beb113da1758d280a38b452b1c347220651a22b3e611f3031cd75e99db8"
+      },
+      "oracle_self_test": {
+        "cases": [
+          {
+            "compression": 0,
+            "symbols": 3,
+            "records": 6,
+            "universe_records": 3
+          },
+          {
+            "compression": 1,
+            "symbols": 3,
+            "records": 6,
+            "universe_records": 3
+          }
+        ],
+        "negative_invocations": 3,
+        "expected_source": "tools/oracle.py:smoke_expectation"
+      },
+      "fixtures": {
+        "valid_fixtures": 10,
+        "negative_fixtures": 12,
+        "binary_bytes": 1049685,
+        "symbols": 122,
+        "stored_records": 5153,
+        "verified_coverage": "all required task-003 groups",
+        "unverified": [],
+        "oracle_isolation": {
+          "platform": "linux",
+          "memory_limit": "256 MiB address space or tighter inherited limit",
+          "cpu_seconds_max": 2,
+          "output_bytes_max": 1048576,
+          "core_bytes_max": 0,
+          "wall_timeout_seconds": 5
+        }
+      },
+      "specification": {
+        "rules": 21,
+        "verified": 21,
+        "unverified": 0,
+        "public_functions": 92,
+        "property_accessors": 6,
+        "observations": "exact source anchors/digests and fixture byte/semantic assertions",
+        "runtime_rust_tests": 0
+      },
+      "reader_contracts": {
+        "validation_kind": "documentation-contract-coverage-only",
+        "specified_scenarios": 25,
+        "m1_scenarios": 23,
+        "future_m2_scenarios": 2,
+        "contract_areas": 9,
+        "runtime_scenarios_executed": 0,
+        "resource_measurements_executed": 0,
+        "codec_ceiling_measured": false
+      },
+      "tooling_tests": {
+        "status": "passed"
+      }
+    },
+    "baseline": {
+      "status": "verified",
+      "scenarios": 4,
+      "measured_scans": 20,
+      "measured_writes": 20,
+      "write_validation_scans": 20,
+      "large_profile": "unrun",
+      "revision": "914c6fc4f29407ea34d010e2c1d8faf1c3eb420d"
+    },
+    "independent_review": {
+      "status": "accepted",
+      "reviewer": "Codex independent review session, 2026-10-24, /root",
+      "reviewed_revision": "914c6fc4f29407ea34d010e2c1d8faf1c3eb420d",
+      "current_content_sha256": "02f2c96ac7f088b2b2252476cb6c6855bb55d8d370f70171e226a1e8fcd42b70",
+      "post_review_changes": []
+    },
+    "m1_eligible": true
+  },
+  "elapsed_seconds": 3.7561316880000106,
+  "exit_code": 0
+}
