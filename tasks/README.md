@@ -11,11 +11,11 @@ These specifications break **M0 and M1** into bounded units of work. Task eviden
 | [003 — Oracle fixture corpus](003-oracle-fixtures.md) | Independently specified fixtures, manifests and negative cases | 002 complete | Complete; [evidence](../docs/evidence/003.md) |
 | [004 — Verified v7 specification](004-v7-format-specification.md) | Byte layout, semantic rules and complete API inventory | 003 complete | Complete; [evidence](../docs/evidence/004.md) |
 | [005 — Reader and resource contracts](005-reader-resource-contracts.md) | Concrete types, ownership, error and memory contracts for M1 | 004 complete | Complete; [evidence](../docs/evidence/005.md) |
-| [006 — Baseline and M0 review](006-baseline-and-m0-review.md) | Measured oracle baseline, repeatability and independent review | 005 complete | Complete; [review/release confirmed by user](../docs/reviews/m0.md) |
+| [006 — Baseline and M0 review](006-baseline-and-m0-review.md) | Measured oracle baseline, repeatability and independent review | 005 complete | Complete; [independent review accepted](../docs/reviews/m0.md) at `914c6fc`; released on `main` at `2e5980a` |
 
 Dependencies mean the task's acceptance checks passed and its evidence record is present, not merely that its files exist. Task 006 required independent review; the user confirmed on 2026-10-24 that M0 is reviewed and released. The older pending snapshot is historical. Source research may reveal missing fixtures; add them in the current task, record the change, and rerun the affected prior gates instead of treating this table as a reason to ignore new evidence.
 
-M1 tasks 007–011 follow the verified format and contracts under explicit user authorization. Later milestone tickets must retain the same bounded scopes and exact fixture references.
+The released M0 handoff drafts are promoted into the numbered M1 tasks below. M1 tasks 007–011 follow the verified format and contracts under explicit user authorization. Later milestone tickets must retain the same bounded scopes and exact fixture references.
 
 ## Required completion record
 

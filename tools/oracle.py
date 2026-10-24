@@ -87,7 +87,7 @@ def executable():
     identity = json.loads((AREA / "current.json").read_text())
     if identity.get("source_fingerprint") != source_fingerprint():
         raise ValueError("oracle sources changed; rerun oracle-build")
-    path = Path(identity["executable"])
+    path = Path(identity["executable"]).resolve()
     if not path.is_relative_to(AREA.resolve()) or not path.is_file():
         raise ValueError("invalid oracle path; rerun oracle-build")
     if file_digest(path) != identity["executable_sha256"]:

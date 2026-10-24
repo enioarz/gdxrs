@@ -24,8 +24,26 @@ WORKLOADS = {
 }
 
 
-def fingerprint():
-    return {name:oracle.file_digest(ROOT/name) for name in MEASURED_FILES}
+def fingerprint(revision=None):
+    if revision is None:
+        return {name:oracle.file_digest(ROOT/name) for name in MEASURED_FILES}
+    result = {}
+    for name in MEASURED_FILES:
+        obj = subprocess.run(['git','show',f'{revision}:{name}'],cwd=ROOT,capture_output=True)
+        if obj.returncode:
+            raise ValueError('measured revision lacks benchmark source: '+name)
+        result[name] = hashlib.sha256(obj.stdout).hexdigest()
+    return result
+
+
+def current_baseline():
+    pointer = ROOT/'.work/bench/current.json'
+    if not pointer.is_file():
+        raise ValueError('no current baseline; run benchmark-oracle --profile small or pass --baseline')
+    path = (ROOT/json.loads(pointer.read_text())['artifact']).resolve()
+    if not path.is_relative_to((ROOT/'.work/bench/runs').resolve()):
+        raise ValueError('current baseline path outside benchmark runs')
+    return path
 
 
 @functools.lru_cache(maxsize=8)
@@ -77,6 +95,8 @@ def execute(run,profile):
     exe,build_identity = build(run)
     directory = ROOT/'.work/bench/runs'/uuid.uuid4().hex;directory.mkdir(parents=True)
     revision = run(['git','rev-parse','HEAD'],capture=True).stdout.strip()
+    if fingerprint(revision) != fingerprint():
+        raise ValueError('commit benchmark source changes before measuring')
     results = []
     started=time.monotonic()
     for name,workload in WORKLOADS.items():
@@ -124,6 +144,11 @@ def execute(run,profile):
                 elapsed_including_validation_seconds=time.monotonic()-started,
                 large_profile='unrun',rust_performance='unimplemented')
     report_path=directory/'baseline.json';report_path.write_text(json.dumps(report,indent=2)+'\n')
+    validate_baseline(report_path)
+    pointer=ROOT/'.work/bench/current.json'
+    temporary=directory/'current.json'
+    temporary.write_text(json.dumps(dict(artifact=str(report_path.relative_to(ROOT)))))
+    temporary.replace(pointer)
     print('Baseline artifact:',report_path.relative_to(ROOT),flush=True)
     return dict(artifact=str(report_path.relative_to(ROOT)),scenarios=len(results),
                 measured_scans=20,measured_writes=20,write_validation_scans=20,large_profile='unrun')
@@ -138,6 +163,8 @@ def validate_baseline(path):
     names=[case['name'] for case in report['cases']]
     if len(names)!=len(set(names)) or set(names)!=set(WORKLOADS): raise ValueError('missing/duplicate benchmark scenarios')
     subprocess.run(['git','merge-base','--is-ancestor',report['revision'],'HEAD'],cwd=ROOT,check=True)
+    if fingerprint(report['revision']) != report['implementation_files']:
+        raise ValueError('measured revision benchmark source identity mismatch')
     for case in report['cases']:
         workload=WORKLOADS[case['name']]
         if case['workload']!=workload: raise ValueError('benchmark workload changed')

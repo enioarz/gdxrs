@@ -41,12 +41,6 @@ def content_fingerprint(revision=None):
 
 
 def validate_review(review,current_content=None):
-    if review.get('schema')==1 and review.get('status')=='released-user-confirmed':
-        confirmation=review.get('release_confirmation',{})
-        if confirmation.get('source')!='explicit-user' or not re.fullmatch(r'\d{4}-\d{2}-\d{2}',confirmation.get('date','')) or not confirmation.get('statement'):
-            raise ValueError('M0 release requires explicit recorded user confirmation')
-        return dict(status='released-user-confirmed',scope='M0 release only',confirmation=confirmation,
-                    reason='The user confirmed M0 was independently reviewed/released; an evolving M1 tree is not the old review candidate.')
     identity=content_fingerprint() if current_content is None else current_content
     if review.get('schema')!=1: raise ValueError('unsupported independent review record')
     if review.get('status')!='accepted':
@@ -74,19 +68,49 @@ def validate_review(review,current_content=None):
                 current_content_sha256=identity,post_review_changes=changed)
 
 
-def check(run,bootstrap):
-    # These run now; a retained report cannot substitute for a failing new check.
-    automated={
-        'bootstrap':bootstrap(),
-        'oracle_build':oracle.build(run),
-        'oracle_self_test':oracle.self_test(run),
-        'fixtures':fixtures.check(run),
-        'specification':specification.check(run),
-        'reader_contracts':contracts.check(),
-    }
-    run(['python3','-W','error::ResourceWarning','-m','unittest','discover','-s','tools/tests','-v'],timeout=180)
-    automated['tooling_tests']={'status':'passed','command':'python3 -W error::ResourceWarning -m unittest discover -s tools/tests -v'}
-    baseline=benchmark.validate_baseline(ROOT/'docs/benchmarks/oracle-small.json')
-    review=validate_review(json.loads((ROOT/'docs/reviews/m0.json').read_text()))
-    return dict(automated_status='passed',automated=automated,baseline=baseline,independent_review=review,
-                m1_eligible=review['status'] in ('accepted','released-user-confirmed'))
+def validate_released_review(review):
+    """Validate immutable released M0, without claiming M1 was reviewed."""
+    release = json.loads((ROOT/'docs/reviews/m0-release.json').read_text())
+    revision = release.get('release_revision','')
+    if release.get('source') != 'user-confirmed-release' or not re.fullmatch(r'[0-9a-f]{40}',revision):
+        raise ValueError('invalid M0 release binding')
+    subprocess.run(['git','merge-base','--is-ancestor',revision,'HEAD'],cwd=ROOT,check=True)
+    original = json.loads(subprocess.check_output(['git','show',revision+':docs/reviews/m0.json'],cwd=ROOT,text=True))
+    if review != original:
+        raise ValueError('M0 review differs from immutable release record')
+    result = validate_review(review,content_fingerprint(review['reviewed_revision']))
+    result.update(scope='released M0 only; M1 requires its own runtime checks',release_revision=revision)
+    return result
+
+
+def check(run,bootstrap,baseline_path=None):
+    result=dict(automated_status='failed',automated={},baseline={'status':'unrun'},
+                independent_review={'status':'unavailable'},m1_eligible=False)
+    operations = [('bootstrap',bootstrap),('oracle_build',lambda:oracle.build(run)),
+                  ('oracle_self_test',lambda:oracle.self_test(run)),('fixtures',lambda:fixtures.check(run)),
+                  ('specification',lambda:specification.check(run)),('reader_contracts',contracts.check),
+                  ('tooling_tests',lambda:run(['python3','-W','error::ResourceWarning','-m','unittest','discover','-s','tools/tests','-v'],timeout=180))]
+    errors=[]
+    for name,operation in operations:
+        try:
+            value=operation()
+            result['automated'][name]=value if name!='tooling_tests' else {'status':'passed'}
+        except Exception as exc:
+            result['automated'][name]={'status':'failed','error':str(exc)}
+            errors.append(name+': '+str(exc))
+    if not errors: result['automated_status']='passed'
+    try:
+        result['baseline']=benchmark.validate_baseline(baseline_path or benchmark.current_baseline())
+    except Exception as exc:
+        result['baseline']={'status':'failed','error':str(exc)}
+        errors.append('baseline: '+str(exc))
+    try:
+        result['independent_review']=validate_released_review(json.loads((ROOT/'docs/reviews/m0.json').read_text()))
+    except Exception as exc:
+        result['independent_review']={'status':'failed','error':str(exc)}
+        errors.append('review: '+str(exc))
+    if errors:
+        result['errors']=errors
+        return result
+    result['m1_eligible']=result['independent_review']['status']=='accepted'
+    return result

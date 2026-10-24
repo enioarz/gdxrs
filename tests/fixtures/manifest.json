@@ -25,30 +25,31 @@
     ]
   },
   "generator": {
-    "base_revision": "36077ae4f9b6bc0a598d9a9af8fe2169fce8cc15",
+    "base_revision": "48e5b86e766c47a6782fde19b3ca7c6e33642673",
     "files": {
-      "tools/fixture_cases.py": "648c5f966bb3ba0a9bed90bd4f27834f29b6b63afb71d9ec1f5b140cbe45f2cc",
-      "tools/fixtures.py": "24881229b4381365453c1a7e5c80dc90fac655481ab83d90dfeb4ee41f85079b",
+      "tools/fixture_cases.py": "cbe24fe2b03a7415009f3b947cd9cd04ad15ff9911a8217c4afedce9bb25bb3f",
+      "tools/fixtures.py": "03341d531d40512a9a5cd650868f04b3fc09ce4f09311636ac4e7d67affc90bc",
       "tools/format_probe.py": "9f0a38be5031503afc72f8af241acc6d78291983319775c1b390b94c0a791cc7",
       "tools/oracle/driver.cpp": "56af08ac7c15659e6a77e3c24b74d672b02035676eda2bb63b8d9371e610832e",
-      "tools/oracle/fixture_generator.hpp": "5b7d3426fc5f60da0bd13e0680e6db6c3b481213ff7fa12e7147fd0e74973671"
+      "tools/oracle/fixture_generator.hpp": "5b7d3426fc5f60da0bd13e0680e6db6c3b481213ff7fa12e7147fd0e74973671",
+      "tools/oracle_limits.py": "dcef19ea663627b2e41d8bf91ce05da3146de54594262cf6bf525aa1aa661eb2"
     }
   },
   "fixtures": [
     {
       "id": "semantics-0",
       "path": "v7/semantics-0.gdx",
-      "sha256": "29060b4cb6926e7d661a10c170fc4bd7c395f68c4498e5852c6b8e43869293a5",
+      "sha256": "c78b782fbb1e606ea33022eea8c94b3125eac7efba70838805aa0e49f0f58c06",
       "expectation": "v7/semantics-0.expected.tsv",
-      "expectation_sha256": "6eaf1902fd2759588c523e5f69ca5ba3724ac7d49bba1487f3ad59b25ee20bc2",
+      "expectation_sha256": "4e4fb40f2728cc2ac4d3d3a8b348fff0c73f31046ca3ea2d6c48d26739c3f1d6",
       "recipe": "v7/semantics-0.recipe.tsv",
-      "recipe_sha256": "d16aecd49f46c37b6d8559666c54f40c0b589c3918203de7bf49e0673a30d7d6",
+      "recipe_sha256": "7c82017534326ea76cb05493d339d19d853ee2ca0d763009fba1a0a76bc80e27",
       "transform": null,
       "expected_events": "",
       "observations": {
         "byte_order": "little",
         "compression": 0,
-        "symbols": 25,
+        "symbols": 26,
         "uels": 5,
         "widths": [
           4
@@ -66,7 +67,7 @@
           9,
           10
         ],
-        "stored_records": 24,
+        "stored_records": 25,
         "compressed_blocks": 0,
         "stored_blocks": 0,
         "crossing_records": 0,
@@ -76,17 +77,17 @@
     {
       "id": "semantics-1",
       "path": "v7/semantics-1.gdx",
-      "sha256": "318ec81f1d53c99e60b4c32e62162c1f6b6c6b76fa5b88239297411c5860877b",
+      "sha256": "2de1fbb37d38a6f34371b5bf34554e5e1ba3494bbaa24042c41ff5b1607e00ca",
       "expectation": "v7/semantics-1.expected.tsv",
-      "expectation_sha256": "b3590fa174922d914245f3fb7fe329bbd22433ac6cba52ff80eac0748a4abba0",
+      "expectation_sha256": "7723fbe429a64f3c3a4005f892e08451d523052f3bebee0066afa44606621912",
       "recipe": "v7/semantics-1.recipe.tsv",
-      "recipe_sha256": "d16aecd49f46c37b6d8559666c54f40c0b589c3918203de7bf49e0673a30d7d6",
+      "recipe_sha256": "7c82017534326ea76cb05493d339d19d853ee2ca0d763009fba1a0a76bc80e27",
       "transform": null,
       "expected_events": "",
       "observations": {
         "byte_order": "little",
         "compression": 1,
-        "symbols": 25,
+        "symbols": 26,
         "uels": 5,
         "widths": [
           4
@@ -104,8 +105,8 @@
           9,
           10
         ],
-        "stored_records": 24,
-        "compressed_blocks": 7,
+        "stored_records": 25,
+        "compressed_blocks": 8,
         "stored_blocks": 3,
         "crossing_records": 0,
         "multiple_records_per_block": true
@@ -114,7 +115,7 @@
     {
       "id": "key-widths",
       "path": "v7/key-widths.gdx",
-      "sha256": "e5c6ddad3cddb95aadbbcd8d0cbbe7b57c3047ac66e42cf11529528b73f79e63",
+      "sha256": "d01fd28436bb821593e13dab2c4adab719d6e7e68abf490c3de4f4efb6f102ac",
       "expectation": "v7/key-widths.expected.tsv",
       "expectation_sha256": "6a71f51411b743f2639bfbd671d10eecc8be7c72773914af4ca08e1024af1f07",
       "recipe": "v7/key-widths.recipe.tsv",
@@ -144,7 +145,7 @@
     {
       "id": "blocks",
       "path": "v7/blocks.gdx",
-      "sha256": "071226e8fa2c205784acfd671f58f08a29a066490e6b3579db40bdecffa2b9bb",
+      "sha256": "bbc1fc6ba20d4f1c236517926c65af6b865bf50367d2fb0946970c7c756a1417",
       "expectation": "v7/blocks.expected.tsv",
       "expectation_sha256": "6e298978dbfb8ee8cef203e98527f13fd701f851216878942ab3156d228a8480",
       "recipe": "v7/blocks.recipe.tsv",
@@ -172,7 +173,7 @@
     {
       "id": "operations",
       "path": "v7/operations.gdx",
-      "sha256": "4aec05f3083c587e886bece74749ddf9eecf9a6f3f2532fa3553064914998f14",
+      "sha256": "7cf1972b4998d7bbe758a933e431005f2ab9adb84c7d3cd5e8ef7a475dc88a23",
       "expectation": "v7/operations.expected.tsv",
       "expectation_sha256": "7886c57cb2d9d5cf039bc3c1e108f86869b7e9b8c25a54c8fb3f9b7972d46bc2",
       "recipe": "v7/operations.recipe.tsv",
@@ -203,7 +204,7 @@
     {
       "id": "optional-domains",
       "path": "v7/optional-domains.gdx",
-      "sha256": "9f3f054f593f8eac70e3c40900213f62d744b2b29d96b911c92c59272f816b00",
+      "sha256": "56b6c7012097b04a898c77e4cedc71b910606a0c140903c17eb2c1b443749091",
       "expectation": "v7/optional-domains.expected.tsv",
       "expectation_sha256": "08c4bd752f85bbd7d2dec0b7d1428ab9f023cee0330dfa245609eb116740f3b2",
       "recipe": "v7/optional-domains.recipe.tsv",
@@ -231,15 +232,15 @@
     {
       "id": "case-distinct-labels",
       "path": "v7/case-distinct-labels.gdx",
-      "sha256": "bddac113fd95cd9f1d8bcbe5825e85d31afbb0e610102c70a71413a5569675de",
+      "sha256": "49e1810646524ea8b57fc80a96188c7d912df2457b2d7f21ec358725e044052a",
       "expectation": "v7/case-distinct-labels.expected.tsv",
-      "expectation_sha256": "8d45ae30cfba0131b59b073c6d4b3eae69df0eef6c2bc47acb3b34b75b9de5a7",
+      "expectation_sha256": "3322c2f6941f48f8bfefd1ea5007b8917e8603af2c70e2631d40b8512eef8ac9",
       "recipe": null,
       "recipe_sha256": null,
       "transform": {
         "source": "semantics-0",
         "kind": "rename-one-label-byte",
-        "offset": 2525,
+        "offset": 2645,
         "from_hex": "43",
         "to_hex": "41"
       },
@@ -247,7 +248,7 @@
       "observations": {
         "byte_order": "little",
         "compression": 0,
-        "symbols": 25,
+        "symbols": 26,
         "uels": 5,
         "widths": [
           4
@@ -265,7 +266,7 @@
           9,
           10
         ],
-        "stored_records": 24,
+        "stored_records": 25,
         "compressed_blocks": 0,
         "stored_blocks": 0,
         "crossing_records": 0,
@@ -275,7 +276,7 @@
     {
       "id": "key-widths-be",
       "path": "v7/key-widths-be.gdx",
-      "sha256": "05dd613760da362d1a2884eac38eada73c26b1a8a56971245d8691cd5b72bc33",
+      "sha256": "b375ab19c04b90666cb83aeb0755bacf52cad784ec5c7b0ef6c08e5d4db1217f",
       "expectation": "v7/key-widths-be.expected.tsv",
       "expectation_sha256": "6a71f51411b743f2639bfbd671d10eecc8be7c72773914af4ca08e1024af1f07",
       "recipe": null,
@@ -308,9 +309,9 @@
     {
       "id": "semantics-0-be",
       "path": "v7/semantics-0-be.gdx",
-      "sha256": "e48c007141434461e9bf0937804ba73e82abeb6d39399feaa8ff907592bff40c",
+      "sha256": "d5e1ee0a2dd43ae70b19952ad548426d68312d492ce6a18a75d7ae32fca2e8f8",
       "expectation": "v7/semantics-0-be.expected.tsv",
-      "expectation_sha256": "6eaf1902fd2759588c523e5f69ca5ba3724ac7d49bba1487f3ad59b25ee20bc2",
+      "expectation_sha256": "4e4fb40f2728cc2ac4d3d3a8b348fff0c73f31046ca3ea2d6c48d26739c3f1d6",
       "recipe": null,
       "recipe_sha256": null,
       "transform": {
@@ -321,7 +322,7 @@
       "observations": {
         "byte_order": "big",
         "compression": 0,
-        "symbols": 25,
+        "symbols": 26,
         "uels": 5,
         "widths": [
           4
@@ -339,7 +340,7 @@
           9,
           10
         ],
-        "stored_records": 24,
+        "stored_records": 25,
         "compressed_blocks": 0,
         "stored_blocks": 0,
         "crossing_records": 0,
@@ -349,7 +350,7 @@
     {
       "id": "optional-domains-absent",
       "path": "v7/optional-domains-absent.gdx",
-      "sha256": "165e5771bac7f5c690d0c9870cc2679165d108163f0e6ae8d2d5aee2eab8d549",
+      "sha256": "4f9714ccbc51eab724ce02c9437834686aa50651bfad5a0d1c8dbef0552b946a",
       "expectation": "v7/optional-domains-absent.expected.tsv",
       "expectation_sha256": "08c4bd752f85bbd7d2dec0b7d1428ab9f023cee0330dfa245609eb116740f3b2",
       "recipe": null,
@@ -382,7 +383,7 @@
     {
       "id": "version-5-probe",
       "path": "invalid/version-5-probe.gdx",
-      "sha256": "f4ee3f576dd3f5f053898596793471427dcdc66932e7a0310f9a894495879eb0",
+      "sha256": "15ce339331c439f657a4b4cbb4c5ebc8c181b4a962a519a3d994d9a7a8c4f15b",
       "intended_rust_error": "UnsupportedVersion",
       "mutation": {
         "source": "optional-domains",
@@ -398,7 +399,7 @@
     {
       "id": "version-6-probe",
       "path": "invalid/version-6-probe.gdx",
-      "sha256": "94d4f792b13e48ec663a0ca147ee83f87b4021c51283a27acfaf85348ed4eef8",
+      "sha256": "d581334d57a02a8070c8a32e8170ef7aa1d1c40b7336c2c7b3a5a0d738a0ae41",
       "intended_rust_error": "UnsupportedVersion",
       "mutation": {
         "source": "optional-domains",
@@ -414,7 +415,7 @@
     {
       "id": "future-version-probe",
       "path": "invalid/future-version-probe.gdx",
-      "sha256": "f07f48172dd4ac0f26bf3fd4b78f8e50956cd1e2e4fe66b6ddf8286c8b2141a9",
+      "sha256": "4fa8ad85b833caa953786ec772da11266d28ab8a08a1055ab12da1fab841586e",
       "intended_rust_error": "UnsupportedVersion",
       "mutation": {
         "source": "optional-domains",
@@ -430,7 +431,7 @@
     {
       "id": "bad-offset",
       "path": "invalid/bad-offset.gdx",
-      "sha256": "5b5c50c67b8887a32867cd86d8b3b840e09baa01c5d1453edde74d0ff0f4bf6f",
+      "sha256": "07ac5ffe67c219e3701ad9b8d74ba20d564b04500617d28a20d72c8bf0b9b14f",
       "intended_rust_error": "InvalidOffset",
       "mutation": {
         "source": "optional-domains",
@@ -446,7 +447,7 @@
     {
       "id": "bad-dimension",
       "path": "invalid/bad-dimension.gdx",
-      "sha256": "0c886c8d5fdb7c8ddea3d7f655ad089b286dcc772bd4ff4d5320d44b3a776736",
+      "sha256": "321f8fdeccccac3464b740c3c45b65d607c03ee9cf6bd2ef159ef386c10d8749",
       "intended_rust_error": "InvalidDimension",
       "mutation": {
         "source": "optional-domains",
@@ -462,7 +463,7 @@
     {
       "id": "bad-key-tag",
       "path": "invalid/bad-key-tag.gdx",
-      "sha256": "6a4a57d99b1a8bee2d082bd4dc7ec4ffeee3c207a289e5b7154133da6a5aaace",
+      "sha256": "9701cc176f8aa7bf268315175cce1e6e7422b6604ebbf133e8d0b436ae71d8c5",
       "intended_rust_error": "InvalidKeyTag",
       "mutation": {
         "source": "optional-domains",
@@ -478,7 +479,7 @@
     {
       "id": "bad-value-tag",
       "path": "invalid/bad-value-tag.gdx",
-      "sha256": "bdbf9af1c67ccfb4040ed283a7bdf65e5ee36d02ef4914d7e619501597d931c3",
+      "sha256": "7fb11daa94e5c389d8ebc2b9d261e44dbde9456c0de97bdf3eb8cc165cd7c464",
       "intended_rust_error": "InvalidValueTag",
       "mutation": {
         "source": "optional-domains",
@@ -494,7 +495,7 @@
     {
       "id": "bad-count",
       "path": "invalid/bad-count.gdx",
-      "sha256": "611e478723614609a353a8ec1f70e2b222616cbbbe7713c26377fa35b10204c8",
+      "sha256": "08b1dde86c6ed38ee5ed59dc1f02accea56c1a11d56404cc15a15bef864a011b",
       "intended_rust_error": "InvalidCount",
       "mutation": {
         "source": "optional-domains",
@@ -525,7 +526,7 @@
     {
       "id": "truncated-section",
       "path": "invalid/truncated-section.gdx",
-      "sha256": "9b18fb2f096a8057c69a0aa7629cd035efded5d67c56280f8ccca1f2bf8dce73",
+      "sha256": "90a012f9ae1cec6663f7ab88a936514bc51a4566f1c43804a76d0ed1c9836783",
       "intended_rust_error": "UnexpectedEof",
       "mutation": {
         "source": "optional-domains",
@@ -540,7 +541,7 @@
     {
       "id": "damaged-zlib-checksum",
       "path": "invalid/damaged-zlib-checksum.gdx",
-      "sha256": "e856c220779d38bb34726672785cce1c35e21b8e3345a56ff835afa4ab5da580",
+      "sha256": "086a10da17d2bbc325e4a19befc904238e7a57365379d3a5f5b0b16a1f94b4ea",
       "intended_rust_error": "InvalidCompression",
       "mutation": {
         "source": "blocks",
@@ -556,7 +557,7 @@
     {
       "id": "truncated-block",
       "path": "invalid/truncated-block.gdx",
-      "sha256": "4be47d2d97917d72c944b8d5e2b9aa1d766ebd8f6270fae9a94cefd0a116b764",
+      "sha256": "b77651b737e85a24a234110555bdda0aed33fd73ca0af59633a6c11790a5312b",
       "intended_rust_error": "UnexpectedEof",
       "mutation": {
         "source": "blocks",

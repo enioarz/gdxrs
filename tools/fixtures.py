@@ -5,11 +5,13 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 
 import fixture_cases
 from format_probe import Probe, Cursor, LIMIT
 import oracle
+from oracle_limits import isolation_policy
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / 'tests/fixtures'
@@ -44,7 +46,7 @@ def compare(expected, actual, label):
 
 def generator_identity():
     paths = ['tools/fixture_cases.py', 'tools/fixtures.py', 'tools/format_probe.py',
-             'tools/oracle/driver.cpp', 'tools/oracle/fixture_generator.hpp']
+             'tools/oracle/driver.cpp', 'tools/oracle/fixture_generator.hpp', 'tools/oracle_limits.py']
     return {name: digest(ROOT/name) for name in paths}
 
 
@@ -112,7 +114,7 @@ def generate(run, destination):
                     generator=dict(base_revision=run(['git','rev-parse','HEAD'],capture=True).stdout.strip(), files=generator_identity()),
                     fixtures=items, negatives=negatives)
     save_json(destination/'manifest.json', manifest)
-    return dict(valid_fixtures=len(items), negative_fixtures=len(negatives), output=str(destination))
+    return dict(valid_fixtures=len(items), negative_fixtures=len(negatives), output=str(destination), oracle_isolation=isolation_policy())
 
 
 def entry(file, expectation, recipe, root, events, transform=None):
@@ -164,17 +166,16 @@ def negative_cases(root, exe):
 
 
 def observe_invalid(exe, path):
-    # POSIX development oracle only; no resource policy is added to production.
-    import resource
-    def limits():
-        resource.setrlimit(resource.RLIMIT_AS, (256*1024*1024, 256*1024*1024))
-        resource.setrlimit(resource.RLIMIT_CPU, (2, 2))
-        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-        resource.setrlimit(resource.RLIMIT_FSIZE, (1024*1024, 1024*1024))
+    if sys.platform not in ('linux', 'darwin'):
+        raise RuntimeError('native oracle isolation is only supported on Linux/macOS')
     try:
         with tempfile.TemporaryFile() as output:
-            result = subprocess.run([str(exe),'dump',str(path)],stdout=output,stderr=output,
-                                    timeout=5,preexec_fn=limits)
+            result = subprocess.run([sys.executable,str(ROOT/'tools/oracle_limits.py'),str(exe),'dump',str(path)],
+                                    stdout=output,stderr=output,timeout=5)
+            if result.returncode == 125:
+                output.seek(0)
+                detail = output.read(4096).decode('utf-8', errors='replace')
+                raise RuntimeError('native oracle isolation failed: '+detail)
             return dict(outcome='accepted' if result.returncode == 0 else 'failed', exit_code=result.returncode)
     except subprocess.TimeoutExpired:
         return dict(outcome='timeout', exit_code=None)
@@ -188,6 +189,8 @@ def checked_path(root, relative):
 
 
 def check(run, root=FIXTURES):
+    if sys.platform == 'darwin':
+        print('Oracle isolation: macOS memory limit unavailable; CPU/output/core limits and timeout remain.', flush=True)
     root = Path(root)
     manifest = json.loads((root/'manifest.json').read_text())
     if manifest.get('schema') != 1:
@@ -232,7 +235,7 @@ def check(run, root=FIXTURES):
     return dict(valid_fixtures=len(items), negative_fixtures=len(negative_ids), binary_bytes=total,
                 symbols=sum(len(p.symbols) for p in probes.values()),
                 stored_records=sum(p.summary()['stored_records'] for p in probes.values()),
-                verified_coverage='all required task-003 groups', unverified=[])
+                verified_coverage='all required task-003 groups', unverified=[], oracle_isolation=isolation_policy())
 
 
 def verify_coverage(probes):
@@ -243,6 +246,11 @@ def verify_coverage(probes):
     if not set(range(53,60)) <= {s['user'] for s in symbols if s['type']==3}: raise ValueError('equation defaults')
     if probes['key-widths'].summary()['widths'] != [1,2,4]: raise ValueError('key-width coverage')
     if probes['semantics-0'].summary()['tags'] != list(range(11)): raise ValueError('value-tag coverage')
+    for name in ('semantics-0', 'semantics-1'):
+        p = probes[name]
+        equations = {s['id'] for s in p.symbols if s['type'] == 3}
+        if not any(r['symbol'] in equations and any(len(values) == 5 and len(set(values)) == 5 for _, values in r['rows']) for r in p.records):
+            raise ValueError('stored five-field equation coverage')
     b = probes['blocks'].summary()
     if not b['compressed_blocks'] or not b['stored_blocks'] or not b['crossing_records'] or not b['multiple_records_per_block']:
         raise ValueError('compression-boundary coverage')
@@ -271,4 +279,4 @@ def regeneration_check(run, root=FIXTURES):
                 at = p.version_offset+8
                 size = data[at]; data[at+1:at+1+size] = b'\0'*size
             if left != right: raise ValueError('nondeterministic bytes outside creation/system string')
-        return dict(regenerated=len(regenerated['fixtures']), comparisons='full semantics, byte properties, bytes except audit string')
+        return dict(regenerated=len(regenerated['fixtures']), comparisons='full semantics, byte properties, bytes except audit string', oracle_isolation=isolation_policy())

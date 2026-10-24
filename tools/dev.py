@@ -156,6 +156,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check"])
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--baseline", type=Path, help="Explicit validated baseline report for m0-check")
     parser.add_argument("--profile", choices=['small'], default='small')
     args = parser.parse_args()
     from oracle import build, self_test
@@ -164,6 +165,8 @@ def main():
     import contracts
     import benchmark
     import m0
+    if args.baseline is not None and args.command != 'm0-check':
+        parser.error('--baseline only applies to m0-check')
     if args.command == 'fixtures-generate' and args.output is None:
         parser.error('fixtures-generate requires --output NEW_DIRECTORY')
     if args.output is not None and args.command != 'fixtures-generate':
@@ -171,7 +174,9 @@ def main():
     if '--profile' in sys.argv and args.command != 'benchmark-oracle':
         parser.error('--profile only applies to benchmark-oracle')
     def m0_check():
-        result=m0.check(run,check_bootstrap)
+        result=m0.check(run,check_bootstrap,args.baseline)
+        if result.get('errors'):
+            raise CheckFailure('; '.join(result['errors']),result)
         if not result['m1_eligible']:
             raise CheckFailure('independent M0 review pending; automated checks passed',result,2)
         return result
