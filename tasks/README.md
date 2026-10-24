@@ -50,3 +50,15 @@ Run from the repository root. Use Python's standard library for the development 
 ## Current implementation scope
 
 Tasks 001–005 are complete with evidence. Task 006's baseline and automated checks are implemented; independent review remains required before its status can become complete. The crate is still a bootstrap with no GDX decoder/writer. Do not infer runtime readiness from development tooling or documentation gates.
+
+## M1 — user-directed advancement (2026-10-24)
+
+The user explicitly instructed proceeding with M1. [Decision 0003](../docs/decisions/0003-m1-advancement.md) records the prerequisite exception; independent M0 review remains pending and is not represented as accepted.
+
+| Task | Scope | Status |
+| --- | --- | --- |
+| [007](007-checked-foundation.md) | Checked source I/O, quota, errors and v7 headers | Pending |
+| [008](008-bounded-compression.md) | Bounded raw/zlib section streams | Pending |
+| [009](009-lazy-metadata.md) | Lazy symbols, labels, text, comments, acronyms and domains | Pending |
+| [010](010-record-decoder.md) | Stateful serial raw record decoding | Pending |
+| [011](011-lending-batches.md) | Bounded lending batches and M1 acceptance | Pending |
