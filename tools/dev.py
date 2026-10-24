@@ -131,6 +131,8 @@ def main():
         parser.error('--profile only applies to benchmark-oracle')
     def m0_check():
         result=m0.check(run,check_bootstrap,args.baseline)
+        if result.get('errors'):
+            raise CheckFailure('; '.join(result['errors']),result)
         if not result['m1_eligible']:
             raise CheckFailure('independent M0 review pending; automated checks passed',result,2)
         return result

@@ -69,7 +69,6 @@ def validate_review(review,current_content=None):
 
 
 def check(run,bootstrap,baseline_path=None):
-    from dev import CheckFailure
     result=dict(automated_status='failed',automated={},baseline={'status':'unrun'},
                 independent_review={'status':'unavailable'},m1_eligible=False)
     operations = [('bootstrap',bootstrap),('oracle_build',lambda:oracle.build(run)),
@@ -95,6 +94,8 @@ def check(run,bootstrap,baseline_path=None):
     except Exception as exc:
         result['independent_review']={'status':'failed','error':str(exc)}
         errors.append('review: '+str(exc))
-    if errors: raise CheckFailure('; '.join(errors),result)
+    if errors:
+        result['errors']=errors
+        return result
     result['m1_eligible']=result['independent_review']['status']=='accepted'
     return result
