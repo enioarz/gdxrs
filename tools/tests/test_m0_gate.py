@@ -32,6 +32,20 @@ class ReviewGate(unittest.TestCase):
                 (directory/'current.json').write_text(json.dumps({'artifact':'../outside.json'}))
                 with self.assertRaisesRegex(ValueError,'outside'):benchmark.current_baseline()
 
+    def test_failed_baseline_preserves_component_outcomes(self):
+        from contextlib import ExitStack
+        with ExitStack() as stack:
+            for module,name in [(m0.oracle,'build'),(m0.oracle,'self_test'),(m0.fixtures,'check'),(m0.specification,'check'),(m0.contracts,'check')]:
+                stack.enter_context(patch.object(module,name,return_value={'status':'passed'}))
+            stack.enter_context(patch.object(m0.benchmark,'validate_baseline',side_effect=ValueError('bad baseline')))
+            stack.enter_context(patch.object(m0,'validate_review',return_value={'status':'pending'}))
+            result=m0.check(lambda *a,**kw:None,lambda:{'status':'passed'},Path('explicit.json'))
+            self.assertEqual(result['automated_status'],'passed')
+            self.assertEqual(result['baseline']['status'],'failed')
+            self.assertEqual(result['independent_review']['status'],'pending')
+            self.assertFalse(result['m1_eligible'])
+            self.assertTrue(result['errors'])
+
     def test_pending_review_stays_pending(self):
         review=json.loads((m0.ROOT/'docs/reviews/m0.json').read_text())
         review.update(status='pending',reviewer=None)
