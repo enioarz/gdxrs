@@ -1,13 +1,15 @@
 {
   "schema": 1,
-  "status": "pending",
+  "status": "released-user-confirmed",
   "implementation_author": "Codex implementation author",
   "reviewer": null,
   "reviewer_role": null,
   "reviewed_revision": null,
   "content_sha256": null,
   "findings": [],
-  "checklist": {
+  "candidate_revision": "6a10db96e89a0cc40473aadd34ec16db43c46d70",
+  "candidate_content_sha256": "b4ab1c19be21d80665d911f78333681dc5e34583d15f2c4041a085fa87df96cf",
+  "historical_checklist": {
     "source-pins": {
       "accepted": false,
       "notes": ""
@@ -37,6 +39,12 @@
       "notes": ""
     }
   },
-  "candidate_revision": "6a10db96e89a0cc40473aadd34ec16db43c46d70",
-  "candidate_content_sha256": "b4ab1c19be21d80665d911f78333681dc5e34583d15f2c4041a085fa87df96cf"
+  "release_confirmation": {
+    "source": "explicit-user",
+    "date": "2026-10-24",
+    "statement": "M0 is already reviewed; the review is stale. M0 is released and we can continue implementing M1.",
+    "release_revision": null,
+    "release_tag": null
+  },
+  "scope": "M0 release approval only; do not compare the evolving M1 working tree to the old M0 snapshot hash."
 }

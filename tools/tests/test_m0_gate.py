@@ -13,6 +13,11 @@ import m0
 
 
 class ReviewGate(unittest.TestCase):
+    def test_user_confirmed_release_is_scoped_to_m0(self):
+        review=dict(schema=1,status='released-user-confirmed',release_confirmation=dict(source='explicit-user',date='2026-10-24',statement='M0 reviewed and released'))
+        self.assertEqual(m0.validate_review(review,'different-M1-content')['status'],'released-user-confirmed')
+        review['release_confirmation']['source']='author-assumption'
+        with self.assertRaisesRegex(ValueError,'explicit recorded user'):m0.validate_review(review,'new-M1-content')
     def test_pending_review_stays_pending(self):
         review=json.loads((m0.ROOT/'docs/reviews/m0.json').read_text())
         review.update(status='pending',reviewer=None)

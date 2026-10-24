@@ -41,6 +41,12 @@ def content_fingerprint(revision=None):
 
 
 def validate_review(review,current_content=None):
+    if review.get('schema')==1 and review.get('status')=='released-user-confirmed':
+        confirmation=review.get('release_confirmation',{})
+        if confirmation.get('source')!='explicit-user' or not re.fullmatch(r'\d{4}-\d{2}-\d{2}',confirmation.get('date','')) or not confirmation.get('statement'):
+            raise ValueError('M0 release requires explicit recorded user confirmation')
+        return dict(status='released-user-confirmed',scope='M0 release only',confirmation=confirmation,
+                    reason='The user confirmed M0 was independently reviewed/released; an evolving M1 tree is not the old review candidate.')
     identity=content_fingerprint() if current_content is None else current_content
     if review.get('schema')!=1: raise ValueError('unsupported independent review record')
     if review.get('status')!='accepted':
@@ -83,4 +89,4 @@ def check(run,bootstrap):
     baseline=benchmark.validate_baseline(ROOT/'docs/benchmarks/oracle-small.json')
     review=validate_review(json.loads((ROOT/'docs/reviews/m0.json').read_text()))
     return dict(automated_status='passed',automated=automated,baseline=baseline,independent_review=review,
-                m1_eligible=review['status']=='accepted')
+                m1_eligible=review['status'] in ('accepted','released-user-confirmed'))
