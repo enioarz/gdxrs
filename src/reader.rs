@@ -194,6 +194,24 @@ mod tests {
         }
     }
     #[test]
+    fn final_owner_drop_releases_entire_root_quota() {
+        let source = Source::open(
+            std::path::Path::new("tests/fixtures/v7/semantics-0.gdx"),
+            OpenOptions::default(),
+        )
+        .unwrap();
+        let budget = Arc::clone(&source.budget);
+        let reader = Reader::from_source(source).unwrap();
+        let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
+        let mut scan = reader.scan(&symbol, reader.scan_options()).unwrap();
+        drop(reader);
+        drop(symbol);
+        assert!(scan.next_batch().unwrap().is_some());
+        assert!(budget.statistics().current_bytes > 0);
+        drop(scan);
+        assert_eq!(budget.statistics().current_bytes, 0);
+    }
+    #[test]
     fn opening_and_catalogs_never_read_data_sections() {
         let data = std::fs::read("tests/fixtures/v7/semantics-0.gdx").unwrap();
         let len = data.len() as u64;
