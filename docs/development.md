@@ -81,5 +81,5 @@ python3 tools/scale_profile.py .work/reports/m2-scale-check-RUN_ID.json
 
 The helper verifies measured source hashes, compiles the same validating sink
 with timers around batch calls, and requires three exact-count/digest matches.
-Instrumented timings are kept separate from the original benchmark. The measured
-Rust/native gap is a follow-up performance concern; no parity claim is made.
+Instrumented timings are kept separate from the original benchmark. The [scalar-buffer follow-up](evidence/016-throughput.md) closes the measured wide
+Rust/native gap; broader workloads still require their own throughput measurements.

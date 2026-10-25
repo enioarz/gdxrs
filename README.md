@@ -67,10 +67,11 @@ process high-water RSS below 14 MB, including fork/startup overhead. It also
 resolved 9.56 million label requests with spill and validated all results.
 Reproduce with `python3 tools/dev.py m2-scale-check --profile scale`.
 
-On this wide synthetic workload, Rust full-read median was 6.83 s versus 4.45 s
-for the pinned native reader, with complete field/digest validation. Native
-throughput parity remains a performance goal. Slices still decode the complete
-record stream; they do not prune source I/O. See [qualification, cache treatment,
-review and limitations](docs/evidence/016.md); these measurements are not portable
-speed guarantees. Writing, indexes, parallel decoding and Polars integration are
-outside M2.
+A safe scalar-buffer fast path reduced the wide synthetic full-read median from
+6.83 s to **3.95 s**, versus **4.60 s** for a fresh pinned-native comparison, with
+identical full field/digest validation. This closes the measured gap on that
+workload; cross-workload throughput parity remains unqualified. Slices still
+decode the full source stream. See [throughput follow-up](docs/evidence/016-throughput.md)
+and [qualification/cache/platform limits](docs/evidence/016.md). These are measured
+results, not portable speed guarantees. Writing, indexes, parallel decoding and
+Polars integration remain outside M2.
