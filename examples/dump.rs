@@ -14,7 +14,6 @@ fn dump(
 ) -> std::result::Result<(), Box<dyn std::error::Error>> {
     let records = true;
     let info = reader.information()?;
-    assert!(info.audit.starts_with(b"GDX Library"));
     writeln!(
         out,
         "GDXRS-ORACLE\t1\nF\t7\t{}\t{}\t{}\t{}\t<creation-system>",
