@@ -1,0 +1,161 @@
+{
+  "schema": 1,
+  "implementation_revision": "e087624680d2ade4671301ec6d03794f03bbd575",
+  "reader_check": {
+    "schema": 1,
+    "command": "reader-check",
+    "run_id": "13edfaf5b2154a5daa2db52ef379ef59",
+    "revision": "e087624680d2ade4671301ec6d03794f03bbd575",
+    "cwd": "/workspace/gdxrs",
+    "started_utc": "2026-10-25T12:56:52.190337+00:00",
+    "status": "passed",
+    "result": {
+      "bootstrap": {
+        "versions": {
+          "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)"
+        },
+        "runtime_dependencies": 2,
+        "runtime_tests_executed": 0,
+        "dependency_audit": "docs/decisions/0004-compression.md"
+      },
+      "suites": [
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            39,
+            24,
+            2,
+            3
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--no-default-features"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            34,
+            24,
+            2,
+            3
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--all-features"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            39,
+            24,
+            2,
+            3
+          ]
+        }
+      ],
+      "differential_fixtures": 10,
+      "public_records_compared": 141358,
+      "no_compression_dependencies": 0,
+      "exact_id_slicing": "executed in Rust suites (task 012)",
+      "small_exact_labels_and_pages": "executed in Rust suites (task 013)",
+      "bounded_spill_primitives": "executed in Rust suites (task 014)",
+      "m2_scale_and_spilled_requests": "not implemented or measured"
+    },
+    "elapsed_seconds": 7.906558430986479,
+    "exit_code": 0
+  },
+  "m0_check": {
+    "revision": "e087624680d2ade4671301ec6d03794f03bbd575",
+    "command": "m0-check",
+    "status": "passed",
+    "exit_code": 0,
+    "elapsed_seconds": 4.9016967700154055
+  },
+  "m0_baseline": {
+    "status": "verified",
+    "scenarios": 4,
+    "measured_scans": 20,
+    "measured_writes": 20,
+    "write_validation_scans": 20,
+    "large_profile": "unrun",
+    "revision": "a3c648895d8463b889afba695e9f8b93eb7644a7"
+  },
+  "label_page_probe": {
+    "schema": 1,
+    "command": "label-pages-check",
+    "run_id": "151b2e91862642868630550cf685adce",
+    "revision": "e087624680d2ade4671301ec6d03794f03bbd575",
+    "cwd": "/workspace/gdxrs",
+    "started_utc": "2026-10-25T12:57:05.162076+00:00",
+    "status": "passed",
+    "result": {
+      "cases": [
+        {
+          "kind": "stored",
+          "artifact": ".work/label-pages/d6fe14a000e0400ca206657fc1bf4011/crossing-0.gdx",
+          "input_sha256": "9a08ffe859fc29e3114f3c68115cfe1d81ef770508ebe3070c21bf34e7a741f9",
+          "metadata_labels": 8192,
+          "decoded_metadata_bytes": 57360,
+          "blocks": 2,
+          "crossing_label_id": 4680,
+          "full_native_rust_dump_match": true,
+          "public_records": 16431
+        },
+        {
+          "kind": "zlib",
+          "artifact": ".work/label-pages/d6fe14a000e0400ca206657fc1bf4011/crossing-1.gdx",
+          "input_sha256": "23435c03a59fe541f0ca0739b2a475cb4a4065b8be905a130de011c1315c7a0f",
+          "metadata_labels": 8192,
+          "decoded_metadata_bytes": 57360,
+          "blocks": 2,
+          "crossing_label_id": 4680,
+          "full_native_rust_dump_match": true,
+          "public_records": 16431
+        }
+      ],
+      "native_executable_sha256": "79b9f3574597cf60339ecc12f0da24633f10c68e28ea208e78c0d5ee38fc249b"
+    },
+    "elapsed_seconds": 0.2262046909891069,
+    "exit_code": 0
+  },
+  "tooling_tests_passed": 33,
+  "spill_resource_probe": {
+    "input_records": 77,
+    "returned_records": 77,
+    "run_record_layout_bytes": 264,
+    "configured_run_capacity_records": 2,
+    "merge_fan_in": 2,
+    "merge_passes": 6,
+    "published_runs": 80,
+    "peak_open_run_files": 3,
+    "maximum_open_run_files": 3,
+    "peak_reserved_temporary_bytes": 5338,
+    "maximum_temporary_bytes": 2097152,
+    "peak_root_requested_bytes": 214536,
+    "root_limit_bytes": 1048576,
+    "post_eof_temporary_bytes": 0,
+    "post_eof_open_run_files": 0,
+    "final_owner_drop_root_bytes": 0,
+    "rss_measured": false
+  },
+  "focused_spill_tests": {
+    "unit": 13,
+    "integration": 1
+  },
+  "source_reports": [
+    ".work/reports/reader-check-13edfaf5b2154a5daa2db52ef379ef59.json",
+    ".work/reports/m0-check-0bcb9b628f214f34b1ee068a514f1cc7.json",
+    ".work/reports/label-pages-check-151b2e91862642868630550cf685adce.json"
+  ],
+  "m2_complete": false,
+  "next_task": "015"
+}
