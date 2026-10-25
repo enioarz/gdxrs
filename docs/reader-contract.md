@@ -66,10 +66,18 @@ Dropping the cursor cancels immediately and releases its owned budget/buffers. E
 
 ## Error contract
 
-`Error` includes a stable `ErrorKind`, optional source/symbol ID, optional section and physical/decoded offset, and bounded diagnostic details; I/O errors retain their cause. Required kinds are `Io`, `UnexpectedEof`, `UnsupportedVersion`, `UnsupportedByteOrder`, `CompressionUnavailable`, `InvalidHeader`, `InvalidOffset`, `InvalidCount`, `InvalidDimension`, `InvalidType`, `InvalidKeyTag`, `InvalidValueTag`, `InvalidCompression`, `InvalidReference`, `InvalidAcronymId`, `AliasCycle`, `SourceMismatch`, `SourceChanged`, `InvalidOptions`, `InvalidProjection`, `BatchTooSmall`, `BudgetTooSmall`, `AllocationFailed`.
+`Error` includes a stable `ErrorKind`, optional source/symbol ID, optional section and physical/decoded offset, and bounded diagnostic details; I/O errors retain their cause. Required kinds are `Io`, `UnexpectedEof`, `UnsupportedVersion`, `UnsupportedByteOrder`, `CompressionUnavailable`, `InvalidHeader`, `InvalidOffset`, `InvalidCount`, `InvalidDimension`, `InvalidType`, `InvalidKeyTag`, `InvalidValueTag`, `InvalidCompression`, `InvalidReference`, `InvalidAcronymId`, `AliasCycle`, `SourceMismatch`, `SourceChanged`, `InvalidOptions`, `InvalidProjection`, `InvalidSelection`, `BatchTooSmall`, `BudgetTooSmall`, `AllocationFailed`.
 
 Untrusted bytes cannot cause unchecked indexing, integer casts/overflow, `unwrap`/`expect`, recursive alias walks or indefinite loops. Native `Result` errors do not consume a global last-error slot. Runtime panic/fuzz validation is an implementation task; documentation coverage cannot prove those properties.
 
 ## M1 acceptance and later extensions
 
 Implement the named scenarios from `reader-acceptance.json` using actual typed results, counting/fault-injection source adapters and allocation accounting. No scenario is considered executed by `contracts-check`. Cross-implementation fixture checks remain mandatory. M2 handles exact filters, large label-request sets, metadata spilling/unique domains and scale tests. M3/M4 add writers and registration; M5 adds sidecars; M6 parallel ranges; M7 owned Arrow batches. Those extensions must preserve the source/limit/error/ownership contracts here.
+
+## M2 exact ID slicing (task 012)
+
+`Reader::selection(symbol, clauses)` compiles source/requested-symbol-bound `Selection` values. Each `DimensionSelection` names a zero-based dimension and `KeySelection::{All, One, AnyOf, Range, Ranges}`; `UelRange::new(first, last)` validates inclusive registration-order bounds. Dimension clauses are conjoined; membership is unioned within a clause. Empty AnyOf/Ranges selects nothing. Duplicate dimensions/reversed ranges are `InvalidSelection`; out-of-file UEL IDs are `InvalidReference`. All clauses validate before copying payloads, even after an empty clause. Scalar symbols have no valid dimension clauses.
+
+`Reader::scan_selected(symbol, selection, options)` filters complete decoded keys before projection and the accepted-row limit. It preserves original IDs/order and terminal error behavior. Empty selections/zero limits require no decoder/output allocation or record I/O. Selection clones share quota-charged state; foreign readers or symbols fail before record reads. M1 `scan` and `ScanOptions` remain unchanged.
+
+`ScanCursor::statistics()` reports decoded public rows (including rejected rows and complete rows inside a failed fill) and returned rows (only successfully exposed batches). These counts include synthetic rows and are not physical-record/byte counters. Task 012 does no index/leading-prefix acceleration; reaching late keys or non-leading matches may require a complete sequential scan. Large metadata/label requests, paging/spill and the OS-capped scale gate remain tasks 013–016. See [decision 0006](decisions/0006-m2-selection.md).

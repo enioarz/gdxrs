@@ -25,6 +25,7 @@ pub enum ErrorKind {
     SourceChanged,
     InvalidOptions,
     InvalidProjection,
+    InvalidSelection,
     BatchTooSmall,
     BudgetTooSmall,
     AllocationFailed,

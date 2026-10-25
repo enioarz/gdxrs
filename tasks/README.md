@@ -1,6 +1,6 @@
 # Numbered implementation tasks
 
-These specifications break **M0 and M1** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
+These specifications break **M0, M1 and M2** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
 
 ## Execution order
 
@@ -50,7 +50,7 @@ Run from the repository root. Use Python's standard library for the development 
 
 ## Current implementation scope
 
-Tasks 001–006 are complete; the user confirmed the M0 review/release after identifying a stale snapshot. M1 provides the bounded serial GDX v7 reader. Runtime evidence is separate from documentation checks. The crate has no writer yet.
+Tasks 001–011 are complete; M1 is merged at `5cc766d`. M1 provides the bounded serial GDX v7 reader. M2 begins with task 012; its out-of-core release gate remains task 016. Runtime evidence is separate from documentation checks. The crate has no writer yet.
 
 ## M1 — user-directed advancement (2026-10-24)
 
