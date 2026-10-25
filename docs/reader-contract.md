@@ -97,3 +97,19 @@ See [decision 0007](decisions/0007-label-lookup-pages.md). Paging may validate a
 `spill_sort(&SpillOptions)` returns `SpillSorter`; `push(label, opaque_id)` accepts up to 255 exact label bytes, then consuming `finish()` returns `SpillCursor`. Stream `SpillEntry { label, id }` through the lending next method. Duplicate tuples remain duplicated and sort in exact byte/unsigned-ID order. This utility borrows the reader's budget/ownership, not its GDX record semantics; zero and u64::MAX are valid opaque IDs. Run format is internal and versioned, not a GDX output format.
 
 SpillStatistics exposes input/returned records, published runs/passes, physical read/write counts, current/peak reserved temporary logical bytes/open run handles, and complete. Complete becomes true only after fully validated EOF, total count equality and successful cleanup. Explicit cancellation/close leaves a partial result incomplete; do not infer completion merely from closing it. Disk quota, handle quota and corruption use TemporarySpaceExceeded, FileLimitExceeded and InvalidSpill. Standard I/O causes remain visible; Error::cleanup_error exposes a secondary cleanup cause and Display marks its presence without replacing the primary error. Failed cursors remain terminal. See [decision 0008](decisions/0008-spill-runs.md) for resource domains, filesystem requirements and cleanup ownership.
+
+
+## M2 large exact lookup and observed domains, task 015
+
+[Decision 0009](decisions/0009-large-labels-domains.md) specifies the implemented
+streaming APIs, ordering, ordinals, source/ownership checks, composition of three
+scratch quotas, shared root memory, fixed-frame disk membership and unique-domain
+extraction. Empty/unknown labels contribute no IDs; disk predicates intersect base
+constraints on original dimensions before exact accepted-row limits. Lookup output
+is label-sorted with original request ordinals; domain output is deduplicated in
+original dimension/ID order. No eager dictionary, offset vector or universe bitmap
+is retained. Explicit close reports cleanup, while Drop is best effort. All results
+remain partial after a later error. At most one disk clause per selection is
+supported; membership requires a fresh lookup cursor. Logical bounds are not
+physical RSS/disk containment, and binary membership probes do not imply GDX data
+pruning or throughput gains. OS-capped scale qualification remains task 016.

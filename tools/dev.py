@@ -159,6 +159,7 @@ def reader_check():
             "exact_id_slicing":"executed in Rust suites (task 012)",
             "small_exact_labels_and_pages":"executed in Rust suites (task 013)",
             "bounded_spill_primitives":"executed in Rust suites (task 014)",
+            "large_lookup_and_unique_domains":"executed in Rust suites (task 015)",
             "m2_scale_and_spilled_requests":"not implemented or measured"}
 
 

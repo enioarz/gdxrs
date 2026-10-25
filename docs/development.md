@@ -28,8 +28,23 @@ python3 tools/dev.py m0-check
 
 Each command creates a fresh report in ignored `.work/reports/` and propagates failures. Do not regenerate Cargo.lock or fixture expectations as a routine workaround. See [task evidence](evidence/011.md) for exact executed counts, commands and limitations. [Oracle setup](oracle.md) requires C++17 and CMake only for development. Native sources/builds and generated datasets stay under `.work/`.
 
-Current validation is Linux x86_64, Debian 13. Windows positioned I/O is implemented but untested here; native big-endian hardware, >4 GiB inputs and OS-capped oversized workloads remain unrun. Exact raw-ID and small exact-label selections plus bounded label pages are implemented in M2; spill-backed requests and scale gates remain pending; writing belongs to M3/M4.
+Current validation is Linux x86_64, Debian 13. Windows positioned I/O is implemented but untested here; native big-endian hardware, >4 GiB inputs and OS-capped oversized workloads remain unrun. Exact raw-ID and small exact-label selections plus bounded label pages are implemented in M2; spill-backed exact-label requests and observed-domain enumeration are implemented; the OS-capped scale gate remains pending; writing belongs to M3/M4.
 
 `python3 tools/dev.py label-pages-check` builds a bounded development-only 8,192-label probe in both stored and zlib block forms and verifies its full output with both the pinned native oracle and the Rust dump. A label crosses the 32 KiB decoded boundary. Run oracle-build first if the development oracle is unavailable. Core Rust tests exercise the same declared boundary input without requiring native/Python tooling; the normal frozen corpus is unchanged. See task 013 evidence for request/cursor/cache checks and exact executed counts.
 
 Task 014 adds private scratch-run tests to the normal reader-check suites. Focused `cargo test --locked spill:: -- --nocapture` exercises small run buffers, multiple merge passes, quota peaks, partial/interrupted I/O, disk-full-style faults, corruption, cancellation and cleanup retry; it needs no native library. OS-capped large input qualification is still task 016. Scratch-run checks are not Rust GDX-writer interoperability tests.
+
+
+Task 015 is included in `reader-check`. Focused checks:
+
+```sh
+cargo test --locked --test reader large:: -- --nocapture
+cargo test --locked --lib spill::tests:: -- --nocapture
+```
+
+These execute frozen label/record comparisons, non-leading membership/limits,
+20-dimensional rows, small-versus-spill equivalence, a request payload exceeding
+the logical root quota, multi-pass merges, root/disk denials and injected join,
+membership, domain-output and cleanup errors. Logical peak reservations are
+recorded in task 015 evidence. They do not establish OS-capped RSS, independently
+oversized metadata or a throughput improvement; those remain task 016.

@@ -668,3 +668,144 @@ impl SpillCursor {
         Ok(self.statistics())
     }
 }
+
+/// Fully verified fixed-frame IDs; private to source-bound selection evaluation.
+pub(crate) struct DiskIds {
+    file: Option<OpenRun>,
+    count: u64,
+    session: Session,
+    _state: Reservation,
+}
+impl SpillCursor {
+    pub(crate) fn into_ids(mut self) -> Result<DiskIds> {
+        let result = (|| {
+            if size_of::<DiskIds>() > CONTROL {
+                return Err(Error::new(
+                    ErrorKind::BudgetTooSmall,
+                    "membership controls exceed allowance",
+                ));
+            }
+            let mut count = 0u64;
+            if let Some(reader) = &mut self.reader {
+                while let Some(record) = reader.advance()? {
+                    if !record.label.as_slice().is_empty()
+                        || record.id == 0
+                        || record.id > u64::from(self.session.source.counts()?.uels)
+                    {
+                        return Err(Error::new(
+                            ErrorKind::InvalidSpill,
+                            "invalid membership ID frame",
+                        ));
+                    }
+                    count = count.checked_add(1).ok_or_else(|| {
+                        Error::new(ErrorKind::InvalidCount, "membership count overflow")
+                    })?;
+                }
+            }
+            if count != self.session.metrics.input.load(Ordering::Relaxed) {
+                return Err(Error::new(
+                    ErrorKind::InvalidSpill,
+                    "membership input count mismatch",
+                ));
+            }
+            Ok(count)
+        })();
+        match result {
+            Ok(count) => Ok(DiskIds {
+                file: self.reader.take().map(RunReader::into_file),
+                count,
+                session: self.session,
+                _state: self._state,
+            }),
+            Err(e) => Err(self.fail(e)),
+        }
+    }
+}
+impl DiskIds {
+    pub(crate) fn directory(&self) -> &Path {
+        &self.session.directory
+    }
+    pub(crate) fn statistics(&self) -> SpillStatistics {
+        self.session.metrics.snapshot()
+    }
+    pub(crate) fn is_empty(&self) -> bool {
+        self.count == 0
+    }
+    pub(crate) fn contains(&self, id: UelId) -> Result<bool> {
+        let mut low = 0;
+        let mut high = self.count;
+        while low < high {
+            let mid = low + (high - low) / 2;
+            let at = mid
+                .checked_mul(10)
+                .and_then(|v| v.checked_add(8))
+                .ok_or_else(|| Error::new(ErrorKind::InvalidSpill, "membership offset overflow"))?;
+            let file = &self
+                .file
+                .as_ref()
+                .ok_or_else(|| Error::new(ErrorKind::InvalidOptions, "membership is closed"))?
+                .file;
+            let mut frame = [0u8; 10];
+            let mut done = 0;
+            while done < frame.len() {
+                event(Event::Read).map_err(Error::io)?;
+                let length = io_chunk(frame.len() - done, false);
+                #[cfg(unix)]
+                let result = {
+                    use std::os::unix::fs::FileExt;
+                    file.read_at(&mut frame[done..done + length], at + done as u64)
+                };
+                #[cfg(windows)]
+                let result = {
+                    use std::os::windows::fs::FileExt;
+                    file.seek_read(&mut frame[done..done + length], at + done as u64)
+                };
+                #[cfg(not(any(unix, windows)))]
+                let result: io::Result<usize> = Err(io::Error::new(
+                    io::ErrorKind::Unsupported,
+                    "positioned membership reads unavailable",
+                ));
+                match result {
+                    Ok(0) => {
+                        return Err(Error::new(
+                            ErrorKind::UnexpectedEof,
+                            "truncated membership frame",
+                        ));
+                    }
+                    Ok(n) => {
+                        add(&self.session.metrics.read, n as u64)?;
+                        done += n;
+                    }
+                    Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                    Err(e) => return Err(Error::io(e)),
+                }
+            }
+            let mut bytes = [0u8; 8];
+            bytes.copy_from_slice(&frame[2..]);
+            let found = u64::from_le_bytes(bytes);
+            if frame[..2] != [0, 0] || found == 0 || found > i32::MAX as u64 {
+                return Err(Error::new(
+                    ErrorKind::InvalidSpill,
+                    "invalid membership frame",
+                ));
+            }
+            match found.cmp(&u64::from(id.get())) {
+                std::cmp::Ordering::Equal => return Ok(true),
+                std::cmp::Ordering::Less => low = mid + 1,
+                std::cmp::Ordering::Greater => high = mid,
+            }
+        }
+        Ok(false)
+    }
+    pub(crate) fn close(&mut self) -> Result<()> {
+        self.file = None;
+        self.session.cleanup().map_err(Error::io)
+    }
+}
+impl SpillCursor {
+    pub(crate) fn within_limits(&self, limits: &SpillOptions) -> bool {
+        self.session.metrics.disk_limit == limits.maximum_temporary_bytes
+            && self.session.metrics.handle_limit == limits.maximum_open_files as u64
+            && self.session.fan_in == limits.merge_fan_in
+    }
+}
