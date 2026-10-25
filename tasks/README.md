@@ -89,3 +89,19 @@ Before M3, the user requested macOS/Windows compatibility qualification.
 | [017](017-native-platform-compatibility.md) | Native macOS ARM64/Intel and Windows x64 reader/metadata/spill compatibility | Complete; [evidence](../docs/evidence/017.md) |
 
 The native platform follow-up is complete. M3 sorted-writer specifications are next.
+
+
+## M3 — user-directed sorted writer
+
+The user confirmed #11 merged and requested M3. [Writer contract](../docs/decisions/0012-writer-contract.md)
+defines the first API/resource/ownership contract. Complete one bounded task gate
+before starting its dependent; task 023 is the M3 release gate.
+
+| Task | Scope | Status |
+| --- | --- | --- |
+| [018](018-writer-foundation.md) | Writer contract, bounded empty-v7 creation and atomic publication | In progress |
+| [019](019-bounded-writer-codec.md) | Bounded byte/block encoder and stored/zlib compression | Pending |
+| [020](020-writer-metadata-spooling.md) | Original-ID raw registration and metadata spools | Pending |
+| [021](021-sorted-record-writer.md) | Checked sorted raw symbol/record encoding | Pending |
+| [022](022-writer-finalization-interop.md) | Complete metadata/finalization and both interoperability directions | Pending |
+| [023](023-m3-writer-acceptance.md) | OS-capped record/metadata/pipeline scale and M3 acceptance | Pending |
