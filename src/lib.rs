@@ -5,6 +5,7 @@
 mod budget;
 mod error;
 mod format;
+mod labels;
 mod metadata;
 mod model;
 mod reader;
@@ -28,3 +29,8 @@ pub use source::IoStatistics;
 
 pub use scan::{BatchView, RecordView, ScanCursor, ScanStatistics};
 pub use selection::{DimensionSelection, KeySelection, Selection, UelRange};
+
+pub use labels::{
+    LabelLookupStatistics, LabelMatches, ResolvedLabel, SMALL_LABEL_LOOKUP_BYTES, UelLabelCursor,
+    UelLabelStatistics,
+};

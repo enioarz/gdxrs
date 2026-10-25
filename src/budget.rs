@@ -124,6 +124,11 @@ impl Buffer<u8> {
 thread_local! { static FAIL_ALLOCATION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
 
 #[cfg(test)]
+pub(crate) fn inject_buffer_failure() {
+    FAIL_ALLOCATION.with(|flag| flag.set(true));
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[test]

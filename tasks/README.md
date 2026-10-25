@@ -44,6 +44,7 @@ python3 tools/dev.py contracts-check
 python3 tools/dev.py benchmark-oracle --profile small
 python3 tools/dev.py m0-check
 python3 tools/dev.py reader-check
+python3 tools/dev.py label-pages-check
 ```
 
 Run from the repository root. Use Python's standard library for the development runner; it is not a runtime dependency. Subcommands must preserve child exit failures, avoid shell-string interpolation, validate their input/output paths, and emit a fresh report under ignored `.work/reports/`. Reports record revision and run identity; an old artifact cannot make a failed new command pass. Store compact reviewed results/provenance in version control where useful, not build trees or large generated files.

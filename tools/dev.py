@@ -157,12 +157,13 @@ def reader_check():
     return {"bootstrap": bootstrap, "suites": suites, "differential_fixtures":len(paths),
             "public_records_compared":records, "no_compression_dependencies":0,
             "exact_id_slicing":"executed in Rust suites (task 012)",
-            "m2_scale_and_large_metadata":"not implemented or measured"}
+            "small_exact_labels_and_pages":"executed in Rust suites (task 013)",
+            "m2_scale_and_spilled_requests":"not implemented or measured"}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check"])
+    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check", "label-pages-check"])
     parser.add_argument("--output", type=Path)
     parser.add_argument("--baseline", type=Path, help="Explicit validated baseline report for m0-check")
     parser.add_argument("--profile", choices=['small'], default='small')
@@ -173,6 +174,7 @@ def main():
     import contracts
     import benchmark
     import m0
+    import label_pages
     if args.baseline is not None and args.command != 'm0-check':
         parser.error('--baseline only applies to m0-check')
     if args.command == 'fixtures-generate' and args.output is None:
@@ -191,6 +193,7 @@ def main():
     actions = {
         "check-bootstrap": check_bootstrap,
         "reader-check": reader_check,
+        "label-pages-check": lambda: label_pages.check(run),
         "oracle-build": lambda: build(run),
         "oracle-self-test": lambda: self_test(run),
         "fixtures-generate": lambda: fixtures.generate(run,args.output),
