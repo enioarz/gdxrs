@@ -51,7 +51,7 @@ Run from the repository root. Use Python's standard library for the development 
 
 ## Current implementation scope
 
-Tasks 001–011 are complete; M1 is merged at `5cc766d`. M1 provides the bounded serial GDX v7 reader. M2 begins with task 012; its out-of-core release gate remains task 016. Runtime evidence is separate from documentation checks. The crate has no writer yet.
+Tasks 001–011 are complete; M1 is merged at `5cc766d`. M1 provides the bounded serial GDX v7 reader. M2 begins with task 012; its out-of-core read gate passed in task 016 on Linux x86_64. Runtime evidence is separate from documentation checks. The crate has no writer yet.
 
 ## M1 — user-directed advancement (2026-10-24)
 
@@ -67,7 +67,7 @@ The user explicitly confirmed M0 is reviewed/released and instructed proceeding 
 
 ## M2 — bounded slicing and metadata
 
-M1 is merged in `5cc766d`; the user requested beginning M2. [Decision 0006](../docs/decisions/0006-m2-selection.md) defines the first selection API. Each task has its own completion gate; M2 remains in progress until task 016 passes.
+M1 is merged in `5cc766d`; the user requested beginning M2. [Decision 0006](../docs/decisions/0006-m2-selection.md) defines the first selection API. All six M2 task gates have passed, including OS-capped scale qualification in task 016. This qualifies the bounded read scope on Linux x86_64; native throughput parity, writing and subsequent milestones are not claimed.
 
 | Task | Scope | Status |
 | --- | --- | --- |
@@ -75,4 +75,6 @@ M1 is merged in `5cc766d`; the user requested beginning M2. [Decision 0006](../d
 | [013](013-small-exact-label-lookup.md) | Small exact label lookup and paged metadata/cache lifecycle | Complete; [evidence](../docs/evidence/013.md) |
 | [014](014-bounded-spill-primitives.md) | Quota-controlled sorted runs, merge and failure cleanup | Complete; [evidence](../docs/evidence/014.md) |
 | [015](015-large-lookup-domain-enumeration.md) | Spill-backed large label requests and unique domains | Complete; [evidence](../docs/evidence/015.md) |
-| [016](016-m2-scale-acceptance.md) | Independently oversized inputs, OS memory cap and M2 acceptance | Pending |
+| [016](016-m2-scale-acceptance.md) | Independently oversized inputs, OS memory cap and M2 acceptance | Complete; [evidence](../docs/evidence/016.md) |
+
+M2 is complete for the qualified read scope. The next milestone is **M3 — sorted writer**; define its bounded numbered specifications before starting implementation.

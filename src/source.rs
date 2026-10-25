@@ -51,6 +51,11 @@ impl ReadAt for FileSource {
 pub struct IoStatistics {
     pub read_calls: u64,
     pub bytes_read: u64,
+    /// Bytes made available by successful raw or decompressed stream fills.
+    /// Includes read-ahead and repeat traversals, not just consumed fields.
+    pub decoded_bytes: u64,
+    /// Successful stream buffer fills (raw, stored-block or zlib).
+    pub decoded_buffers: u64,
 }
 #[derive(Clone, Copy)]
 pub(crate) struct Counts {
@@ -68,6 +73,8 @@ pub(crate) struct Source {
     pub counts: OnceLock<Counts>,
     calls: AtomicU64,
     bytes: AtomicU64,
+    decoded_bytes: AtomicU64,
+    decoded_buffers: AtomicU64,
     _root: Reservation,
 }
 impl Source {
@@ -126,6 +133,8 @@ impl Source {
             counts: OnceLock::new(),
             calls: AtomicU64::new(0),
             bytes: AtomicU64::new(0),
+            decoded_bytes: AtomicU64::new(0),
+            decoded_buffers: AtomicU64::new(0),
             _root: root,
         }))
     }
@@ -205,10 +214,27 @@ impl Source {
             .copied()
             .ok_or_else(|| Error::new(ErrorKind::InvalidHeader, "counts not initialized"))
     }
+    pub(crate) fn decoded(&self, bytes: usize) -> Result<()> {
+        for (counter, amount) in [
+            (&self.decoded_bytes, bytes as u64),
+            (&self.decoded_buffers, 1),
+        ] {
+            counter
+                .try_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+                    n.checked_add(amount)
+                })
+                .map_err(|_| {
+                    Error::new(ErrorKind::InvalidCount, "decoded work counter overflow")
+                })?;
+        }
+        Ok(())
+    }
     pub fn statistics(&self) -> IoStatistics {
         IoStatistics {
             read_calls: self.calls.load(Ordering::Relaxed),
             bytes_read: self.bytes.load(Ordering::Relaxed),
+            decoded_bytes: self.decoded_bytes.load(Ordering::Relaxed),
+            decoded_buffers: self.decoded_buffers.load(Ordering::Relaxed),
         }
     }
     #[cfg(test)]

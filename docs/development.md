@@ -28,7 +28,7 @@ python3 tools/dev.py m0-check
 
 Each command creates a fresh report in ignored `.work/reports/` and propagates failures. Do not regenerate Cargo.lock or fixture expectations as a routine workaround. See [task evidence](evidence/011.md) for exact executed counts, commands and limitations. [Oracle setup](oracle.md) requires C++17 and CMake only for development. Native sources/builds and generated datasets stay under `.work/`.
 
-Current validation is Linux x86_64, Debian 13. Windows positioned I/O is implemented but untested here; native big-endian hardware, >4 GiB inputs and OS-capped oversized workloads remain unrun. Exact raw-ID and small exact-label selections plus bounded label pages are implemented in M2; spill-backed exact-label requests and observed-domain enumeration are implemented; the OS-capped scale gate remains pending; writing belongs to M3/M4.
+Current validation is Linux x86_64, Debian 13. Windows positioned I/O is implemented but untested here; native big-endian hardware and >4 GiB inputs remain unrun. Exact raw-ID and small exact-label selections, bounded label pages, spill-backed exact-label requests and observed-domain enumeration are implemented in M2; the OS-capped scale gate has passed on Linux x86_64; writing belongs to M3/M4.
 
 `python3 tools/dev.py label-pages-check` builds a bounded development-only 8,192-label probe in both stored and zlib block forms and verifies its full output with both the pinned native oracle and the Rust dump. A label crosses the 32 KiB decoded boundary. Run oracle-build first if the development oracle is unavailable. Core Rust tests exercise the same declared boundary input without requiring native/Python tooling; the normal frozen corpus is unchanged. See task 013 evidence for request/cursor/cache checks and exact executed counts.
 
@@ -47,4 +47,39 @@ These execute frozen label/record comparisons, non-leading membership/limits,
 the logical root quota, multi-pass merges, root/disk denials and injected join,
 membership, domain-output and cleanup errors. Logical peak reservations are
 recorded in task 015 evidence. They do not establish OS-capped RSS, independently
-oversized metadata or a throughput improvement; those remain task 016.
+oversized metadata or a throughput improvement; the separate task 016 qualification supplies scale evidence.
+
+
+Task 016 adds development-only Linux scale tooling:
+
+```sh
+python3 tools/dev.py m2-scale-check --profile smoke
+python3 tools/dev.py m2-scale-check --profile scale
+```
+
+Smoke validates the generator against independent Python recipes and the pinned
+native reader, then exercises capped sinks on small files. It never qualifies M2.
+Scale requires committed measured sources and at least 18 GiB free workspace,
+runs all regression gates, generates separate record/metadata files exceeding
+2 GiB and measures both increasing input sizes under fixed 256 MiB root / 512 MiB
+hard address-space limits. It can take several minutes and retains inputs/reports
+under `.work/scale/`. Do not run two scale invocations concurrently. No Python/C++
+production dependency is added. Read [the protocol](decisions/0010-m2-scale-qualification.md)
+for exact containment, digests, cache treatment and unmeasured-platform limits.
+`Reader::io_statistics()` now includes successful stream-fill decoded bytes and
+buffer counts, including read-ahead/repeated metadata traversals. These counts do
+not equate selected rows with skipped source I/O.
+
+
+The completed [task 016 evidence](evidence/016.md) records a full scale run and
+its throughput investigation. Reproduce batch-stage timing against a passed
+report without changing the core or qualifying run:
+
+```sh
+python3 tools/scale_profile.py .work/reports/m2-scale-check-RUN_ID.json
+```
+
+The helper verifies measured source hashes, compiles the same validating sink
+with timers around batch calls, and requires three exact-count/digest matches.
+Instrumented timings are kept separate from the original benchmark. The [scalar-buffer follow-up](evidence/016-throughput.md) closes the measured wide
+Rust/native gap; broader workloads still require their own throughput measurements.

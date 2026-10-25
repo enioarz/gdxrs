@@ -1,6 +1,6 @@
 # Reader resource contract
 
-Status: implemented M1 accounting; [task 011](evidence/011.md) records executed tests and M2 scale exclusions. Read together with [reader-contract.md](reader-contract.md) and rule F04.
+Status: implemented M1/M2 accounting; [task 011](evidence/011.md) records the original reader tests and [task 016](evidence/016.md) records completed Linux scale qualification. Read together with [reader-contract.md](reader-contract.md) and rule F04.
 
 ## Accounting scope and minimum
 
@@ -87,3 +87,15 @@ remain partial after a later error. At most one disk clause per selection is
 supported; membership requires a fresh lookup cursor. Logical bounds are not
 physical RSS/disk containment, and binary membership probes do not imply GDX data
 pruning or throughput gains. OS-capped scale qualification remains task 016.
+
+
+## M2 scale qualification, task 016
+
+[Executed qualification](evidence/016.md) validates 20 million wide records and a
+separate 36-million-label dictionary under a hard 512 MiB Linux RLIMIT_AS limit
+with a 256 MiB shared root quota. Logical root/scratch/handle counters are reported
+separately from wait4 RSS and sampled /proc data. The negative allocation control
+and each consumer's own limit check confirm actual containment. Fixed-cap input
+growth retains constant tracked scan/metadata memory. The qualification does not
+turn library accounting into an RSS guarantee for arbitrary consumer collection,
+other platforms, processes outside the capped worker or kernel filesystem cache.

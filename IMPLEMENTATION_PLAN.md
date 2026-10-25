@@ -1,8 +1,8 @@
 # gdxrs implementation plan
 
-Status: design and implementation roadmap only; no implementation or performance claims yet.
+Status: M0 and M1 are merged; M2 read acceptance has passed on Linux x86_64. Runtime evidence and performance limitations are recorded in [task 016](docs/evidence/016.md). Writing and later milestones remain planned.
 
-Execution guidance: read [AGENTS.md](AGENTS.md) and the [numbered M0 task specifications](tasks/README.md) before implementation. Those tasks turn the initial milestone into concrete deliverables and acceptance gates; none has been executed yet.
+Execution guidance: read [AGENTS.md](AGENTS.md) and the [numbered task queue](tasks/README.md) before implementation. Tasks 001–016 record the M0–M2 deliverables, acceptance gates and executed evidence.
 
 ## 1. Goal and priorities
 
@@ -17,7 +17,7 @@ Priority order:
 5. A small, auditable dependency graph and a simple Rust API.
 6. Full modern library functionality, followed by adapters and companion tools.
 
-This commit contains only the plan. Implementation, toolchain installation, benchmark execution, and changes to `polars-gdx` are subsequent work.
+This document began as the implementation plan. The bounded serial reader and M2 read qualification are now implemented; the remaining roadmap and separate `polars-gdx` integration retain the gates below.
 
 ## 2. Research baseline
 
