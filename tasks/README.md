@@ -78,3 +78,12 @@ M1 is merged in `5cc766d`; the user requested beginning M2. [Decision 0006](../d
 | [016](016-m2-scale-acceptance.md) | Independently oversized inputs, OS memory cap and M2 acceptance | Complete; [evidence](../docs/evidence/016.md) |
 
 M2 is complete for the qualified read scope. The next milestone is **M3 — sorted writer**; define its bounded numbered specifications before starting implementation.
+
+
+## User-directed native platform follow-up
+
+Before M3, the user requested macOS/Windows compatibility qualification.
+
+| Task | Scope | Status |
+| --- | --- | --- |
+| [017](017-native-platform-compatibility.md) | Native macOS ARM64/Intel and Windows x64 reader/metadata/spill compatibility | In progress |
