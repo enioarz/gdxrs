@@ -249,11 +249,30 @@ impl Stream {
         }
         Ok(())
     }
+    #[inline]
     pub fn array<const N: usize>(&mut self) -> Result<[u8; N]> {
         let mut b = [0; N];
-        self.read_exact(&mut b)?;
+        // Most scalar fields fit in the already validated decoded buffer. Keep
+        // boundary crossing and codec validation in the general read path.
+        if let Some(bytes) = self
+            .output
+            .data
+            .get(self.index..self.valid)
+            .and_then(|s| s.get(..N))
+        {
+            let logical = self
+                .logical
+                .checked_add(N as u64)
+                .ok_or_else(|| self.error(ErrorKind::InvalidOffset, "decoded position overflow"))?;
+            b.copy_from_slice(bytes);
+            self.index += N;
+            self.logical = logical;
+        } else {
+            self.read_exact(&mut b)?;
+        }
         Ok(b)
     }
+    #[inline]
     pub fn byte(&mut self) -> Result<u8> {
         Ok(self.array::<1>()?[0])
     }
@@ -264,6 +283,7 @@ impl Stream {
             _ => Err(self.error(ErrorKind::InvalidHeader, "invalid Boolean flag")),
         }
     }
+    #[inline]
     pub fn i32(&mut self) -> Result<i32> {
         let b = self.array()?;
         Ok(self.order.i32(b))
@@ -272,10 +292,12 @@ impl Stream {
         let b = self.array()?;
         Ok(self.order.i64(b))
     }
+    #[inline]
     pub fn u16(&mut self) -> Result<u16> {
         let b = self.array()?;
         Ok(self.order.u16(b))
     }
+    #[inline]
     pub fn bits(&mut self) -> Result<u64> {
         let b = self.array()?;
         Ok(self.order.u64(b))
@@ -446,5 +468,102 @@ mod tests {
                 .kind,
             ErrorKind::CompressionUnavailable
         );
+    }
+}
+
+#[cfg(test)]
+mod scalar_fast_path_tests {
+    use super::*;
+    struct Pattern(Vec<u8>);
+    impl crate::source::ReadAt for Pattern {
+        fn read_at(&self, at: u64, out: &mut [u8]) -> std::io::Result<usize> {
+            let rest = self.0.get(at as usize..).unwrap_or(&[]);
+            let n = rest.len().min(out.len()).min(17);
+            out[..n].copy_from_slice(&rest[..n]);
+            Ok(n)
+        }
+        fn unchanged(&self) -> std::io::Result<bool> {
+            Ok(true)
+        }
+    }
+    fn verify<const N: usize>(compressed: bool, at: usize) {
+        // Fixed development input: 40,000 bytes, two 32 KiB-or-smaller blocks.
+        let decoded: Vec<u8> = (0..40_000).map(|n| ((n * 73 + 19) % 256) as u8).collect();
+        let mut bytes = Vec::new();
+        if compressed {
+            for block in decoded.chunks(32768) {
+                bytes.push(0);
+                bytes.extend_from_slice(&(block.len() as u16).to_be_bytes());
+                bytes.extend_from_slice(block);
+            }
+        } else {
+            bytes.extend_from_slice(&decoded);
+        }
+        let length = bytes.len() as u64;
+        let source = Source::testing(Box::new(Pattern(bytes)), length);
+        let baseline = source.budget.statistics().current_bytes;
+        let mut fast = Stream::new(
+            Arc::clone(&source),
+            0,
+            length,
+            compressed,
+            Order::Little,
+            "test",
+        )
+        .unwrap();
+        let mut general = Stream::new(
+            Arc::clone(&source),
+            0,
+            length,
+            compressed,
+            Order::Little,
+            "test",
+        )
+        .unwrap();
+        let mut prefix = vec![0; at]; // at <= 40,000; explicitly bounded test scratch.
+        fast.read_exact(&mut prefix).unwrap();
+        general.read_exact(&mut prefix).unwrap();
+        let actual = fast.array::<N>().unwrap();
+        let mut expected = [0; N];
+        general.read_exact(&mut expected).unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(actual.as_slice(), &decoded[at..at + N]);
+        assert_eq!(fast.logical, general.logical);
+        assert_eq!(fast.index, general.index);
+        assert_eq!(fast.checkpoint().physical, general.checkpoint().physical);
+        assert_eq!(fast.checkpoint().decoded, general.checkpoint().decoded);
+        // The following read must continue at the same byte, including after crossing.
+        assert_eq!(fast.byte().unwrap(), decoded[at + N]);
+        assert_eq!(general.byte().unwrap(), decoded[at + N]);
+        // N=0 must not fill or advance an exhausted stream.
+        let mut tail = vec![0; 40_000 - at - N - 1];
+        fast.read_exact(&mut tail).unwrap();
+        assert_eq!(fast.array::<0>().unwrap(), []);
+        let before = fast.logical;
+        assert_eq!(
+            fast.array::<8>().unwrap_err().kind,
+            ErrorKind::UnexpectedEof
+        );
+        assert_eq!(fast.logical, before);
+        drop(fast);
+        drop(general);
+        assert_eq!(source.budget.statistics().current_bytes, baseline);
+    }
+    #[test]
+    fn scalar_reads_preserve_raw_and_block_boundary_state_and_eof() {
+        for compressed in [false, true] {
+            if compressed && !cfg!(feature = "compression") {
+                continue;
+            }
+            for at in [
+                0, 1, 32759, 32760, 32761, 32762, 32763, 32764, 32765, 32766, 32767, 32768, 32769,
+                39990,
+            ] {
+                verify::<1>(compressed, at);
+                verify::<2>(compressed, at);
+                verify::<4>(compressed, at);
+                verify::<8>(compressed, at);
+            }
+        }
     }
 }

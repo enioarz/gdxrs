@@ -65,3 +65,18 @@ containment/measurements or wrong results still fail. wait4 high-water RSS can
 include the Python fork/pre-exec footprint; report sampled post-exec peaks too.
 Polling adds up to one 50 ms interval to external wall timing; use worker-reported
 first-batch timings for latency rather than that external polling duration.
+
+
+## User-directed throughput follow-up in the same task/PR
+
+The user asked whether the measured read gap can be closed here. A narrow safe
+candidate fast-paths scalar arrays wholly contained in an already validated decoded
+buffer, with checked slice access and logical-position arithmetic. It keeps the
+existing general read/codec path for crossings and makes tiny scalar wrappers
+inline candidates. It changes no framing, checksum, ID, quota, projection or limit
+contract. A focused boundary-state/EOF test and all existing malformed/codec tests
+remain mandatory. Preliminary repeated whole-field/digest trials justify retaining
+the candidate only if fresh full regression/OS-capped scale measurements confirm
+it. No unsafe code, parallelism, new dependencies or reduced validation is allowed.
+The original slower measurements remain historical evidence; new evidence must
+bind the optimized revision and fresh native comparisons.
