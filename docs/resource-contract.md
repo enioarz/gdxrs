@@ -1,12 +1,12 @@
 # Reader resource contract
 
-Status: chosen M1 design, not an executed resource test. Read together with [reader-contract.md](reader-contract.md) and rule F04.
+Status: implemented M1 accounting; [task 011](evidence/011.md) records executed tests and M2 scale exclusions. Read together with [reader-contract.md](reader-contract.md) and rule F04.
 
 ## Accounting scope and minimum
 
 One `Budget` belongs to the opened source. Its cap is the reader's `memory_budget_bytes` (default 64 MiB, minimum 1 MiB). All shared metadata, cursor allocations, output buffers, codec scratch and bounded diagnostics compete for this same cap. Cloning a handle does not create another unaccounted allowance. A budget uses safe atomic/locked quota bookkeeping; it is not a decoder mutex or global process quota. No unsafe allocation instrumentation is introduced into the production library.
 
-Before allocation, a reservation acquires checked requested-layout bytes. Allocation is fallible. The exact-capacity buffer helper is restricted to nonzero-sized elements and charges every vector's capacity times actual `size_of::<T>()`, outer vector headers, owned byte strings, codec state and persistent fixed cursor/header storage. Verify capacity/layout assumptions on supported toolchains; reject/free an unexpected larger capacity before using/publishing a buffer, and record it as allocation failure. Never use `reserve` growth or `collect` to bypass the helper. Hidden allocator block overhead is outside the logical-capacity accounting and belongs in RSS headroom; the cap is not an exact physical allocator/RSS ceiling.
+Before allocation, a reservation acquires checked requested-layout bytes. Data-sized buffer allocation is fallible. Fixed standard `Arc`/`Box` controls use bounded charged storage but retain Rust allocator-OOM abort behavior, as documented in [decision 0003](decisions/0003-m1-advancement.md). The exact-capacity buffer helper is restricted to nonzero-sized elements and charges every vector's capacity times actual `size_of::<T>()`, outer vector headers, owned byte strings, codec state and persistent fixed cursor/header storage. Verify capacity/layout assumptions on supported toolchains; reject/free an unexpected larger capacity before using/publishing a buffer, and record it as allocation failure. Never use `reserve` growth or `collect` to bypass the helper. Hidden allocator block overhead is outside the logical-capacity accounting and belongs in RSS headroom; the cap is not an exact physical allocator/RSS ceiling.
 
 Reservation ownership follows storage, not a temporary function scope. On allocation failure, read error, eviction, EOF cleanup or drop, release exactly once. Do not release a reservation while a buffer/cursor/Arc still retains its storage. A rejected reservation performs no oversized allocation. User-owned copies of borrowed views are outside the budget and must be explicit; borrowing itself cannot retain a previous internal batch across the next fill.
 
@@ -16,7 +16,7 @@ Reservation ownership follows storage, not a temporary function scope. On alloca
 | --- | --- |
 | Shared file/header/options/diagnostic context | 16 KiB conservative fixed reservation; longer diagnostic paths are explicitly truncated, not retained without accounting |
 | Temporary path conversion at open | Before calling `File::open`, reserve checked `2 * path.as_os_str().len() + 32 KiB` for platform path conversion/scratch; release after the open operation. Reject an insufficient budget before that call. This reservation is separate from retained diagnostic context. |
-| Metadata page cache | At most `metadata_cache_bytes`, default 128 KiB; 32 KiB decoded pages, bounded page-directory entries included in the same allowance |
+| Metadata page cache | Allowance at most `metadata_cache_bytes`, default 128 KiB; M1 retains zero persistent cache entries and streams bounded 32 KiB pages. A future page directory must fit the same allowance |
 | Encoded block buffer per active decoder | At most 65,535 bytes from the u16 length, rounded reservation at most 64 KiB; no whole compressed section buffer |
 | Decoded block buffer per active decoder | At most 32 KiB; bounded decoder output, including checksum validation |
 | Codec scratch per active decoder | Reserve a measured ceiling before codec construction; initial design ceiling 128 KiB. The codec task must measure/confirm actual state and allocations or return to design review before changing this ceiling. No unmeasured codec may be called “accounted.” |
@@ -26,7 +26,7 @@ Reservation ownership follows storage, not a temporary function scope. On alloca
 
 An active metadata stream may need its own decoder while a symbol cursor exists. Reserve that decoder too; do not assume these buffers are shared when they coexist. Sequential metadata navigation can reuse an existing scratch set safely. M1 has no workers, merge runs, postings lists, index or persistent reverse map; do not allocate speculative storage for them.
 
-A reservation's measured implementation can be smaller than a conservative table allowance, but must never exceed its documented maximum unnoticed. The codec ceiling is a design precondition to verify in the codec task, not a measured M0 fact.
+A reservation's measured implementation can be smaller than a conservative table allowance, but must never exceed its documented maximum unnoticed. The codec task measured 10,504 bytes on the tested target; see decision 0004. That measurement is not retroactively a measured M0 fact.
 
 ## Worked examples
 

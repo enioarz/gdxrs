@@ -91,5 +91,14 @@ class ReviewGate(unittest.TestCase):
                     checklist={key:dict(accepted=True,notes='unit test only') for key in m0.CHECKLIST},findings=[])
         with self.assertRaisesRegex(ValueError,'does not contain'):m0.validate_review(review,identity)
 
+    def test_released_m0_binding_preserves_review_and_separates_m1(self):
+        review=json.loads((m0.ROOT/'docs/reviews/m0.json').read_text())
+        result=m0.validate_released_review(review)
+        self.assertEqual(result['status'],'accepted')
+        self.assertIn('M0 only',result['scope'])
+        changed=copy.deepcopy(review)
+        changed['findings']=[]
+        with self.assertRaisesRegex(ValueError,'immutable release'):m0.validate_released_review(changed)
+
 
 if __name__=='__main__':unittest.main()

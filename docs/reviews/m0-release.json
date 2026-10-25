@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "source": "user-confirmed-release",
+  "release_revision": "2e5980a1e5ee5244388cecbf730fc9275f53f179",
+  "scope": "Immutable M0 signoff, not independent approval of evolving M1 implementation"
+}

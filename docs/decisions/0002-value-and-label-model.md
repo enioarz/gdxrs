@@ -1,6 +1,6 @@
 # 0002 — Values, IDs and labels for the initial reader
 
-Status: chosen M1 contract, not implemented. Evidence: format rules F06/F08/F13/F14/F17 and their oracle fixtures. This supersedes the architecture plan's illustrative API alternatives for the initial reader.
+Status: implemented M1 value/ID model; see tasks 007–011. Evidence: format rules F06/F08/F13/F14/F17 and their oracle fixtures. This supersedes the architecture plan's illustrative API alternatives for the initial reader.
 
 - `SymbolId` wraps `u32` with a private field; zero is the universe and positive IDs are validated against the source catalog. `UelId` wraps `NonZeroU32`, restricted to `i32::MAX` and the file's UEL count. `AcronymId` is a positive checked `u32` restricted to `i32::MAX`. Constructors are fallible; never clamp IDs.
 - `Value` is a safe Rust enum: `NumberBits(u64)`, `Special(SpecialValue)`, or `Acronym { id: AcronymId, encoded_bits: u64 }`. `SpecialValue` has exactly `Undefined`, `NotAvailable`, `PositiveInfinity`, `NegativeInfinity`, `Epsilon`. Five-field data retains all fields in file order. Buffer accounting uses `size_of::<Value>()`, never an assumed stable enum ABI or hardcoded width.

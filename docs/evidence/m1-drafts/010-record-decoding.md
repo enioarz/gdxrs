@@ -1,3 +1,5 @@
+> Historical M0 handoff draft. Promoted into [numbered task 010](../../../tasks/010-record-decoder.md); see the [current queue](../../../tasks/README.md) and task evidence for implementation status. The original draft below is retained as release history.
+
 # Draft 010 — Raw record decoding and semantic values
 
 Status: **pending, not implemented**. Prerequisites: tasks 007–009 accepted. Authority: [F10–F15/F19/F20](../../format-v7.md), [value model](../../decisions/0002-value-and-label-model.md) and [reader contract](../../reader-contract.md).

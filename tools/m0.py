@@ -68,6 +68,21 @@ def validate_review(review,current_content=None):
                 current_content_sha256=identity,post_review_changes=changed)
 
 
+def validate_released_review(review):
+    """Validate immutable released M0, without claiming M1 was reviewed."""
+    release = json.loads((ROOT/'docs/reviews/m0-release.json').read_text())
+    revision = release.get('release_revision','')
+    if release.get('source') != 'user-confirmed-release' or not re.fullmatch(r'[0-9a-f]{40}',revision):
+        raise ValueError('invalid M0 release binding')
+    subprocess.run(['git','merge-base','--is-ancestor',revision,'HEAD'],cwd=ROOT,check=True)
+    original = json.loads(subprocess.check_output(['git','show',revision+':docs/reviews/m0.json'],cwd=ROOT,text=True))
+    if review != original:
+        raise ValueError('M0 review differs from immutable release record')
+    result = validate_review(review,content_fingerprint(review['reviewed_revision']))
+    result.update(scope='released M0 only; M1 requires its own runtime checks',release_revision=revision)
+    return result
+
+
 def check(run,bootstrap,baseline_path=None):
     result=dict(automated_status='failed',automated={},baseline={'status':'unrun'},
                 independent_review={'status':'unavailable'},m1_eligible=False)
@@ -90,7 +105,7 @@ def check(run,bootstrap,baseline_path=None):
         result['baseline']={'status':'failed','error':str(exc)}
         errors.append('baseline: '+str(exc))
     try:
-        result['independent_review']=validate_review(json.loads((ROOT/'docs/reviews/m0.json').read_text()))
+        result['independent_review']=validate_released_review(json.loads((ROOT/'docs/reviews/m0.json').read_text()))
     except Exception as exc:
         result['independent_review']={'status':'failed','error':str(exc)}
         errors.append('review: '+str(exc))

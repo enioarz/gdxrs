@@ -1,3 +1,5 @@
+> Historical M0 handoff draft. Promoted into [numbered task 007](../../../tasks/007-checked-foundation.md); see the [current queue](../../../tasks/README.md) and task evidence for implementation status. The original draft below is retained as release history.
+
 # Draft 007 — Checked primitives and header validation
 
 Status: **pending, not implemented**. Prerequisite: accepted M0 at `914c6fc4f29407ea34d010e2c1d8faf1c3eb420d`. This post-review draft restates [F01–F03/F19](../../format-v7.md), the [reader contract](../../reader-contract.md) and [resource contract](../../resource-contract.md); it does not amend them. Promote into the numbered implementation queue on a subsequent M1 change after reviewing scope.

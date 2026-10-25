@@ -1,6 +1,6 @@
 # Numbered implementation tasks
 
-These specifications break **M0** into bounded units of work. Tasks 001–006 are complete at the evidence revisions below. Post-review M1 drafts remain pending; adding them does not start implementation. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
+These specifications break **M0 and M1** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
 
 ## Execution order
 
@@ -11,19 +11,11 @@ These specifications break **M0** into bounded units of work. Tasks 001–006 ar
 | [003 — Oracle fixture corpus](003-oracle-fixtures.md) | Independently specified fixtures, manifests and negative cases | 002 complete | Complete; [evidence](../docs/evidence/003.md) |
 | [004 — Verified v7 specification](004-v7-format-specification.md) | Byte layout, semantic rules and complete API inventory | 003 complete | Complete; [evidence](../docs/evidence/004.md) |
 | [005 — Reader and resource contracts](005-reader-resource-contracts.md) | Concrete types, ownership, error and memory contracts for M1 | 004 complete | Complete; [evidence](../docs/evidence/005.md) |
-| [006 — Baseline and M0 review](006-baseline-and-m0-review.md) | Measured oracle baseline, repeatability and independent review | 005 complete | Complete; [independent review accepted](../docs/reviews/m0.md) at `914c6fc`; [fresh evidence](../docs/evidence/006.md) |
+| [006 — Baseline and M0 review](006-baseline-and-m0-review.md) | Measured oracle baseline, repeatability and independent review | 005 complete | Complete; [independent review accepted](../docs/reviews/m0.md) at `914c6fc`; released on `main` at `2e5980a` |
 
-Dependencies mean the task's acceptance checks passed and its evidence record is present, not merely that its files exist. Task 006 additionally requires the independent review described there before M1 implementation is eligible. Source research may reveal missing fixtures; add them in the current task, record the change, and rerun the affected prior gates instead of treating this table as a reason to ignore new evidence.
+Dependencies mean the task's acceptance checks passed and its evidence record is present, not merely that its files exist. Task 006 required independent review; the user confirmed on 2026-10-24 that M0 is reviewed and released. The older pending snapshot is historical. Source research may reveal missing fixtures; add them in the current task, record the change, and rerun the affected prior gates instead of treating this table as a reason to ignore new evidence.
 
-M1 drafts were written after the accepted M0 aggregate passed. They restate verified contracts and remain in the evidence handoff until a subsequent M1 change promotes them into numbered task files. Do not infer that implementation has started from this queue.
-
-| Draft | Prerequisite | Status |
-| --- | --- | --- |
-| [007 — Checked primitives/header](../docs/evidence/m1-drafts/007-checked-primitives.md) | Accepted M0 | Pending; next eligible implementation scope after promotion |
-| [008 — Bounded compression](../docs/evidence/m1-drafts/008-bounded-compression.md) | 007 accepted | Pending |
-| [009 — Lazy metadata](../docs/evidence/m1-drafts/009-lazy-metadata.md) | 007–008 accepted | Pending |
-| [010 — Record decoding](../docs/evidence/m1-drafts/010-record-decoding.md) | 007–009 accepted | Pending |
-| [011 — Serial batch cursors](../docs/evidence/m1-drafts/011-serial-batches.md) | 007–010 accepted | Pending |
+The released M0 handoff drafts are promoted into the numbered M1 tasks below. M1 tasks 007–011 follow the verified format and contracts under explicit user authorization. Later milestone tickets must retain the same bounded scopes and exact fixture references.
 
 ## Required completion record
 
@@ -40,7 +32,7 @@ Use statuses `pending`, `in progress`, `blocked`, or `complete`. Keep verificati
 
 ## Command convention
 
-The command surface below is a **future contract**. Task 001 creates `tools/dev.py`; later tasks add the named subcommands. Until implemented, commands must fail clearly rather than return success or generate placeholder reports.
+The command surface below is implemented by `tools/dev.py`. Unknown commands fail clearly.
 
 ```sh
 python3 tools/dev.py check-bootstrap
@@ -51,10 +43,23 @@ python3 tools/dev.py spec-check
 python3 tools/dev.py contracts-check
 python3 tools/dev.py benchmark-oracle --profile small
 python3 tools/dev.py m0-check
+python3 tools/dev.py reader-check
 ```
 
 Run from the repository root. Use Python's standard library for the development runner; it is not a runtime dependency. Subcommands must preserve child exit failures, avoid shell-string interpolation, validate their input/output paths, and emit a fresh report under ignored `.work/reports/`. Reports record revision and run identity; an old artifact cannot make a failed new command pass. Store compact reviewed results/provenance in version control where useful, not build trees or large generated files.
 
 ## Current implementation scope
 
-Tasks 001–006 are complete with evidence. The independent review accepted exact candidate `914c6fc`, and the unchanged aggregate gate passed with `m1_eligible: true`. M1 drafts remain pending. The crate is still a bootstrap with no GDX decoder/writer. Do not infer runtime readiness from development tooling or documentation gates.
+Tasks 001–006 are complete; the user confirmed the M0 review/release after identifying a stale snapshot. M1 provides the bounded serial GDX v7 reader. Runtime evidence is separate from documentation checks. The crate has no writer yet.
+
+## M1 — user-directed advancement (2026-10-24)
+
+The user explicitly confirmed M0 is reviewed/released and instructed proceeding with M1. [Decision 0003](../docs/decisions/0003-m1-advancement.md) records that confirmation and resolution of the stale local gate.
+
+| Task | Scope | Status |
+| --- | --- | --- |
+| [007](007-checked-foundation.md) | Checked source I/O, quota, errors and v7 headers | Complete; [evidence](../docs/evidence/007.md) |
+| [008](008-bounded-compression.md) | Bounded raw/zlib section streams | Complete; [evidence](../docs/evidence/008.md) |
+| [009](009-lazy-metadata.md) | Lazy symbols, labels, text, comments, acronyms and domains | Complete; [evidence](../docs/evidence/009.md) |
+| [010](010-record-decoder.md) | Stateful serial raw record decoding | Complete; [evidence](../docs/evidence/010.md) |
+| [011](011-lending-batches.md) | Bounded lending batches and M1 acceptance | Complete; [evidence](../docs/evidence/011.md) |
