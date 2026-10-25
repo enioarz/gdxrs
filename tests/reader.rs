@@ -468,3 +468,6 @@ fn negative_artifacts_report_typed_errors_at_first_validation_boundary() {
 
 #[path = "cases/slicing.rs"]
 mod slicing;
+
+#[path = "cases/labels.rs"]
+mod labels;

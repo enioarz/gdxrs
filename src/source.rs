@@ -62,6 +62,7 @@ pub(crate) struct Source {
     pub length: u64,
     pub id: u64,
     pub budget: Arc<Budget>,
+    pub metadata_budget: Arc<Budget>,
     pub options: OpenOptions,
     pub header: OnceLock<Header>,
     pub counts: OnceLock<Counts>,
@@ -113,11 +114,13 @@ impl Source {
             .map_err(|_| {
                 Error::new(ErrorKind::InvalidOptions, "source identity space exhausted")
             })?;
+        let metadata_budget = Budget::new(options.metadata_cache_bytes);
         Ok(Arc::new(Self {
             backend,
             length,
             id,
             budget,
+            metadata_budget,
             options,
             header: OnceLock::new(),
             counts: OnceLock::new(),
