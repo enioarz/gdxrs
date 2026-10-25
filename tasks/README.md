@@ -71,7 +71,7 @@ M1 is merged in `5cc766d`; the user requested beginning M2. [Decision 0006](../d
 | Task | Scope | Status |
 | --- | --- | --- |
 | [012](012-exact-id-slices.md) | Exact bounded raw-ID slices, projection/limits and work counters | Complete; [evidence](../docs/evidence/012.md) |
-| [013](013-small-exact-label-lookup.md) | Small exact label lookup and paged metadata/cache lifecycle | Pending |
+| [013](013-small-exact-label-lookup.md) | Small exact label lookup and paged metadata/cache lifecycle | In progress |
 | [014](014-bounded-spill-primitives.md) | Quota-controlled sorted runs, merge and failure cleanup | Pending |
 | [015](015-large-lookup-domain-enumeration.md) | Spill-backed large label requests and unique domains | Pending |
 | [016](016-m2-scale-acceptance.md) | Independently oversized inputs, OS memory cap and M2 acceptance | Pending |
