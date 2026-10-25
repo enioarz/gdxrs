@@ -29,6 +29,9 @@ pub enum ErrorKind {
     BatchTooSmall,
     BudgetTooSmall,
     AllocationFailed,
+    TemporarySpaceExceeded,
+    FileLimitExceeded,
+    InvalidSpill,
 }
 
 #[derive(Clone, Debug)]
@@ -41,6 +44,7 @@ pub struct Error {
     pub decoded_offset: Option<u32>,
     message: &'static str,
     cause: Option<Arc<io::Error>>,
+    cleanup: Option<Arc<io::Error>>,
 }
 
 impl Error {
@@ -54,10 +58,19 @@ impl Error {
             physical_offset: None,
             decoded_offset: None,
             cause: None,
+            cleanup: None,
         }
     }
+    /// Secondary cleanup failure; the original operation kind/cause stays intact.
+    pub fn cleanup_error(&self) -> Option<&io::Error> {
+        self.cleanup.as_deref()
+    }
+    pub(crate) fn with_cleanup(mut self, error: io::Error) -> Self {
+        self.cleanup = Some(Arc::new(error));
+        self
+    }
     pub(crate) fn io(cause: io::Error) -> Self {
-        let mut error = Self::new(ErrorKind::Io, "positioned file I/O failed");
+        let mut error = Self::new(ErrorKind::Io, "file I/O failed");
         error.cause = Some(Arc::new(cause));
         error
     }
@@ -87,6 +100,9 @@ impl fmt::Display for Error {
         }
         if let Some(cause) = &self.cause {
             write!(f, ": {cause}")?;
+        }
+        if self.cleanup.is_some() {
+            write!(f, " (scratch cleanup also failed)")?;
         }
         Ok(())
     }

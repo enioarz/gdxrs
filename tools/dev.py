@@ -158,6 +158,7 @@ def reader_check():
             "public_records_compared":records, "no_compression_dependencies":0,
             "exact_id_slicing":"executed in Rust suites (task 012)",
             "small_exact_labels_and_pages":"executed in Rust suites (task 013)",
+            "bounded_spill_primitives":"executed in Rust suites (task 014)",
             "m2_scale_and_spilled_requests":"not implemented or measured"}
 
 

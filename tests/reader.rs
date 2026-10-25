@@ -471,3 +471,6 @@ mod slicing;
 
 #[path = "cases/labels.rs"]
 mod labels;
+
+#[path = "cases/spill.rs"]
+mod spill;

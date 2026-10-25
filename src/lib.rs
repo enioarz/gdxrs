@@ -13,6 +13,7 @@ mod records;
 mod scan;
 mod selection;
 mod source;
+mod spill;
 mod stream;
 pub use budget::BudgetStatistics;
 pub use error::{Error, ErrorKind, Result};
@@ -34,3 +35,5 @@ pub use labels::{
     LabelLookupStatistics, LabelMatches, ResolvedLabel, SMALL_LABEL_LOOKUP_BYTES, UelLabelCursor,
     UelLabelStatistics,
 };
+
+pub use spill::{SpillCursor, SpillEntry, SpillOptions, SpillSorter, SpillStatistics};
