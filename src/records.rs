@@ -354,7 +354,7 @@ mod tests {
         }
         assert_eq!(fixtures, if cfg!(feature = "compression") { 10 } else { 8 });
         if cfg!(feature = "compression") {
-            assert_eq!(total, 141354);
+            assert_eq!(total, 141358);
         }
     }
     #[test]

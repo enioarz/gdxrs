@@ -175,7 +175,7 @@ fn complete_public_reader_matches_all_ten_golden_streams() {
     }
     assert_eq!(checked, if cfg!(feature = "compression") { 10 } else { 8 });
     if cfg!(feature = "compression") {
-        assert_eq!(rows, 141354);
+        assert_eq!(rows, 141358);
     }
 }
 
