@@ -267,10 +267,10 @@ fn simultaneous_cursors_share_cache_cap_and_detect_buffered_truncation() {
 }
 
 // Runtime-only bounded metadata probe: replace one compressed UEL section with
-// independent stored blocks, preserving all other bytes and adjusting pointers.
+// independent stored/zlib blocks, preserving other bytes and adjusting pointers.
 // This is development fixture construction, not a production GDX writer.
 #[cfg(feature = "compression")]
-fn crossing_metadata() -> Vec<u8> {
+fn crossing_metadata(zlib: bool) -> Vec<u8> {
     let mut bytes = std::fs::read("tests/fixtures/v7/semantics-1.gdx").unwrap();
     let pointers: [usize; 6] = std::array::from_fn(|n| {
         u64::from_le_bytes(bytes[118 + n * 8..126 + n * 8].try_into().unwrap()) as usize
@@ -289,9 +289,27 @@ fn crossing_metadata() -> Vec<u8> {
     decoded.extend_from_slice(b"_UEL_");
     let mut encoded = Vec::new();
     for block in decoded.chunks(32768) {
-        encoded.push(0);
-        encoded.extend_from_slice(&(block.len() as u16).to_be_bytes());
-        encoded.extend_from_slice(block);
+        let payload = if zlib {
+            // A bounded independent zlib stream containing one final DEFLATE
+            // stored block. Python zlib and the native oracle verify this probe.
+            let length = block.len() as u16;
+            let mut payload = vec![0x78, 0x01, 0x01];
+            payload.extend_from_slice(&length.to_le_bytes());
+            payload.extend_from_slice(&(!length).to_le_bytes());
+            payload.extend_from_slice(block);
+            let (mut a, mut b) = (1u32, 0u32);
+            for &byte in block {
+                a = (a + u32::from(byte)) % 65521;
+                b = (b + a) % 65521;
+            }
+            payload.extend_from_slice(&((b << 16) | a).to_be_bytes());
+            payload
+        } else {
+            block.to_vec()
+        };
+        encoded.push(u8::from(zlib));
+        encoded.extend_from_slice(&(payload.len() as u16).to_be_bytes());
+        encoded.extend_from_slice(&payload);
     }
     let delta = encoded.len() as i64 - (end - first) as i64;
     for n in [3, 5] {
@@ -305,19 +323,21 @@ fn crossing_metadata() -> Vec<u8> {
 }
 #[cfg(feature = "compression")]
 #[test]
-fn stored_compressed_metadata_string_crossing_and_resumed_page() {
-    let bytes = crossing_metadata();
-    let copy = super::common::TempFile::new(&bytes);
-    let reader = Reader::open(&copy.path, options(90_000)).unwrap();
-    let labels = reader
-        .lookup_labels(&[b"k04680", b"k08192", b"k04680", b"missing"])
-        .unwrap();
-    assert_eq!(labels.statistics().uel_entries_decoded, 8192);
-    assert_eq!(labels.get(0).unwrap().id, Some(id(4680)));
-    assert_eq!(labels.get(1).unwrap().id, Some(id(8192)));
-    let mut cursor = reader.uel_labels().unwrap();
-    for n in [4481, 4609, 4680, 4737, 8192] {
-        assert_eq!(cursor.get(id(n)).unwrap(), format!("k{n:05}").as_bytes());
+fn stored_and_zlib_metadata_string_crossing_and_resumed_page() {
+    for zlib in [false, true] {
+        let bytes = crossing_metadata(zlib);
+        let copy = super::common::TempFile::new(&bytes);
+        let reader = Reader::open(&copy.path, options(90_000)).unwrap();
+        let labels = reader
+            .lookup_labels(&[b"k04680", b"k08192", b"k04680", b"missing"])
+            .unwrap();
+        assert_eq!(labels.statistics().uel_entries_decoded, 8192);
+        assert_eq!(labels.get(0).unwrap().id, Some(id(4680)));
+        assert_eq!(labels.get(1).unwrap().id, Some(id(8192)));
+        let mut cursor = reader.uel_labels().unwrap();
+        for n in [4481, 4609, 4680, 4737, 8192] {
+            assert_eq!(cursor.get(id(n)).unwrap(), format!("k{n:05}").as_bytes());
+        }
+        assert!(cursor.statistics().checkpoint_restarts >= 2);
     }
-    assert!(cursor.statistics().checkpoint_restarts >= 2);
 }
