@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "implementation_revision": "92c71d4832ca56c317e821d31c417b69f8fc4fa2",
+  "reader_check": {
+    "schema": 1,
+    "command": "reader-check",
+    "run_id": "8b1f8b0c9f7845f8a9f435f355778da3",
+    "revision": "92c71d4832ca56c317e821d31c417b69f8fc4fa2",
+    "cwd": "/workspace/gdxrs",
+    "started_utc": "2026-10-25T07:22:29.071477+00:00",
+    "status": "passed",
+    "result": {
+      "bootstrap": {
+        "versions": {
+          "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)"
+        },
+        "runtime_dependencies": 2,
+        "runtime_tests_executed": 0,
+        "dependency_audit": "docs/decisions/0004-compression.md"
+      },
+      "suites": [
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked"
+          ],
+          "unit_integration_doctest_passed": [
+            19,
+            12,
+            1
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--no-default-features"
+          ],
+          "unit_integration_doctest_passed": [
+            15,
+            13,
+            1
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--all-features"
+          ],
+          "unit_integration_doctest_passed": [
+            19,
+            12,
+            1
+          ]
+        }
+      ],
+      "differential_fixtures": 10,
+      "public_records_compared": 141358,
+      "no_compression_dependencies": 0,
+      "m2_scale_and_selection": "not implemented or measured"
+    },
+    "elapsed_seconds": 3.5986700899957214,
+    "exit_code": 0
+  },
+  "m0_check": {
+    "revision": "92c71d4832ca56c317e821d31c417b69f8fc4fa2",
+    "command": "m0-check",
+    "status": "passed",
+    "exit_code": 0,
+    "elapsed_seconds": 4.775725824001711
+  },
+  "m0_components": {
+    "bootstrap": {
+      "versions": {
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)"
+      },
+      "runtime_dependencies": 2,
+      "runtime_tests_executed": 0,
+      "dependency_audit": "docs/decisions/0004-compression.md"
+    },
+    "oracle_self_test": {
+      "cases": [
+        {
+          "compression": 0,
+          "symbols": 3,
+          "records": 6,
+          "universe_records": 3
+        },
+        {
+          "compression": 1,
+          "symbols": 3,
+          "records": 6,
+          "universe_records": 3
+        }
+      ],
+      "negative_invocations": 3,
+      "expected_source": "tools/oracle.py:smoke_expectation"
+    },
+    "fixtures": {
+      "valid_fixtures": 10,
+      "negative_fixtures": 12,
+      "binary_bytes": 1049685,
+      "symbols": 122,
+      "stored_records": 5153,
+      "verified_coverage": "all required task-003 groups",
+      "unverified": [],
+      "oracle_isolation": {
+        "platform": "linux",
+        "memory_limit": "256 MiB address space or tighter inherited limit",
+        "cpu_seconds_max": 2,
+        "output_bytes_max": 1048576,
+        "core_bytes_max": 0,
+        "wall_timeout_seconds": 5
+      }
+    },
+    "specification": {
+      "rules": 21,
+      "verified": 21,
+      "unverified": 0,
+      "public_functions": 92,
+      "property_accessors": 6,
+      "observations": "exact source anchors/digests and fixture byte/semantic assertions",
+      "runtime_rust_tests": 0
+    },
+    "reader_contracts": {
+      "validation_kind": "documentation-contract-coverage-only",
+      "specified_scenarios": 25,
+      "m1_scenarios": 23,
+      "future_m2_scenarios": 2,
+      "contract_areas": 9,
+      "runtime_scenarios_executed": 0,
+      "resource_measurements_executed": 0,
+      "codec_ceiling_measured": false
+    },
+    "tooling_tests": {
+      "status": "passed"
+    }
+  },
+  "m0_baseline": {
+    "status": "verified",
+    "scenarios": 4,
+    "measured_scans": 20,
+    "measured_writes": 20,
+    "write_validation_scans": 20,
+    "large_profile": "unrun",
+    "revision": "a3c648895d8463b889afba695e9f8b93eb7644a7"
+  },
+  "m0_review": {
+    "status": "accepted",
+    "reviewer": "Codex independent review session, 2026-10-24, /root",
+    "reviewed_revision": "914c6fc4f29407ea34d010e2c1d8faf1c3eb420d",
+    "scope": "released M0 only; M1 requires its own runtime checks",
+    "release_revision": "2e5980a1e5ee5244388cecbf730fc9275f53f179"
+  },
+  "tooling_test_count": 32,
+  "release_build": {
+    "revision": "6bf45a8113888317b0695c741b47c0200ed59b9d",
+    "command": [
+      "cargo",
+      "build",
+      "--locked",
+      "--release",
+      "--example",
+      "dump"
+    ],
+    "elapsed_seconds": 1.162973783997586,
+    "maximum_child_rss_kib": 118676,
+    "binary_bytes": 629152,
+    "cache": "existing target directory; no clean-build claim",
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+    "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+  },
+  "resource_test": {
+    "scan_cursor_bytes": 13216,
+    "decoder_bytes": 12008,
+    "value_bytes": 16,
+    "uel_id_bytes": 4,
+    "codec_state_bytes": 10504,
+    "published_rows_before_injected_io_error": 3264,
+    "peak_requested_bytes_with_simultaneous_prefix_limit_cursors": 346510,
+    "logical_accounting_not_rss": true
+  },
+  "source_reports": [
+    ".work/reports/reader-check-8b1f8b0c9f7845f8a9f435f355778da3.json",
+    ".work/reports/m0-check-b191c12e53754d79b316e5fc9cd86ca3.json"
+  ],
+  "m2_scale_and_rust_throughput": "unrun",
+  "opaque_audit_example": "passed: single audit-byte mutation, full dump equals original authored expectation"
+}

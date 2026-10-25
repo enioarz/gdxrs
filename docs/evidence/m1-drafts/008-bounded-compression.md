@@ -1,3 +1,5 @@
+> Historical M0 handoff draft. Promoted into [numbered task 008](../../../tasks/008-bounded-compression.md); see the [current queue](../../../tasks/README.md) and task evidence for implementation status. The original draft below is retained as release history.
+
 # Draft 008 — Bounded compression blocks
 
 Status: **pending, not implemented**. Prerequisite: task 007 accepted. Authority: [F04/F19/F20](../../format-v7.md), [resource contract](../../resource-contract.md), and acceptance scenarios `checksum-integrity`, `short-reads-and-terminal-error`, `budget-rejection-and-drop`. This draft does not change those contracts.

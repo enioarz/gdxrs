@@ -1,3 +1,5 @@
+> Historical M0 handoff draft. Promoted into [numbered task 011](../../../tasks/011-lending-batches.md); see the [current queue](../../../tasks/README.md) and task evidence for implementation status. The original draft below is retained as release history.
+
 # Draft 011 — Serial lending batch cursors
 
 Status: **pending, not implemented**. Prerequisites: tasks 007–010 accepted. Authority: [reader contract](../../reader-contract.md), [resource contract](../../resource-contract.md), [F10/F12–F15/F19](../../format-v7.md) and all 23 M1 scenarios in [reader acceptance](../../reader-acceptance.json).

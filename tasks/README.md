@@ -62,4 +62,4 @@ The user explicitly confirmed M0 is reviewed/released and instructed proceeding 
 | [008](008-bounded-compression.md) | Bounded raw/zlib section streams | Complete; [evidence](../docs/evidence/008.md) |
 | [009](009-lazy-metadata.md) | Lazy symbols, labels, text, comments, acronyms and domains | Complete; [evidence](../docs/evidence/009.md) |
 | [010](010-record-decoder.md) | Stateful serial raw record decoding | Complete; [evidence](../docs/evidence/010.md) |
-| [011](011-lending-batches.md) | Bounded lending batches and M1 acceptance | Pending |
+| [011](011-lending-batches.md) | Bounded lending batches and M1 acceptance | Complete; [evidence](../docs/evidence/011.md) |

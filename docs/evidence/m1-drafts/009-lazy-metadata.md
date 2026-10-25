@@ -1,3 +1,5 @@
+> Historical M0 handoff draft. Promoted into [numbered task 009](../../../tasks/009-lazy-metadata.md); see the [current queue](../../../tasks/README.md) and task evidence for implementation status. The original draft below is retained as release history.
+
 # Draft 009 — Lazy metadata navigation
 
 Status: **pending, not implemented**. Prerequisites: tasks 007–008 accepted. Authority: [F05–F09/F15/F17/F19](../../format-v7.md), [reader contract](../../reader-contract.md), [value/label model](../../decisions/0002-value-and-label-model.md). No contract expansion is implied.
