@@ -1,6 +1,6 @@
 # gdxrs
 
-An independent Rust reader for modern GDX v7 files, designed around bounded memory and streaming reads. M0 and M1 are merged. M2 is in progress: exact raw-ID selections, small exact-label lookup and bounded label pages are implemented; quota-controlled scratch sorting, large exact-label requests and unique-domain enumeration are implemented. OS-capped scale qualification remains pending. Writing, indexes, parallel decoding and Polars integration follow later.
+An independent Rust reader for modern GDX v7 files, designed around bounded memory and streaming reads. M0 and M1 are merged. M2 provides exact raw-ID selections, small exact-label lookup, bounded label pages, quota-controlled scratch sorting, large requests and unique-domain enumeration. Record-heavy and independently metadata-heavy scale qualification has passed on Linux x86_64. Writing, indexes, parallel decoding and Polars integration follow later.
 
 ```rust,no_run
 use gdxrs::{OpenOptions, Reader};
@@ -31,7 +31,7 @@ python3 tools/dev.py reader-check
 
 The dump example streams normalized semantic TSV to stdout; its 64 KiB consumer-side output buffer is separate from the reader budget. It propagates read/write/flush failures. See [development](docs/development.md), [reader contract](docs/reader-contract.md), [resource accounting](docs/resource-contract.md), [M1 evidence](docs/evidence/011.md), and [implementation plan](IMPLEMENTATION_PLAN.md).
 
-Supported profile: modern canonical v7 layout, uniform little/big endian, stored/zlib blocks, all symbol types and dimensions 0–20. Legacy v5/v6, mixed primitive byte orders and old producer heuristics are excluded. Tests currently run on Linux x86_64. Bounded library accounting is not an RSS limit; OS-capped larger-than-RAM verification remains M2. Fixed standard shared-owner allocations retain Rust's allocator-OOM abort behavior; see [the recorded constraint](docs/decisions/0003-m1-advancement.md).
+Supported profile: modern canonical v7 layout, uniform little/big endian, stored/zlib blocks, all symbol types and dimensions 0–20. Legacy v5/v6, mixed primitive byte orders and old producer heuristics are excluded. Tests currently run on Linux x86_64. Bounded library accounting is separate from the enforced OS address-space cap used in [M2 qualification](docs/evidence/016.md). Fixed standard shared-owner allocations retain Rust's allocator-OOM abort behavior; see [the recorded constraint](docs/decisions/0003-m1-advancement.md).
 
 For exact ID slicing, compile source/symbol-bound `DimensionSelection` clauses with `reader.selection(&symbol, &clauses)`, then use `reader.scan_selected(&symbol, &selection, options)`. Clauses are conjoined across zero-based dimensions; IDs or inclusive ranges are unioned within a dimension. Filtering precedes projection and the accepted-row limit, preserving original IDs/order. Explicit empty sets avoid record reads. Selection payloads share the reader quota; oversized in-memory requests currently return `BudgetTooSmall`. `cursor.statistics()` reports decoded versus returned public rows; a selective result does not imply disk pruning. See [the selection contract](docs/decisions/0006-m2-selection.md) and [M2 task queue](tasks/README.md).
 
@@ -55,5 +55,22 @@ total handles are required and fan-in is reduced to fit each share. All concurre
 memory competes for the reader root budget. Close lookup/domain cursors explicitly
 to report cleanup failures; call `selection.close_spill()` after dropping its scans
 and clones. Drop cleanup is best effort. See [large lookup/domain ownership and
-limitations](docs/decisions/0009-large-labels-domains.md). OS-capped independently
-oversized metadata and throughput qualification remain task 016.
+limitations](docs/decisions/0009-large-labels-domains.md). See [task 016 evidence](docs/evidence/016.md) for OS-capped independently
+oversized metadata qualification and measured throughput limitations.
+
+
+M2 qualification streamed **20 million 20-dimensional records** (2.52 GB input,
+2.40 GB logical key/value output) and a separate **36-million-label** dictionary
+(2.30 GB), each larger than four times a 512 MiB hard process address-space cap.
+The reader used a 256 MiB root budget; observed tracked peak stayed below 9 MB and
+process high-water RSS below 14 MB, including fork/startup overhead. It also
+resolved 9.56 million label requests with spill and validated all results.
+Reproduce with `python3 tools/dev.py m2-scale-check --profile scale`.
+
+On this wide synthetic workload, Rust full-read median was 6.83 s versus 4.45 s
+for the pinned native reader, with complete field/digest validation. Native
+throughput parity remains a performance goal. Slices still decode the complete
+record stream; they do not prune source I/O. See [qualification, cache treatment,
+review and limitations](docs/evidence/016.md); these measurements are not portable
+speed guarantees. Writing, indexes, parallel decoding and Polars integration are
+outside M2.
