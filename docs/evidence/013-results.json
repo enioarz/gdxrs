@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "implementation_revision": "efb28e03ae664f683d238a45fb889b46a7783b82",
+  "reader_check": {
+    "schema": 1,
+    "command": "reader-check",
+    "run_id": "736ae4df9d1249648c7b3dfc768ad9ff",
+    "revision": "efb28e03ae664f683d238a45fb889b46a7783b82",
+    "cwd": "/workspace/gdxrs",
+    "started_utc": "2026-10-25T08:19:24.290799+00:00",
+    "status": "passed",
+    "result": {
+      "bootstrap": {
+        "versions": {
+          "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)"
+        },
+        "runtime_dependencies": 2,
+        "runtime_tests_executed": 0,
+        "dependency_audit": "docs/decisions/0004-compression.md"
+      },
+      "suites": [
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            26,
+            23,
+            1,
+            2
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--no-default-features"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            21,
+            23,
+            1,
+            2
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--all-features"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            26,
+            23,
+            1,
+            2
+          ]
+        }
+      ],
+      "differential_fixtures": 10,
+      "public_records_compared": 141358,
+      "no_compression_dependencies": 0,
+      "exact_id_slicing": "executed in Rust suites (task 012)",
+      "small_exact_labels_and_pages": "executed in Rust suites (task 013)",
+      "m2_scale_and_spilled_requests": "not implemented or measured"
+    },
+    "elapsed_seconds": 8.310948105994612,
+    "exit_code": 0
+  },
+  "m0_check": {
+    "command": "m0-check",
+    "revision": "efb28e03ae664f683d238a45fb889b46a7783b82",
+    "status": "passed",
+    "exit_code": 0,
+    "elapsed_seconds": 4.86238351900829
+  },
+  "m0_baseline": {
+    "status": "verified",
+    "scenarios": 4,
+    "measured_scans": 20,
+    "measured_writes": 20,
+    "write_validation_scans": 20,
+    "large_profile": "unrun",
+    "revision": "a3c648895d8463b889afba695e9f8b93eb7644a7"
+  },
+  "tooling_tests_passed": 33,
+  "label_page_probe": {
+    "schema": 1,
+    "command": "label-pages-check",
+    "run_id": "e4bfa9ac5d6d47918f2ea8b731ce7b79",
+    "revision": "efb28e03ae664f683d238a45fb889b46a7783b82",
+    "cwd": "/workspace/gdxrs",
+    "started_utc": "2026-10-25T08:19:37.580540+00:00",
+    "status": "passed",
+    "result": {
+      "cases": [
+        {
+          "kind": "stored",
+          "artifact": ".work/label-pages/2e5ef4ab5a4242b9b0dc60574cc78090/crossing-0.gdx",
+          "input_sha256": "9a08ffe859fc29e3114f3c68115cfe1d81ef770508ebe3070c21bf34e7a741f9",
+          "metadata_labels": 8192,
+          "decoded_metadata_bytes": 57360,
+          "blocks": 2,
+          "crossing_label_id": 4680,
+          "full_native_rust_dump_match": true,
+          "public_records": 16431
+        },
+        {
+          "kind": "zlib",
+          "artifact": ".work/label-pages/2e5ef4ab5a4242b9b0dc60574cc78090/crossing-1.gdx",
+          "input_sha256": "23435c03a59fe541f0ca0739b2a475cb4a4065b8be905a130de011c1315c7a0f",
+          "metadata_labels": 8192,
+          "decoded_metadata_bytes": 57360,
+          "blocks": 2,
+          "crossing_label_id": 4680,
+          "full_native_rust_dump_match": true,
+          "public_records": 16431
+        }
+      ],
+      "native_executable_sha256": "79b9f3574597cf60339ecc12f0da24633f10c68e28ea208e78c0d5ee38fc249b"
+    },
+    "elapsed_seconds": 0.24524470398318954,
+    "exit_code": 0
+  },
+  "frozen_labels_verified": 136097,
+  "resource_probe": {
+    "cache_page_logical_bytes": 32848,
+    "cursor_layout_bytes": 592,
+    "lookup_result_layout_bytes": 120,
+    "maximum_root_logical_requested_bytes": 141663,
+    "final_owner_drop_root_bytes": 0,
+    "small_lookup_payload_maximum_bytes": 131072,
+    "rss_measured": false
+  },
+  "source_reports": [
+    ".work/reports/reader-check-736ae4df9d1249648c7b3dfc768ad9ff.json",
+    ".work/reports/m0-check-25e7cda880e144989687a9dda81f52e3.json",
+    ".work/reports/label-pages-check-e4bfa9ac5d6d47918f2ea8b731ce7b79.json"
+  ],
+  "m2_complete": false,
+  "next_task": "014"
+}
