@@ -22,7 +22,7 @@ fn require(ok: bool, message: &str) -> R<()> {
 fn spill(path: &Path) -> SpillOptions {
     let mut o = SpillOptions::new(path);
     o.run_bytes = 8 * 1024 * 1024;
-    o.maximum_temporary_bytes = 10 * 1024 * 1024 * 1024;
+    o.maximum_temporary_bytes = 18 * 1024 * 1024 * 1024;
     o.maximum_open_files = 27;
     o.merge_fan_in = 8;
     o

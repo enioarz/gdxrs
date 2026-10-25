@@ -47,3 +47,21 @@ times; smaller and functional scenarios run once. Full scale additionally requir
 fresh reader/M0/label-page regression reports at the measured committed revision.
 The native reader checks the small metadata recipe too; oversized native metadata
 loading remains an explicitly unrun comparison.
+
+
+The large metadata sort has 36,000,000 × 73-byte run frames (2.628 GB).
+Its final merge needs inputs plus output, about 5.256 GB in one session. Set
+18 GiB total temporary logical quota, split into 6 GiB shares. This leaves required
+merge headroom without changing the 256/512 MiB memory limits. Per-job statistics
+and actual workspace free space remain separate. Review caught the initial
+10 GiB total allowance as insufficient before the large metadata merge ran.
+
+A first full attempt completed both record sizes but hit Linux PermissionDenied
+while sampling /proc on an exiting metadata generator. This is a harness race,
+not a passed scale gate. Count optional sampling permission denials in each trial;
+mandatory wait4 peak RSS/CPU, child hard/soft limit checks, allocation negative
+control and complete library work counters remain unchanged. Missing required
+containment/measurements or wrong results still fail. wait4 high-water RSS can
+include the Python fork/pre-exec footprint; report sampled post-exec peaks too.
+Polling adds up to one 50 ms interval to external wall timing; use worker-reported
+first-batch timings for latency rather than that external polling duration.

@@ -101,6 +101,7 @@ def measure(argv, area, name, *, timeout=1800):
     started = time.monotonic()
     rss = vm = handles = samples = 0
     last_io = {}
+    sampling_permission_denials = 0
     print('+ OS-capped', ' '.join(map(str, argv)), flush=True)
     with output.open('xb') as out, stderr.open('xb') as err:
         process = subprocess.Popen(list(map(str, argv)), cwd=ROOT, stdout=out, stderr=err,
@@ -119,6 +120,10 @@ def measure(argv, area, name, *, timeout=1800):
                     handles = max(handles, len(list(Path(f'/proc/{process.pid}/fd').iterdir())))
                     last_io = {line.split(':')[0]: int(line.split(':')[1]) for line in Path(f'/proc/{process.pid}/io').read_text().splitlines()}
                     samples += 1
+                except PermissionError:
+                    # Linux may revoke /proc access during exit/exec. wait4 RSS
+                    # and the worker's enforced self-checked AS cap remain mandatory.
+                    sampling_permission_denials += 1
                 except (FileNotFoundError, ProcessLookupError):
                     pass
                 if time.monotonic()-started > timeout:
@@ -137,7 +142,7 @@ def measure(argv, area, name, *, timeout=1800):
                   wall_seconds=time.monotonic()-started, cpu_user_seconds=usage.ru_utime,
                   cpu_system_seconds=usage.ru_stime, peak_rss_bytes=usage.ru_maxrss*1024,
                   sampled_peak_rss_bytes=rss, sampled_peak_virtual_bytes=vm,
-                  sampled_peak_fds=handles, proc_samples=samples, last_sampled_io=last_io,
+                  sampled_peak_fds=handles, proc_samples=samples, proc_sampling_permission_denials=sampling_permission_denials, last_sampled_io=last_io,
                   os_cap=dict(kind='RLIMIT_AS', soft_bytes=CAP, hard_bytes=CAP),
                   stdout=str(output.relative_to(ROOT)), stderr=str(stderr.relative_to(ROOT)))
     (area/f'{name}.measurement.json').write_text(json.dumps(record, indent=2)+'\n')
