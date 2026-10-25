@@ -5,7 +5,8 @@ CI covers Ubuntu x64, macOS 15 ARM64, macOS 15 Intel and Windows Server 2025 x64
 MSVC. Verify rustc's actual host matches the requested runner target. The full
 reader-check command runs all default/minimal/all-feature suites, doctests,
 Clippy, fmt, dependency audits and complete frozen expected output comparisons.
-It has no native GDX, CMake or Unix resource-module runtime requirement.
+Default-feature tests also run in the optimized release profile. It has no
+native GDX, CMake or Unix resource-module runtime requirement.
 
 Use lazy imports for separate oracle/benchmark/scale commands. Python text/tool
 output is explicitly UTF-8; Git attributes preserve LF sources/expectations and

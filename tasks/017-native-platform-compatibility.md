@@ -5,6 +5,7 @@ Prerequisite: 016 complete and merged. Status: in progress.
 
 Run the existing reader, metadata, slicing and spill suites natively on Linux x64,
 macOS Apple Silicon and Intel, and Windows x64/MSVC using the pinned Rust/MSRV.
+Run default-feature tests in the optimized release profile as well.
 Compile-only/cross-compilation is not evidence of native correctness. Add a
 repeatable pull-request/main CI matrix with immutable action pins, read-only
 permissions, explicit target checks, exact feature-suite counts and retained
