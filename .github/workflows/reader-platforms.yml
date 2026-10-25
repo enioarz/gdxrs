@@ -52,12 +52,25 @@ jobs:
       - name: Cargo tests from a clean checkout
         run: cargo test --locked
       - name: Full reader, feature and frozen-corpus validation
-        run: python tools/dev.py reader-check
+        run: python tools/dev.py reader-check 2>&1 | tee .work/native-reader.log
+      - name: Annotate bounded validation failure details
+        if: failure()
+        run: |
+          python - <<'PYFAIL'
+          from pathlib import Path
+          path = Path('.work/native-reader.log')
+          if path.exists():
+              tail = path.read_text(encoding='utf-8', errors='replace')[-12000:]
+              tail = tail.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print('::error title=Native reader validation::' + tail)
+          PYFAIL
       - name: Retain native validation reports
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: reader-${{ matrix.target }}-${{ github.sha }}
-          path: .work/reports/*.json
+          path: |
+            .work/reports/*.json
+            .work/native-reader.log
           if-no-files-found: warn
           retention-days: 30
