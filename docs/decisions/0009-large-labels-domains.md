@@ -73,3 +73,13 @@ and attempts their explicit cleanup, preserving primary and secondary failures.
 Consuming finish cannot return a failed owner for retry; record the exposed private
 paths beforehand. If cleanup remains denied, caller-controlled scratch may require
 manual cleanup. No process-wide scratch quota is claimed across independent jobs.
+
+
+Membership statistics retain the underlying sort counters: `complete` remains
+false because the retained run is used for random membership probes rather than
+consumed/cleaned as a streaming result. Successful preparation verifies the entire
+run; explicit close releases it. Builders expose the request namespace before
+finish; the finished join exposes both namespaces. A failed consuming finish may
+also leave a newly created UEL-sort namespace if cleanup is denied; inspect the
+caller-controlled scratch parent for manual recovery. The library never collects
+that directory into an unbounded path list.
