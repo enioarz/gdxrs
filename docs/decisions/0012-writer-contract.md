@@ -42,8 +42,8 @@ at most 16 KiB; validate before unbounded path cloning. Fixed standard owner/pat
 allocator-OOM limitations are the existing documented safe-stdlib exception.
 No unbounded buffer, file-sized mapping, output collection or hidden BufWriter.
 
-The destination's parent must already exist and be trusted/not concurrently
-replaced. An exclusive same-directory temporary regular file uses mode 0600 on
+The destination's parent must already exist and be trusted. Parent/private temp
+namespaces must not be concurrently mutated or replaced by other actors. An exclusive same-directory temporary regular file uses mode 0600 on
 Unix; Windows inherits parent ACLs. Never follow/replace an existing destination,
 including a symlink or an entry created after open. All output admission checks
 precede buffering/writes, with checked offsets/counts. The writer buffer is flushed
@@ -66,3 +66,6 @@ Repeated finish on Complete returns the saved statistics; failed finish never
 retries data operations. Abort on Open is terminal Aborted; abort after Failed
 allows cleanup retry while retaining the original terminal error. Drop closes and
 attempts cleanup only, never syncs/publishes or implies successful finish.
+
+Rust std File drop cannot report close errors; finish checks flush/sync explicitly
+before releasing the handle. Drop cannot surface either close or cleanup failures.

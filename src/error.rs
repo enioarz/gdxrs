@@ -32,6 +32,8 @@ pub enum ErrorKind {
     TemporarySpaceExceeded,
     FileLimitExceeded,
     InvalidSpill,
+    InvalidWriteState,
+    OutputLimitExceeded,
 }
 
 #[derive(Clone, Debug)]
