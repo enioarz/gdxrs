@@ -64,5 +64,15 @@ class DependencyAudit(unittest.TestCase):
         with self.assertRaises(dev.CheckFailure): dev.audit_dependencies(self.model(), compression=False)
 
 
+class ReaderSuites(unittest.TestCase):
+    def test_rustdoc_groups_require_real_borrowing_test_and_no_skips(self):
+        summary = "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n"
+        borrowing = "test src/scan.rs - scan::BatchView (line 73) - compile fail ... ok\n"
+        self.assertEqual(dev.test_suite_counts(summary*3+borrowing),[1,1,1])
+        self.assertEqual(dev.test_suite_counts(summary*4+borrowing),[1,1,1,1])
+        for bad in [summary*4, summary*2+borrowing, summary*3+summary.replace('0 ignored','1 ignored')+borrowing, summary*3+summary.replace('1 passed','0 passed')+borrowing]:
+            with self.assertRaises(dev.CheckFailure): dev.test_suite_counts(bad)
+
+
 if __name__ == "__main__":
     unittest.main()

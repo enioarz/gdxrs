@@ -1,6 +1,6 @@
 # Numbered implementation tasks
 
-These specifications break **M0 and M1** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
+These specifications break **M0, M1 and M2** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
 
 ## Execution order
 
@@ -50,7 +50,7 @@ Run from the repository root. Use Python's standard library for the development 
 
 ## Current implementation scope
 
-Tasks 001–006 are complete; the user confirmed the M0 review/release after identifying a stale snapshot. M1 provides the bounded serial GDX v7 reader. Runtime evidence is separate from documentation checks. The crate has no writer yet.
+Tasks 001–011 are complete; M1 is merged at `5cc766d`. M1 provides the bounded serial GDX v7 reader. M2 begins with task 012; its out-of-core release gate remains task 016. Runtime evidence is separate from documentation checks. The crate has no writer yet.
 
 ## M1 — user-directed advancement (2026-10-24)
 
@@ -63,3 +63,15 @@ The user explicitly confirmed M0 is reviewed/released and instructed proceeding 
 | [009](009-lazy-metadata.md) | Lazy symbols, labels, text, comments, acronyms and domains | Complete; [evidence](../docs/evidence/009.md) |
 | [010](010-record-decoder.md) | Stateful serial raw record decoding | Complete; [evidence](../docs/evidence/010.md) |
 | [011](011-lending-batches.md) | Bounded lending batches and M1 acceptance | Complete; [evidence](../docs/evidence/011.md) |
+
+## M2 — bounded slicing and metadata
+
+M1 is merged in `5cc766d`; the user requested beginning M2. [Decision 0006](../docs/decisions/0006-m2-selection.md) defines the first selection API. Each task has its own completion gate; M2 remains in progress until task 016 passes.
+
+| Task | Scope | Status |
+| --- | --- | --- |
+| [012](012-exact-id-slices.md) | Exact bounded raw-ID slices, projection/limits and work counters | Complete; [evidence](../docs/evidence/012.md) |
+| [013](013-small-exact-label-lookup.md) | Small exact label lookup and paged metadata/cache lifecycle | Pending |
+| [014](014-bounded-spill-primitives.md) | Quota-controlled sorted runs, merge and failure cleanup | Pending |
+| [015](015-large-lookup-domain-enumeration.md) | Spill-backed large label requests and unique domains | Pending |
+| [016](016-m2-scale-acceptance.md) | Independently oversized inputs, OS memory cap and M2 acceptance | Pending |

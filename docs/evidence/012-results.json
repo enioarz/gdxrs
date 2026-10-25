@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "implementation_revision": "5eea86ce4f7a64f39083fe371472c9f9a00112e7",
+  "reader_check": {
+    "schema": 1,
+    "command": "reader-check",
+    "run_id": "8eb7dba856254175aac5724a96095171",
+    "revision": "5eea86ce4f7a64f39083fe371472c9f9a00112e7",
+    "cwd": "/workspace/gdxrs",
+    "started_utc": "2026-10-25T07:48:43.324892+00:00",
+    "status": "passed",
+    "result": {
+      "bootstrap": {
+        "versions": {
+          "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)"
+        },
+        "runtime_dependencies": 2,
+        "runtime_tests_executed": 0,
+        "dependency_audit": "docs/decisions/0004-compression.md"
+      },
+      "suites": [
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            20,
+            17,
+            1,
+            1
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--no-default-features"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            15,
+            18,
+            1,
+            1
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--all-features"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            20,
+            17,
+            1,
+            1
+          ]
+        }
+      ],
+      "differential_fixtures": 10,
+      "public_records_compared": 141358,
+      "no_compression_dependencies": 0,
+      "exact_id_slicing": "executed in Rust suites (task 012)",
+      "m2_scale_and_large_metadata": "not implemented or measured"
+    },
+    "elapsed_seconds": 7.907696146983653,
+    "exit_code": 0
+  },
+  "m0_check": {
+    "revision": "5eea86ce4f7a64f39083fe371472c9f9a00112e7",
+    "command": "m0-check",
+    "status": "passed",
+    "exit_code": 0,
+    "elapsed_seconds": 4.816370914981235
+  },
+  "m0_baseline": {
+    "status": "verified",
+    "scenarios": 4,
+    "measured_scans": 20,
+    "measured_writes": 20,
+    "write_validation_scans": 20,
+    "large_profile": "unrun",
+    "revision": "a3c648895d8463b889afba695e9f8b93eb7644a7"
+  },
+  "tooling_tests_passed": 33,
+  "slice_comparisons": {
+    "default": 1984,
+    "fixtures": 10,
+    "no_default": 1596,
+    "no_default_fixtures": 8
+  },
+  "filtered_fault": {
+    "complete_decoded_public_rows": 3274,
+    "returned_rows": 204,
+    "maximum_logical_requested_bytes": 208063,
+    "all_owners_dropped_requested_bytes": 0,
+    "rss_measured": false
+  },
+  "source_reports": [
+    ".work/reports/reader-check-8eb7dba856254175aac5724a96095171.json",
+    ".work/reports/m0-check-4bf57cd00b1e46748d882982852a6cf0.json"
+  ],
+  "m2_complete": false,
+  "next_task": "013"
+}

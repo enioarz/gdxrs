@@ -122,6 +122,15 @@ def audit_dependencies(metadata, compression=True):
             raise CheckFailure("codec dependency features differ from bounded no-alloc audit")
 
 
+def test_suite_counts(output):
+    # Rustdoc runs merged no_run examples separately from compile-fail cases.
+    # Keep every group nonempty/unskipped, and require the borrowing failure test.
+    summaries = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out", output)
+    if len(summaries) < 3 or any(int(row[0]) == 0 or any(int(n) for n in row[1:]) for row in summaries) or " - compile fail ... ok" not in output:
+        raise CheckFailure("reader suites must execute unit, integration and borrowing compile-fail tests without skips")
+    return [int(row[0]) for row in summaries]
+
+
 def reader_check():
     bootstrap = check_bootstrap()
     run(["cargo", "clippy", "--locked", "--all-targets", "--no-default-features", "--", "-D", "warnings"])
@@ -131,10 +140,8 @@ def reader_check():
     for features in ([], ["--no-default-features"], ["--all-features"]):
         args = ["cargo", "test", "--locked", *features]
         result = run(args, capture=True)
-        summaries = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out", result.stdout)
-        if len(summaries) != 3 or any(int(row[0]) == 0 or any(int(n) for n in row[1:]) for row in summaries):
-            raise CheckFailure("reader suites must execute unit, integration and compile-fail tests without skips")
-        suites.append({"command": args, "unit_integration_doctest_passed": [int(row[0]) for row in summaries]})
+        counts = test_suite_counts(result.stdout)
+        suites.append({"command": args, "unit_integration_doctest_groups_passed": counts})
     # Small frozen fixtures only: collecting the textual comparison here is
     # development tooling, never part of the production reader or dump example.
     paths = sorted((ROOT/"tests/fixtures/v7").glob("*.gdx"))
@@ -149,7 +156,8 @@ def reader_check():
         records += sum(line.startswith("R\t") for line in result.stdout.splitlines())
     return {"bootstrap": bootstrap, "suites": suites, "differential_fixtures":len(paths),
             "public_records_compared":records, "no_compression_dependencies":0,
-            "m2_scale_and_selection":"not implemented or measured"}
+            "exact_id_slicing":"executed in Rust suites (task 012)",
+            "m2_scale_and_large_metadata":"not implemented or measured"}
 
 
 def main():
