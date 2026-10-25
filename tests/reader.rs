@@ -477,3 +477,6 @@ mod spill;
 
 #[path = "cases/large.rs"]
 mod large;
+
+#[path = "cases/platforms.rs"]
+mod platforms;

@@ -148,6 +148,7 @@ pub struct TempFile {
 }
 impl TempFile {
     pub fn new(data: &[u8]) -> Self {
+        std::fs::create_dir_all(".work").unwrap();
         static NEXT: AtomicU64 = AtomicU64::new(0);
         let path = Path::new(".work").join(format!(
             "reader-test-{}-{}.gdx",

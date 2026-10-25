@@ -280,6 +280,7 @@ mod tests {
 
     #[test]
     fn file_changes_and_options_fail_before_unbounded_work() {
+        std::fs::create_dir_all(".work").unwrap();
         let path = std::path::Path::new(".work/m1-source-change-test.gdx");
         let mut file = std::fs::OpenOptions::new()
             .create_new(true)

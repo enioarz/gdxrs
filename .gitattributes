@@ -1,2 +1,4 @@
 # Empty final fields are meaningful in the semantic TSV protocol. Preserve them.
 tests/fixtures/v7/*.expected.tsv whitespace=-blank-at-eol
+* text=auto eol=lf
+*.gdx -text
