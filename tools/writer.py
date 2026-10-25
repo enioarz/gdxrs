@@ -2,10 +2,12 @@
 import json
 from pathlib import Path
 import struct
+import sys
 import uuid
 
 import oracle
 import fixtures
+from oracle_limits import isolation_policy
 
 ROOT = Path(__file__).resolve().parents[1]
 RUST_PRODUCER = b'gdxrs'.hex()
@@ -28,10 +30,13 @@ def check(run):
         created = run(['cargo','run','--locked','--quiet',*feature,'--example','create_empty','--',path],capture=True)
         if json.loads(created.stdout) != dict(output_bytes=197,bytes_written=249,published=True):
             raise ValueError('empty writer completion/statistics mismatch')
-        data = path.read_bytes()  # Explicit 197-byte development fixture only.
+        if path.stat().st_size != 197:
+            raise ValueError('writer output is not the bounded 197-byte fixture')
+        with path.open('rb') as stream:
+            data = stream.read(198)  # Bounded even if a broken output grows concurrently.
         if len(data) != 197 or struct.unpack_from('<6q',data,50) != (126,163,144,179,126,0):
             raise ValueError('empty writer size/major offsets differ from independent layout')
-        native = run([executable,'dump',path],capture=True).stdout
+        native = run([sys.executable,ROOT/'tools/oracle_limits.py',executable,'dump',path],capture=True,timeout=5).stdout
         if native != expected(0,RUST_PRODUCER,RUST_PRODUCER):
             raise ValueError('native metadata/record stream differs from independent empty expectation')
         rust = run(['cargo','run','--locked','--quiet',*feature,'--example','dump','--',path],capture=True).stdout
@@ -43,7 +48,7 @@ def check(run):
     for compression in [0,1]:
         path = area/f'native-empty-{compression}.gdx'
         run([executable,'recipe',path,recipe,str(compression)])
-        native = run([executable,'dump',path],capture=True).stdout
+        native = run([sys.executable,ROOT/'tools/oracle_limits.py',executable,'dump',path],capture=True,timeout=5).stdout
         if fixtures.normalize_dump(native) != expected(compression,NATIVE_PRODUCER,'<creation-system>'):
             raise ValueError('native empty recipe differs from source-backed independent expectation')
         features = [[], ['--all-features']]
@@ -54,4 +59,4 @@ def check(run):
             if actual != expected(compression,NATIVE_PRODUCER,'<creation-system>'):
                 raise ValueError('Rust failed complete upstream-written empty metadata/record stream')
         cases.append(dict(direction='Native writes → Rust reads',compression=compression,features=features,artifact=str(path.relative_to(ROOT)),sha256=oracle.file_digest(path),complete_stream_matches=True))
-    return dict(scope='task 018 empty-v7 foundation only',cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
+    return dict(scope='task 018 empty-v7 foundation only',cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),native_read_isolation=isolation_policy(),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
