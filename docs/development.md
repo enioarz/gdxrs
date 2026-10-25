@@ -48,3 +48,24 @@ the logical root quota, multi-pass merges, root/disk denials and injected join,
 membership, domain-output and cleanup errors. Logical peak reservations are
 recorded in task 015 evidence. They do not establish OS-capped RSS, independently
 oversized metadata or a throughput improvement; those remain task 016.
+
+
+Task 016 adds development-only Linux scale tooling:
+
+```sh
+python3 tools/dev.py m2-scale-check --profile smoke
+python3 tools/dev.py m2-scale-check --profile scale
+```
+
+Smoke validates the generator against independent Python recipes and the pinned
+native reader, then exercises capped sinks on small files. It never qualifies M2.
+Scale requires committed measured sources and at least 18 GiB free workspace,
+runs all regression gates, generates separate record/metadata files exceeding
+2 GiB and measures both increasing input sizes under fixed 256 MiB root / 512 MiB
+hard address-space limits. It can take several minutes and retains inputs/reports
+under `.work/scale/`. Do not run two scale invocations concurrently. No Python/C++
+production dependency is added. Read [the protocol](decisions/0010-m2-scale-qualification.md)
+for exact containment, digests, cache treatment and unmeasured-platform limits.
+`Reader::io_statistics()` now includes successful stream-fill decoded bytes and
+buffer counts, including read-ahead/repeated metadata traversals. These counts do
+not equate selected rows with skipped source I/O.

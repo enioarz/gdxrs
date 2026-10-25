@@ -160,15 +160,15 @@ def reader_check():
             "small_exact_labels_and_pages":"executed in Rust suites (task 013)",
             "bounded_spill_primitives":"executed in Rust suites (task 014)",
             "large_lookup_and_unique_domains":"executed in Rust suites (task 015)",
-            "m2_scale_qualification":"not measured (task 016)"}
+            "m2_scale_qualification":"requires separate m2-scale-check --profile scale gate"}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check", "label-pages-check"])
+    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check", "label-pages-check", "m2-scale-check"])
     parser.add_argument("--output", type=Path)
     parser.add_argument("--baseline", type=Path, help="Explicit validated baseline report for m0-check")
-    parser.add_argument("--profile", choices=['small'], default='small')
+    parser.add_argument("--profile", choices=['small','smoke','scale'], default='small')
     args = parser.parse_args()
     from oracle import build, self_test
     import fixtures
@@ -177,14 +177,17 @@ def main():
     import benchmark
     import m0
     import label_pages
+    import scale
     if args.baseline is not None and args.command != 'm0-check':
         parser.error('--baseline only applies to m0-check')
     if args.command == 'fixtures-generate' and args.output is None:
         parser.error('fixtures-generate requires --output NEW_DIRECTORY')
     if args.output is not None and args.command != 'fixtures-generate':
         parser.error('--output only applies to fixtures-generate')
-    if '--profile' in sys.argv and args.command != 'benchmark-oracle':
-        parser.error('--profile only applies to benchmark-oracle')
+    if '--profile' in sys.argv and args.command not in ['benchmark-oracle','m2-scale-check']:
+        parser.error('--profile only applies to benchmark-oracle or m2-scale-check')
+    if args.command == 'benchmark-oracle' and args.profile != 'small':
+        parser.error('benchmark-oracle requires profile small')
     def m0_check():
         result=m0.check(run,check_bootstrap,args.baseline)
         if result.get('errors'):
@@ -196,6 +199,7 @@ def main():
         "check-bootstrap": check_bootstrap,
         "reader-check": reader_check,
         "label-pages-check": lambda: label_pages.check(run),
+        "m2-scale-check": lambda: scale.check(run, "smoke" if args.profile == "small" else args.profile),
         "oracle-build": lambda: build(run),
         "oracle-self-test": lambda: self_test(run),
         "fixtures-generate": lambda: fixtures.generate(run,args.output),

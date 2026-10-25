@@ -113,3 +113,14 @@ remain partial after a later error. At most one disk clause per selection is
 supported; membership requires a fresh lookup cursor. Logical bounds are not
 physical RSS/disk containment, and binary membership probes do not imply GDX data
 pruning or throughput gains. OS-capped scale qualification remains task 016.
+
+
+## M2 decoded-work measurement, task 016
+
+`IoStatistics::decoded_bytes` counts bytes made available by successful stream
+buffer fills (raw/stored/zlib), including read-ahead and repeat traversals.
+`decoded_buffers` counts these successful fills. Neither counts malformed codec
+output as successfully decoded; neither implies every byte was consumed as a
+record field. Physical positioned reads remain `bytes_read`/`read_calls`.
+[The scale protocol](decisions/0010-m2-scale-qualification.md) uses these counters
+alongside scan decoded/returned rows, process CPU/RSS and enforced OS limits.

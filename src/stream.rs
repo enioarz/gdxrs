@@ -171,6 +171,7 @@ impl Stream {
                 .read_exact(self.next, &mut self.output.data[..n])?;
             self.next += n as u64;
             self.valid = n;
+            self.source.decoded(n)?;
             return Ok(());
         }
         #[cfg(feature = "compression")]
@@ -221,6 +222,7 @@ impl Stream {
                 self.valid = written;
             }
             self.next += n as u64;
+            self.source.decoded(self.valid)?;
             Ok(())
         }
         #[cfg(not(feature = "compression"))]
@@ -321,8 +323,11 @@ mod tests {
         let (start, end) = h.section(0, source.length).unwrap();
         let mut s =
             Stream::new(Arc::clone(&source), start, end, false, h.order, "symbols").unwrap();
+        assert_eq!(source.statistics().decoded_bytes, 0);
         s.marker(b"_SYMB_").unwrap();
         assert_eq!(s.count().unwrap(), 1);
+        assert_eq!(source.statistics().decoded_buffers, 1);
+        assert_eq!(source.statistics().decoded_bytes, end - start);
         drop(s);
         assert_eq!(source.budget.statistics().current_bytes, base);
         assert!(Stream::codec_state_bytes() <= 128 * 1024);
@@ -387,11 +392,13 @@ mod tests {
         .unwrap();
         let h = crate::format::Header::read(&source).unwrap();
         let (start, end) = h.section(0, source.length).unwrap();
-        let mut s = Stream::new(source, start, end, true, h.order, "symbols").unwrap();
+        let mut s = Stream::new(Arc::clone(&source), start, end, true, h.order, "symbols").unwrap();
         assert_eq!(
             s.marker(b"_SYMB_").unwrap_err().kind,
             ErrorKind::InvalidCompression
         );
+        assert_eq!(source.statistics().decoded_bytes, 0);
+        assert_eq!(source.statistics().decoded_buffers, 0);
     }
     #[cfg(feature = "compression")]
     #[test]

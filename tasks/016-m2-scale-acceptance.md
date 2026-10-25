@@ -1,6 +1,6 @@
 # 016 — M2 out-of-core acceptance
 
-Milestone: M2. Prerequisites: 012–015 complete. Status: pending.
+Milestone: M2. Prerequisites: 012–015 complete. Status: in progress.
 
 Build deterministic streaming development generators and validating sinks. Execute separate record-heavy and metadata-heavy inputs, each exceeding the enforced process memory cap, with files/decoded records at least 4× that cap. Initial target: 256 MiB library budget under a 512 MiB OS cap with runtime headroom. Document actual OS containment method, RSS, tracked memory/disk/handles, seeds, source/compiler/hardware, file hashes, cache state and independent expected counts/ordered digests. Do not substitute merely requested quotas for an actual OS cap.
 
