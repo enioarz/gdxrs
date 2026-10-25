@@ -1,0 +1,179 @@
+{
+  "schema": 1,
+  "task": "015",
+  "implementation_revision": "1392e24ba310f623947bf0b17fd0fcf5267c53bf",
+  "cwd": "/workspace/gdxrs",
+  "reader_check": {
+    "schema": 1,
+    "command": "reader-check",
+    "run_id": "f73091a1d81c46cf95152136789d3626",
+    "revision": "1392e24ba310f623947bf0b17fd0fcf5267c53bf",
+    "cwd": "/workspace/gdxrs",
+    "started_utc": "2026-10-25T13:39:33.495920+00:00",
+    "status": "passed",
+    "result": {
+      "bootstrap": {
+        "versions": {
+          "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)"
+        },
+        "runtime_dependencies": 2,
+        "runtime_tests_executed": 0,
+        "dependency_audit": "docs/decisions/0004-compression.md"
+      },
+      "suites": [
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            45,
+            31,
+            2,
+            4
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--no-default-features"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            40,
+            31,
+            2,
+            4
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--all-features"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            45,
+            31,
+            2,
+            4
+          ]
+        }
+      ],
+      "differential_fixtures": 10,
+      "public_records_compared": 141358,
+      "no_compression_dependencies": 0,
+      "exact_id_slicing": "executed in Rust suites (task 012)",
+      "small_exact_labels_and_pages": "executed in Rust suites (task 013)",
+      "bounded_spill_primitives": "executed in Rust suites (task 014)",
+      "large_lookup_and_unique_domains": "executed in Rust suites (task 015)",
+      "m2_scale_qualification": "not measured (task 016)"
+    },
+    "elapsed_seconds": 9.4116286530043,
+    "exit_code": 0
+  },
+  "m0_check": {
+    "run_id": "50b63dca7bcb4071984de7fe62a79926",
+    "revision": "1392e24ba310f623947bf0b17fd0fcf5267c53bf",
+    "status": "passed",
+    "exit_code": 0
+  },
+  "m0_results": {
+    "automated_status": "passed",
+    "fixtures": {
+      "valid_fixtures": 10,
+      "negative_fixtures": 12,
+      "binary_bytes": 1049685,
+      "symbols": 122,
+      "stored_records": 5153,
+      "verified_coverage": "all required task-003 groups",
+      "unverified": [],
+      "oracle_isolation": {
+        "platform": "linux",
+        "memory_limit": "256 MiB address space or tighter inherited limit",
+        "cpu_seconds_max": 2,
+        "output_bytes_max": 1048576,
+        "core_bytes_max": 0,
+        "wall_timeout_seconds": 5
+      }
+    },
+    "tooling_tests": 33,
+    "baseline": {
+      "status": "verified",
+      "scenarios": 4,
+      "measured_scans": 20,
+      "measured_writes": 20,
+      "write_validation_scans": 20,
+      "large_profile": "unrun",
+      "revision": "a3c648895d8463b889afba695e9f8b93eb7644a7"
+    }
+  },
+  "label_pages_check": {
+    "schema": 1,
+    "command": "label-pages-check",
+    "run_id": "34f80dc7cd8d41b6b01ae2ca5feab4f0",
+    "revision": "1392e24ba310f623947bf0b17fd0fcf5267c53bf",
+    "cwd": "/workspace/gdxrs",
+    "started_utc": "2026-10-25T13:39:49.122806+00:00",
+    "status": "passed",
+    "result": {
+      "cases": [
+        {
+          "kind": "stored",
+          "artifact": ".work/label-pages/7ec70622eadc4278ad4e40de9f0fa38a/crossing-0.gdx",
+          "input_sha256": "9a08ffe859fc29e3114f3c68115cfe1d81ef770508ebe3070c21bf34e7a741f9",
+          "metadata_labels": 8192,
+          "decoded_metadata_bytes": 57360,
+          "blocks": 2,
+          "crossing_label_id": 4680,
+          "full_native_rust_dump_match": true,
+          "public_records": 16431
+        },
+        {
+          "kind": "zlib",
+          "artifact": ".work/label-pages/7ec70622eadc4278ad4e40de9f0fa38a/crossing-1.gdx",
+          "input_sha256": "23435c03a59fe541f0ca0739b2a475cb4a4065b8be905a130de011c1315c7a0f",
+          "metadata_labels": 8192,
+          "decoded_metadata_bytes": 57360,
+          "blocks": 2,
+          "crossing_label_id": 4680,
+          "full_native_rust_dump_match": true,
+          "public_records": 16431
+        }
+      ],
+      "native_executable_sha256": "79b9f3574597cf60339ecc12f0da24633f10c68e28ea208e78c0d5ee38fc249b"
+    },
+    "elapsed_seconds": 0.26476406599977054,
+    "exit_code": 0
+  },
+  "focused": {
+    "spill_unit_tests_passed": 19,
+    "large_integration_tests_passed": 7,
+    "failures": 0,
+    "skips": 0,
+    "excluded_by_focus_filters": {
+      "spill_unit": 26,
+      "large_integration": 24
+    },
+    "fresh_full_feature_suites_exercise_filtered_cases": true
+  },
+  "measurements": {
+    "request_count": 5000,
+    "request_label_bytes": 1275000,
+    "root_limit_bytes": 1048576,
+    "root_peak_requested_bytes": 325824,
+    "request_merge_passes": 9,
+    "request_peak_temporary_bytes": 2650102,
+    "request_peak_open_files_at_most": 3,
+    "independent_domain_limit_comparisons": 104,
+    "nonleading_fullrow_domain_comparisons": 8,
+    "widest_dimensions": 20,
+    "os_memory_cap": "not run; task 016",
+    "peak_rss": "not measured",
+    "throughput": "not measured"
+  }
+}

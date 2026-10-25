@@ -474,3 +474,6 @@ mod labels;
 
 #[path = "cases/spill.rs"]
 mod spill;
+
+#[path = "cases/large.rs"]
+mod large;

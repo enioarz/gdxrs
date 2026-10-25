@@ -664,3 +664,239 @@ fn valid_empty_run_cannot_hide_loss_of_an_accepted_record() {
     assert_eq!(cursor.statistics().input_records, 1);
     parent.empty();
 }
+
+#[test]
+fn large_join_read_failure_is_terminal_partial_and_cleans_both_sessions() {
+    let _reset = Reset::new();
+    let parent = Parent::new();
+    let r = reader();
+    let baseline = r.budget_statistics().current_bytes;
+    let mut o = options(&parent);
+    o.maximum_open_files = 9;
+    o.run_bytes = 4096;
+    let mut b = r.large_label_lookup(&o).unwrap();
+    for _ in 0..200 {
+        b.push(&[b'x'; 255]).unwrap();
+    }
+    let mut c = b.finish().unwrap();
+    fault(Event::Read, 0, true, io::ErrorKind::PermissionDenied);
+    let mut emitted = 0;
+    let e = loop {
+        match c.next() {
+            Ok(Some(_)) => emitted += 1,
+            Ok(None) => panic!("read fault not reached"),
+            Err(e) => break e,
+        }
+    };
+    assert_eq!(e.kind, ErrorKind::Io);
+    assert!(emitted > 0 && emitted < 200);
+    assert!(!c.is_complete());
+    assert_eq!(c.next().err().unwrap().kind, ErrorKind::Io);
+    assert_eq!(c.statistics().0.open_files, 0);
+    assert_eq!(c.statistics().1.unwrap().open_files, 0);
+    drop(c);
+    parent.empty();
+    assert_eq!(r.budget_statistics().current_bytes, baseline);
+}
+#[test]
+fn disk_membership_fault_terminal_scan_and_retryable_explicit_cleanup() {
+    let _reset = Reset::new();
+    let parent = Parent::new();
+    let r = reader();
+    let baseline = r.budget_statistics().current_bytes;
+    let mut o = options(&parent);
+    o.maximum_open_files = 9;
+    let label = {
+        let mut u = r.uels().unwrap();
+        u.next().unwrap().unwrap().label.to_vec()
+    };
+    let symbol = r.symbol(SymbolId::new(0).unwrap()).unwrap();
+    let base = r.selection(&symbol, &[]).unwrap();
+    let mut b = r.large_label_lookup(&o).unwrap();
+    b.push(&label).unwrap();
+    let mut selection = r
+        .selection_from_large_labels(&symbol, 0, &base, b.finish().unwrap(), &o)
+        .unwrap();
+    assert_eq!(selection.spill_statistics().unwrap().open_files, 1);
+    let mut scan = r
+        .scan_selected(&symbol, &selection, r.scan_options())
+        .unwrap();
+    fault(Event::Read, 0, false, io::ErrorKind::StorageFull);
+    let e = scan.next_batch().err().unwrap();
+    assert_eq!(e.kind, ErrorKind::Io);
+    assert_eq!(scan.statistics().returned_rows, 0);
+    assert_eq!(scan.next_batch().err().unwrap().kind, ErrorKind::Io);
+    drop(scan);
+    FAULTS.with(|f| f.borrow_mut().deny_cleanup = true);
+    assert_eq!(selection.close_spill().unwrap_err().kind, ErrorKind::Io);
+    let mut scan = r
+        .scan_selected(&symbol, &selection, r.scan_options())
+        .unwrap();
+    assert!(scan.next_batch().unwrap().is_none());
+    drop(scan);
+    FAULTS.with(|f| f.borrow_mut().deny_cleanup = false);
+    selection.close_spill().unwrap();
+    drop(selection);
+    drop(base);
+    drop(symbol);
+    parent.empty();
+    assert_eq!(r.budget_statistics().current_bytes, baseline);
+}
+#[test]
+fn large_lookup_merge_and_domain_failures_preserve_primary_and_cleanup() {
+    let _reset = Reset::new();
+    let parent = Parent::new();
+    let r = reader();
+    let baseline = r.budget_statistics().current_bytes;
+    let mut o = options(&parent);
+    o.maximum_open_files = 9;
+    let mut b = r.large_label_lookup(&o).unwrap();
+    for _ in 0..9 {
+        b.push(b"x").unwrap();
+    }
+    fault(Event::Read, 0, true, io::ErrorKind::StorageFull);
+    FAULTS.with(|f| f.borrow_mut().deny_cleanup = true);
+    let e = b.finish().err().unwrap();
+    assert_eq!(e.kind, ErrorKind::Io);
+    assert!(e.cleanup_error().is_some());
+    FAULTS.with(|f| *f.borrow_mut() = Faults::default());
+    // Consuming finish cannot return the owner on failure: recorded private paths
+    // remain recoverable in the caller-controlled scratch parent.
+    for entry in fs::read_dir(&parent.0).unwrap() {
+        fs::remove_dir_all(entry.unwrap().path()).unwrap();
+    }
+    let symbol = r.symbol(SymbolId::new(0).unwrap()).unwrap();
+    let base = r.selection(&symbol, &[]).unwrap();
+    fault(Event::Write, 0, false, io::ErrorKind::StorageFull);
+    let e = r
+        .unique_domains(&symbol, &base, &[0], r.scan_options(), &o)
+        .err()
+        .unwrap();
+    assert_eq!(e.kind, ErrorKind::Io);
+    drop(base);
+    drop(symbol);
+    parent.empty();
+    assert_eq!(r.budget_statistics().current_bytes, baseline);
+}
+#[test]
+fn membership_verification_rejects_non_fixed_frames_and_read_failure() {
+    let _reset = Reset::new();
+    let parent = Parent::new();
+    let r = reader();
+    let mut o = options(&parent);
+    o.run_bytes = 65536;
+    let mut b = r.spill_sort(&o).unwrap();
+    b.push(b"not-empty", 1).unwrap();
+    assert_eq!(
+        b.finish().unwrap().into_ids().err().unwrap().kind,
+        ErrorKind::InvalidSpill
+    );
+    parent.empty();
+    let mut b = r.spill_sort(&o).unwrap();
+    for _ in 0..4000 {
+        b.push(b"", 1).unwrap();
+    }
+    let c = b.finish().unwrap();
+    fault(Event::Read, 0, false, io::ErrorKind::UnexpectedEof);
+    assert_eq!(c.into_ids().err().unwrap().kind, ErrorKind::Io);
+    parent.empty();
+}
+
+#[test]
+fn large_lookup_root_denial_and_domain_output_read_failure_release_resources() {
+    let _reset = Reset::new();
+    let parent = Parent::new();
+    let r = reader();
+    let baseline = r.budget_statistics().current_bytes;
+    let mut o = options(&parent);
+    o.maximum_open_files = 9;
+    let mut b = r.large_label_lookup(&o).unwrap();
+    b.push(b"x").unwrap();
+    let c = b.finish().unwrap();
+    let symbol = r.symbol(SymbolId::new(0).unwrap()).unwrap();
+    let base = r.selection(&symbol, &[]).unwrap();
+    let held = r.source.budget.statistics().current_bytes;
+    let reservation = r.source.budget.reserve(1024 * 1024 - held - 1024).unwrap();
+    assert_eq!(
+        r.selection_from_large_labels(&symbol, 0, &base, c, &o)
+            .err()
+            .unwrap()
+            .kind,
+        ErrorKind::BudgetTooSmall
+    );
+    drop(reservation);
+    drop(base);
+    drop(symbol);
+    parent.empty();
+    assert_eq!(r.budget_statistics().current_bytes, baseline);
+    let r = Reader::open(
+        "tests/fixtures/v7/key-widths.gdx",
+        OpenOptions {
+            memory_budget_bytes: 1024 * 1024,
+            metadata_cache_bytes: 0,
+            ..OpenOptions::default()
+        },
+    )
+    .unwrap();
+    let symbol = r.symbol(SymbolId::new(0).unwrap()).unwrap();
+    let base = r.selection(&symbol, &[]).unwrap();
+    o.run_bytes = 65536;
+    let mut c = r
+        .unique_domains(
+            &symbol,
+            &base,
+            &[0],
+            ScanOptions {
+                limit: Some(4000),
+                ..r.scan_options()
+            },
+            &o,
+        )
+        .unwrap();
+    fault(Event::Read, 0, false, io::ErrorKind::PermissionDenied);
+    let mut returned = 0;
+    let e = loop {
+        match c.next() {
+            Ok(Some(_)) => returned += 1,
+            Ok(None) => panic!("output fault not reached"),
+            Err(e) => break e,
+        }
+    };
+    assert_eq!(e.kind, ErrorKind::Io);
+    assert!(returned > 0 && returned < 4000);
+    assert!(!c.statistics().complete);
+    assert_eq!(c.next().err().unwrap().kind, ErrorKind::Io);
+    drop(c);
+    parent.empty();
+}
+
+#[test]
+fn disk_selection_retains_source_until_last_owner_and_drop_cleans_scratch() {
+    let _reset = Reset::new();
+    let parent = Parent::new();
+    let r = reader();
+    let budget = Arc::clone(&r.source.budget);
+    let mut o = options(&parent);
+    o.maximum_open_files = 9;
+    let label = {
+        let mut u = r.uels().unwrap();
+        u.next().unwrap().unwrap().label.to_vec()
+    };
+    let symbol = r.symbol(SymbolId::new(0).unwrap()).unwrap();
+    let base = r.selection(&symbol, &[]).unwrap();
+    let mut b = r.large_label_lookup(&o).unwrap();
+    b.push(&label).unwrap();
+    let selection = r
+        .selection_from_large_labels(&symbol, 0, &base, b.finish().unwrap(), &o)
+        .unwrap();
+    let clone = selection.clone();
+    drop(selection);
+    drop(base);
+    drop(symbol);
+    drop(r);
+    assert!(budget.statistics().current_bytes > 0);
+    assert_eq!(clone.spill_statistics().unwrap().open_files, 1);
+    drop(clone);
+    assert_eq!(budget.statistics().current_bytes, 0);
+    parent.empty();
+}

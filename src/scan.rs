@@ -281,10 +281,8 @@ impl ScanCursor {
                 self.statistics.decoded_rows.checked_add(1).ok_or_else(|| {
                     Error::new(ErrorKind::InvalidCount, "decoded row counter overflow")
                 })?;
-            if self
-                .selection
-                .as_ref()
-                .is_some_and(|selection| !selection.matches(row))
+            if let Some(selection) = &self.selection
+                && !selection.matches(row)?
             {
                 continue;
             }

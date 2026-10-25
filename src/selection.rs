@@ -83,11 +83,13 @@ struct State {
 /// Immutable source/symbol-bound selection; clones share one accounted allocation.
 #[derive(Clone)]
 pub struct Selection {
+    disk: Option<(u8, Arc<crate::spill::DiskIds>)>,
+    closed: bool,
     inner: Arc<State>,
 }
 impl Selection {
     pub fn is_empty(&self) -> bool {
-        self.inner.empty
+        self.closed || self.inner.empty || self.disk.as_ref().is_some_and(|(_, ids)| ids.is_empty())
     }
     pub(crate) fn validate(&self, reader: &Reader, symbol: &SymbolHandle) -> Result<()> {
         reader.check_handle(symbol)?;
@@ -107,13 +109,24 @@ impl Selection {
         }
         Ok(())
     }
-    pub(crate) fn matches(&self, row: &Record) -> bool {
-        self.inner
+    pub(crate) fn matches(&self, row: &Record) -> Result<bool> {
+        if !self
+            .inner
             .constraints
             .iter()
             .take(usize::from(self.inner.dimension))
             .enumerate()
             .all(|(d, c)| row.key(d).is_some_and(|key| c.matches(key)))
+        {
+            return Ok(false);
+        }
+        if let Some((dimension, ids)) = &self.disk {
+            let key = row.key(usize::from(*dimension)).ok_or_else(|| {
+                Error::new(ErrorKind::InvalidSelection, "missing membership dimension")
+            })?;
+            return ids.contains(key);
+        }
+        Ok(true)
     }
 }
 impl Reader {
@@ -235,6 +248,8 @@ impl Reader {
             };
         }
         Ok(Selection {
+            disk: None,
+            closed: false,
             inner: Arc::new(State {
                 source: Arc::clone(&self.source),
                 symbol: symbol.id(),
@@ -272,5 +287,42 @@ impl Reader {
     ) -> Result<ScanCursor> {
         selection.validate(self, symbol)?;
         ScanCursor::selected(self.clone(), symbol.clone(), selection.clone(), options)
+    }
+}
+
+impl Selection {
+    pub(crate) fn has_disk(&self) -> bool {
+        self.disk.is_some()
+    }
+    pub(crate) fn with_disk(mut self, dimension: u8, ids: crate::spill::DiskIds) -> Result<Self> {
+        if self.disk.is_some() {
+            return Err(Error::new(
+                ErrorKind::InvalidSelection,
+                "selection already has a disk clause",
+            ));
+        }
+        self.disk = Some((dimension, Arc::new(ids)));
+        Ok(self)
+    }
+    pub fn spill_directory(&self) -> Option<&std::path::Path> {
+        self.disk.as_ref().map(|(_, ids)| ids.directory())
+    }
+    pub fn spill_statistics(&self) -> Option<SpillStatistics> {
+        self.disk.as_ref().map(|(_, ids)| ids.statistics())
+    }
+    /// Release disk scratch explicitly. Retained clones/scans prevent closure.
+    pub fn close_spill(&mut self) -> Result<()> {
+        if let Some((_, ids)) = &mut self.disk {
+            let ids = Arc::get_mut(ids).ok_or_else(|| {
+                Error::new(
+                    ErrorKind::InvalidOptions,
+                    "membership still shared by another owner",
+                )
+            })?;
+            self.closed = true;
+            ids.close()?;
+            self.disk = None;
+        }
+        Ok(())
     }
 }

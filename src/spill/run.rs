@@ -254,3 +254,9 @@ impl RunReader {
         Ok(Some(record))
     }
 }
+
+impl RunReader {
+    pub(super) fn into_file(self) -> OpenRun {
+        self.file
+    }
+}

@@ -6,6 +6,7 @@ mod budget;
 mod error;
 mod format;
 mod labels;
+mod large;
 mod metadata;
 mod model;
 mod reader;
@@ -37,3 +38,7 @@ pub use labels::{
 };
 
 pub use spill::{SpillCursor, SpillEntry, SpillOptions, SpillSorter, SpillStatistics};
+
+pub use large::{
+    DomainId, LargeLabelCursor, LargeLabelLookup, LargeResolvedLabel, UniqueDomainCursor,
+};

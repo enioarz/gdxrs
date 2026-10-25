@@ -71,3 +71,19 @@ Each sorter/cursor has one transferred 16 KiB control reservation; its session h
 Temporary bytes and run handles are explicitly **per-session** quotas, not process-global/source-wide disk/descriptor limits. Root memory is shared source-wide. A multi-sort integration must budget the sum of its job limits before implementation. Reserved logical bytes include input runs, pending buffered writes and output runs simultaneously, before any write/growth; handle reservations precede opens and follow File lifetime. Filesystem block/inode overhead, the source's existing GDX handle and transient OS path internals are outside those logical quotas. This is neither physical disk preallocation nor RSS containment.
 
 Run completion requires buffer flush, file sync/close, exclusive hard-link publication and removal of the partial name. Inputs close and are removed only after their replacement completes. Check header/version, bounded label lengths, tuple order, footer count/checksum/trailer/EOF and the final accepted-input/returned count. Stats complete remains false for cancellation or any error. On failure, drop readers/writers/buffers, attempt every known owned cleanup and preserve both primary and secondary cleanup errors. Explicit cancel/close permits cleanup retry; Drop can only attempt best effort. Private scratch parents/namespaces must not be concurrently mutated by others; same-directory hard links are required. No crash-recovery or cryptographic authentication promise is made.
+
+
+## M2 large exact lookup and observed domains, task 015
+
+[Decision 0009](decisions/0009-large-labels-domains.md) specifies the implemented
+streaming APIs, ordering, ordinals, source/ownership checks, composition of three
+scratch quotas, shared root memory, fixed-frame disk membership and unique-domain
+extraction. Empty/unknown labels contribute no IDs; disk predicates intersect base
+constraints on original dimensions before exact accepted-row limits. Lookup output
+is label-sorted with original request ordinals; domain output is deduplicated in
+original dimension/ID order. No eager dictionary, offset vector or universe bitmap
+is retained. Explicit close reports cleanup, while Drop is best effort. All results
+remain partial after a later error. At most one disk clause per selection is
+supported; membership requires a fresh lookup cursor. Logical bounds are not
+physical RSS/disk containment, and binary membership probes do not imply GDX data
+pruning or throughput gains. OS-capped scale qualification remains task 016.
