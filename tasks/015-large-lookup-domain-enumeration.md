@@ -1,6 +1,6 @@
 # 015 — Large exact label requests and unique domains
 
-Milestone: M2. Prerequisite: 014 complete. Status: pending.
+Milestone: M2. Prerequisite: 014 complete. Status: in progress.
 
 Use the bounded spill machinery to resolve request streams larger than RAM against streamed UEL metadata without an in-memory offset vector/map. Sort/merge exact bytes while preserving original IDs and request semantics; integrate spill-backed membership with selection evaluation under one root quota. Define whether request ordinals/results are streamed or externally reordered, with explicit error/drop ownership.
 
