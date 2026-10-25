@@ -96,6 +96,7 @@ def check_bootstrap():
         if value.split()[1] != pin:
             raise CheckFailure(f"{tool} version differs from pin {pin}: {value}")
         versions[tool] = value
+    versions["rustc_verbose"] = run(["rustc", "--version", "--verbose"], capture=True).stdout.strip()
     for args in (
         ["fmt", "--all", "--", "--check"],
         ["check", "--locked", "--all-targets"],
