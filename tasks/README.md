@@ -86,4 +86,6 @@ Before M3, the user requested macOS/Windows compatibility qualification.
 
 | Task | Scope | Status |
 | --- | --- | --- |
-| [017](017-native-platform-compatibility.md) | Native macOS ARM64/Intel and Windows x64 reader/metadata/spill compatibility | In progress |
+| [017](017-native-platform-compatibility.md) | Native macOS ARM64/Intel and Windows x64 reader/metadata/spill compatibility | Complete; [evidence](../docs/evidence/017.md) |
+
+The native platform follow-up is complete. M3 sorted-writer specifications are next.

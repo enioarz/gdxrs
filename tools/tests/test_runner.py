@@ -74,10 +74,6 @@ class ReaderSuites(unittest.TestCase):
             with self.assertRaises(dev.CheckFailure): dev.test_suite_counts(bad)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class PortableReaderDispatch(unittest.TestCase):
     def test_reader_command_never_imports_unix_only_development_modules(self):
         import builtins
@@ -100,3 +96,7 @@ class PortableReaderDispatch(unittest.TestCase):
              patch.object(dev, 'report_check', side_effect=lambda name, operation: operation()):
             with self.assertRaisesRegex(dev.CheckFailure, 'requires Linux'):
                 dev.main()
+
+
+if __name__ == "__main__":
+    unittest.main()

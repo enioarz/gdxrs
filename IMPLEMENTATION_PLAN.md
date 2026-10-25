@@ -1,8 +1,8 @@
 # gdxrs implementation plan
 
-Status: M0 and M1 are merged; M2 read acceptance has passed on Linux x86_64. Runtime evidence and performance limitations are recorded in [task 016](docs/evidence/016.md). Writing and later milestones remain planned.
+Status: M0 and M1 are merged; M2 read acceptance has passed on Linux x86_64. Runtime evidence and performance limitations are recorded in [task 016](docs/evidence/016.md). Native macOS ARM64/Intel and Windows x64 reader compatibility is qualified in [task 017](docs/evidence/017.md). Writing and later milestones remain planned.
 
-Execution guidance: read [AGENTS.md](AGENTS.md) and the [numbered task queue](tasks/README.md) before implementation. Tasks 001–016 record the M0–M2 deliverables, acceptance gates and executed evidence.
+Execution guidance: read [AGENTS.md](AGENTS.md) and the [numbered task queue](tasks/README.md) before implementation. Tasks 001–017 record the M0–M2 deliverables, native platform follow-up, acceptance gates and executed evidence.
 
 ## 1. Goal and priorities
 

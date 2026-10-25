@@ -28,7 +28,7 @@ python3 tools/dev.py m0-check
 
 Each command creates a fresh report in ignored `.work/reports/` and propagates failures. Do not regenerate Cargo.lock or fixture expectations as a routine workaround. See [task evidence](evidence/011.md) for exact executed counts, commands and limitations. [Oracle setup](oracle.md) requires C++17 and CMake only for development. Native sources/builds and generated datasets stay under `.work/`.
 
-Current validation is Linux x86_64, Debian 13. Windows positioned I/O is implemented but untested here; native big-endian hardware and >4 GiB inputs remain unrun. Exact raw-ID and small exact-label selections, bounded label pages, spill-backed exact-label requests and observed-domain enumeration are implemented in M2; the OS-capped scale gate has passed on Linux x86_64; writing belongs to M3/M4.
+Original M2 scale validation is Linux x86_64, Debian 13. Native Windows/macOS reader validation is now recorded in task 017; native big-endian hardware and >4 GiB inputs remain unrun. Exact raw-ID and small exact-label selections, bounded label pages, spill-backed exact-label requests and observed-domain enumeration are implemented in M2; the OS-capped scale gate has passed on Linux x86_64; writing belongs to M3/M4.
 
 `python3 tools/dev.py label-pages-check` builds a bounded development-only 8,192-label probe in both stored and zlib block forms and verifies its full output with both the pinned native oracle and the Rust dump. A label crosses the 32 KiB decoded boundary. Run oracle-build first if the development oracle is unavailable. Core Rust tests exercise the same declared boundary input without requiring native/Python tooling; the normal frozen corpus is unchanged. See task 013 evidence for request/cursor/cache checks and exact executed counts.
 
@@ -83,3 +83,22 @@ The helper verifies measured source hashes, compiles the same validating sink
 with timers around batch calls, and requires three exact-count/digest matches.
 Instrumented timings are kept separate from the original benchmark. The [scalar-buffer follow-up](evidence/016-throughput.md) closes the measured wide
 Rust/native gap; broader workloads still require their own throughput measurements.
+
+
+Native reader compatibility is qualified on Linux x64, macOS 15 Apple Silicon and
+Intel, and Windows Server 2025 x64/MSVC. The same pinned Rust toolchain and reader
+commands work on all four CI hosts:
+
+```sh
+cargo test --locked
+cargo test --locked --release
+python tools/dev.py reader-check
+```
+
+Python 3.11+ is needed only for development reporting; use `python` or `python3`
+as installed. Reader commands avoid Unix-only modules and capture text as UTF-8.
+Windows oracle-development commands are explicitly unqualified; the OS-cap scale
+command remains Linux-only. The full [matrix](../.github/workflows/reader-platforms.yml)
+keeps native host assertions, feature/dependency audits, exact frozen outputs,
+release tests and CI logs/reports. [Task 017](evidence/017.md) records actual runs,
+checked merge identities, the Windows lint correction and scope limitations.

@@ -1,7 +1,7 @@
 # 017 — Native macOS and Windows reader compatibility
 
 Milestone: M2 portability follow-up, before M3 at the user's request.
-Prerequisite: 016 complete and merged. Status: in progress.
+Prerequisite: 016 complete and merged. Status: complete.
 
 Run the existing reader, metadata, slicing and spill suites natively on Linux x64,
 macOS Apple Silicon and Intel, and Windows x64/MSVC using the pinned Rust/MSRV.
@@ -29,3 +29,5 @@ Mark complete only after actual native jobs pass. If hosted runners/credentials
 are unavailable, preserve the implementation and identify the blocker without
 claiming platform compatibility. No new production dependency, unsafe code, writer,
 index or parallel decoder; concurrency here tests independent existing readers.
+
+Completion: [native CI evidence](../docs/evidence/017.md) and [machine results](../docs/evidence/017-results.json). Functional/lifecycle qualification covers both Mac architectures and Windows x64; Linux-only OS-cap scope remains unchanged.

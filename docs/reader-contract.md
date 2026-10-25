@@ -124,3 +124,14 @@ output as successfully decoded; neither implies every byte was consumed as a
 record field. Physical positioned reads remain `bytes_read`/`read_calls`.
 [The scale protocol](decisions/0010-m2-scale-qualification.md) uses these counters
 alongside scan decoded/returned rows, process CPU/RSS and enforced OS limits.
+
+
+## Native platform qualification, task 017
+
+[Native CI evidence](evidence/017.md) qualifies functional reads, metadata, exact
+selections and spill lifecycle on Linux x64, macOS ARM64/Intel and Windows x64/MSVC.
+The original positioned-read, source identity, immutable source, bounded allocation,
+error and explicit cleanup contracts are unchanged. Debug feature suites and
+optimized default-feature tests run on every target. Source/scratch Unicode paths,
+concurrent reader clones, changed/truncated files and closed-handle cleanup are
+exercised on native hosts. OS-capped multi-GB scale/performance remains Linux-only.
