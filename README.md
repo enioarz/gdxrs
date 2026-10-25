@@ -31,7 +31,7 @@ python3 tools/dev.py reader-check
 
 The dump example streams normalized semantic TSV to stdout; its 64 KiB consumer-side output buffer is separate from the reader budget. It propagates read/write/flush failures. See [development](docs/development.md), [reader contract](docs/reader-contract.md), [resource accounting](docs/resource-contract.md), [M1 evidence](docs/evidence/011.md), and [implementation plan](IMPLEMENTATION_PLAN.md).
 
-Supported profile: modern canonical v7 layout, uniform little/big endian, stored/zlib blocks, all symbol types and dimensions 0–20. Legacy v5/v6, mixed primitive byte orders and old producer heuristics are excluded. Tests currently run on Linux x86_64. Bounded library accounting is separate from the enforced OS address-space cap used in [M2 qualification](docs/evidence/016.md). Fixed standard shared-owner allocations retain Rust's allocator-OOM abort behavior; see [the recorded constraint](docs/decisions/0003-m1-advancement.md).
+Supported profile: modern canonical v7 layout, uniform little/big endian, stored/zlib blocks, all symbol types and dimensions 0–20. Legacy v5/v6, mixed primitive byte orders and old producer heuristics are excluded. Native reader tests pass on Linux x86_64, macOS ARM64/Intel and Windows x64/MSVC; see [platform evidence](docs/evidence/017.md). Bounded library accounting is separate from the enforced OS address-space cap used in [M2 qualification](docs/evidence/016.md). Fixed standard shared-owner allocations retain Rust's allocator-OOM abort behavior; see [the recorded constraint](docs/decisions/0003-m1-advancement.md).
 
 For exact ID slicing, compile source/symbol-bound `DimensionSelection` clauses with `reader.selection(&symbol, &clauses)`, then use `reader.scan_selected(&symbol, &selection, options)`. Clauses are conjoined across zero-based dimensions; IDs or inclusive ranges are unioned within a dimension. Filtering precedes projection and the accepted-row limit, preserving original IDs/order. Explicit empty sets avoid record reads. Selection payloads share the reader quota; oversized in-memory requests currently return `BudgetTooSmall`. `cursor.statistics()` reports decoded versus returned public rows; a selective result does not imply disk pruning. See [the selection contract](docs/decisions/0006-m2-selection.md) and [M2 task queue](tasks/README.md).
 
@@ -75,3 +75,12 @@ decode the full source stream. See [throughput follow-up](docs/evidence/016-thro
 and [qualification/cache/platform limits](docs/evidence/016.md). These are measured
 results, not portable speed guarantees. Writing, indexes, parallel decoding and
 Polars integration remain outside M2.
+
+
+The [native CI matrix](.github/workflows/reader-platforms.yml) runs on every pull
+request and main push. Each target executes clean-checkout Cargo tests, optimized
+default-feature tests, all feature combinations and the complete frozen expected
+record stream. Unicode paths, concurrent positioned reads and spill handle cleanup
+are included. The 512 MiB OS-cap and throughput measurements above remain
+Linux-only; macOS/Windows qualification currently covers functionality and logical
+resource accounting. Cargo/core use requires no Python or native GDX installation.

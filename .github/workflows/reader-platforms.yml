@@ -1,0 +1,99 @@
+name: Native reader platforms
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reader-platforms-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reader:
+    name: Reader / ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - os: macos-15
+            target: aarch64-apple-darwin
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TERM_COLOR: never
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned toolchain
+        run: |
+          toolchain=$(python -c 'import pathlib,tomllib; print(tomllib.loads(pathlib.Path("rust-toolchain.toml").read_text())["toolchain"]["channel"])')
+          rustup toolchain install "$toolchain" --profile minimal --component rustfmt --component clippy
+          rustc --version --verbose
+          test "$(rustc --version --verbose | sed -n 's/^host: //p')" = "${{ matrix.target }}"
+      - name: Cargo tests from a clean checkout
+        run: cargo test --locked
+      - name: Optimized default-feature tests
+        run: cargo test --locked --release
+      - name: Full reader, feature and frozen-corpus validation
+        run: python tools/dev.py reader-check 2>&1 | tee .work/native-reader.log
+      - name: Publish native qualification summary
+        run: |
+          python - <<'PYSUMMARY'
+          import json, os
+          from pathlib import Path
+          paths = list(Path('.work/reports').glob('reader-check-*.json'))
+          assert len(paths) == 1, 'expected one fresh native reader report'
+          record = json.loads(paths[0].read_text(encoding='utf-8'))
+          assert record['status'] == 'passed' and record['exit_code'] == 0
+          assert record['revision'] == os.environ['GITHUB_SHA'], 'checked revision mismatch'
+          result = record['result']
+          verbose = result['bootstrap']['versions']['rustc_verbose']
+          host = next(line[6:] for line in verbose.splitlines() if line.startswith('host: '))
+          summary = {'revision': record['revision'], 'platform': record['platform'], 'host': host,
+                     'profiles': ['debug default/minimal/all', 'release default'],
+                     'run_id': record['run_id'], 'compiler': result['bootstrap']['versions']['rustc'],
+                     'suites': result['suites'], 'fixtures': result['differential_fixtures'],
+                     'records': result['public_records_compared'], 'report': str(paths[0])}
+          message = json.dumps(summary, ensure_ascii=True).replace('%', '%25')
+          print('::notice title=Native reader qualification::' + message)
+          PYSUMMARY
+      - name: Annotate bounded validation failure details
+        if: failure()
+        run: |
+          python - <<'PYFAIL'
+          from pathlib import Path
+          path = Path('.work/native-reader.log')
+          if path.exists():
+              tail = path.read_text(encoding='utf-8', errors='replace')[-12000:]
+              tail = tail.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print('::error title=Native reader validation::' + tail)
+          PYFAIL
+      - name: Retain native validation reports
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: reader-${{ matrix.target }}-${{ github.sha }}
+          path: |
+            .work/reports/*.json
+            .work/native-reader.log
+          if-no-files-found: warn
+          retention-days: 30

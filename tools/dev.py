@@ -4,6 +4,7 @@
 import argparse
 import datetime
 import json
+import platform
 import re
 from pathlib import Path
 import subprocess
@@ -28,7 +29,7 @@ def run(argv, *, cwd=ROOT, timeout=180, capture=False, env=None):
     print("+", " ".join(map(str, argv)), flush=True)
     return subprocess.run(
         list(map(str, argv)), cwd=cwd, timeout=timeout, check=True,
-        text=True, capture_output=capture, env=env,
+        text=True, encoding="utf-8", capture_output=capture, env=env,
     )
 
 
@@ -49,6 +50,7 @@ def report_check(name, operation):
         "revision": revision(), "cwd": str(ROOT),
         "started_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "status": "running", "result": None,
+        "platform": {"system": platform.system(), "machine": platform.machine(), "release": platform.release()},
     }
     with path.open("x") as out:
         json.dump(record, out, indent=2)
@@ -94,6 +96,7 @@ def check_bootstrap():
         if value.split()[1] != pin:
             raise CheckFailure(f"{tool} version differs from pin {pin}: {value}")
         versions[tool] = value
+    versions["rustc_verbose"] = run(["rustc", "--version", "--verbose"], capture=True).stdout.strip()
     for args in (
         ["fmt", "--all", "--", "--check"],
         ["check", "--locked", "--all-targets"],
@@ -170,14 +173,6 @@ def main():
     parser.add_argument("--baseline", type=Path, help="Explicit validated baseline report for m0-check")
     parser.add_argument("--profile", choices=['small','smoke','scale'], default='small')
     args = parser.parse_args()
-    from oracle import build, self_test
-    import fixtures
-    import specification
-    import contracts
-    import benchmark
-    import m0
-    import label_pages
-    import scale
     if args.baseline is not None and args.command != 'm0-check':
         parser.error('--baseline only applies to m0-check')
     if args.command == 'fixtures-generate' and args.output is None:
@@ -188,29 +183,47 @@ def main():
         parser.error('--profile only applies to benchmark-oracle or m2-scale-check')
     if args.command == 'benchmark-oracle' and args.profile != 'small':
         parser.error('benchmark-oracle requires profile small')
-    def m0_check():
-        result=m0.check(run,check_bootstrap,args.baseline)
-        if result.get('errors'):
-            raise CheckFailure('; '.join(result['errors']),result)
-        if not result['m1_eligible']:
-            raise CheckFailure('independent M0 review pending; automated checks passed',result,2)
-        return result
-    actions = {
-        "check-bootstrap": check_bootstrap,
-        "reader-check": reader_check,
-        "label-pages-check": lambda: label_pages.check(run),
-        "m2-scale-check": lambda: scale.check(run, "smoke" if args.profile == "small" else args.profile),
-        "oracle-build": lambda: build(run),
-        "oracle-self-test": lambda: self_test(run),
-        "fixtures-generate": lambda: fixtures.generate(run,args.output),
-        "fixtures-check": lambda: fixtures.check(run),
-        "fixtures-regenerate-check": lambda: fixtures.regeneration_check(run),
-        "spec-check": lambda: specification.check(run),
-        "contracts-check": contracts.check,
-        "benchmark-oracle": lambda: benchmark.execute(run,args.profile),
-        "m0-check": m0_check,
-    }
-    return report_check(args.command, actions[args.command])
+    def external_command():
+        # Reader validation must not import Unix resource/exec-only development
+        # tools on Windows. Import only the explicitly selected command module.
+        if sys.platform == 'win32' and args.command not in ['contracts-check', 'm2-scale-check']:
+            raise CheckFailure('native oracle development commands are not qualified on Windows; use reader-check for the Rust reader')
+        if args.command.startswith('oracle-'):
+            import oracle
+            return oracle.build(run) if args.command == 'oracle-build' else oracle.self_test(run)
+        if args.command.startswith('fixtures-'):
+            import fixtures
+            if args.command == 'fixtures-generate': return fixtures.generate(run, args.output)
+            if args.command == 'fixtures-regenerate-check': return fixtures.regeneration_check(run)
+            return fixtures.check(run)
+        if args.command == 'spec-check':
+            import specification
+            return specification.check(run)
+        if args.command == 'contracts-check':
+            import contracts
+            return contracts.check()
+        if args.command == 'benchmark-oracle':
+            import benchmark
+            return benchmark.execute(run, args.profile)
+        if args.command == 'label-pages-check':
+            import label_pages
+            return label_pages.check(run)
+        if args.command == 'm2-scale-check':
+            if sys.platform != 'linux':
+                raise CheckFailure('m2-scale-check requires Linux OS containment; reader-check is portable')
+            import scale
+            return scale.check(run, "smoke" if args.profile == "small" else args.profile)
+        if args.command == 'm0-check':
+            import m0
+            result = m0.check(run, check_bootstrap, args.baseline)
+            if result.get('errors'):
+                raise CheckFailure('; '.join(result['errors']), result)
+            if not result['m1_eligible']:
+                raise CheckFailure('independent M0 review pending; automated checks passed', result, 2)
+            return result
+        raise CheckFailure('unimplemented development command')
+    actions = {"check-bootstrap": check_bootstrap, "reader-check": reader_check}
+    return report_check(args.command, actions.get(args.command, external_command))
 
 
 if __name__ == "__main__":

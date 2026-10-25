@@ -74,5 +74,29 @@ class ReaderSuites(unittest.TestCase):
             with self.assertRaises(dev.CheckFailure): dev.test_suite_counts(bad)
 
 
+class PortableReaderDispatch(unittest.TestCase):
+    def test_reader_command_never_imports_unix_only_development_modules(self):
+        import builtins
+        original_import = builtins.__import__
+        blocked = {'resource', 'fixtures', 'scale', 'm0', 'benchmark', 'oracle_limits'}
+        def guard(name, *args, **kwargs):
+            if name.split('.')[0] in blocked:
+                raise AssertionError('portable reader imported ' + name)
+            return original_import(name, *args, **kwargs)
+        with patch.object(sys, 'argv', ['dev.py', 'reader-check']), \
+             patch.object(dev, 'report_check', side_effect=lambda name, operation: operation()), \
+             patch.object(dev, 'reader_check', return_value=0) as reader, \
+             patch.object(builtins, '__import__', side_effect=guard):
+            self.assertEqual(dev.main(), 0)
+        reader.assert_called_once()
+
+    def test_scale_command_reports_unsupported_windows_before_resource_import(self):
+        with patch.object(sys, 'argv', ['dev.py', 'm2-scale-check']), \
+             patch.object(dev.sys, 'platform', 'win32'), \
+             patch.object(dev, 'report_check', side_effect=lambda name, operation: operation()):
+            with self.assertRaisesRegex(dev.CheckFailure, 'requires Linux'):
+                dev.main()
+
+
 if __name__ == "__main__":
     unittest.main()

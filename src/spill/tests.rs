@@ -68,6 +68,7 @@ impl Drop for Reset {
 struct Parent(PathBuf);
 impl Parent {
     fn new() -> Self {
+        std::fs::create_dir_all(".work").unwrap();
         static NEXT: AtomicUsize = AtomicUsize::new(0);
         let path = PathBuf::from(".work").join(format!(
             "spill-test-{}-{}",
