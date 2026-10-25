@@ -235,12 +235,14 @@ impl Session {
                     "scratch path capacity exceeds allowance",
                 ));
             }
-            let mut builder = fs::DirBuilder::new();
+            let builder = fs::DirBuilder::new();
             #[cfg(unix)]
-            {
+            let builder = {
                 use std::os::unix::fs::DirBuilderExt;
+                let mut builder = builder;
                 builder.mode(0o700);
-            }
+                builder
+            };
             match builder.create(&directory) {
                 Ok(()) => {
                     return Ok(Self {
