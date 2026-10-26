@@ -914,3 +914,21 @@ impl Drop for CleanupFailure {
         FAULTS.with(|s| s.borrow_mut().deny_cleanup = false);
     }
 }
+
+pub(super) struct IoFailure;
+impl IoFailure {
+    pub(super) fn new(read: bool) -> Self {
+        fault(
+            if read { Event::Read } else { Event::Write },
+            0,
+            true,
+            io::ErrorKind::StorageFull,
+        );
+        Self
+    }
+}
+impl Drop for IoFailure {
+    fn drop(&mut self) {
+        FAULTS.with(|s| s.borrow_mut().fault = None);
+    }
+}

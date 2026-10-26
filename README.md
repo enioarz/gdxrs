@@ -177,3 +177,20 @@ compare level-1 Rust to native default level 6, with file sizes recorded separat
 Native Linux/macOS/Windows functionality passes; OS/RSS/performance qualification
 is Linux-only. Full results, source revisions and limits are in the acceptance
 evidence. General unsorted/string/mapped record adapters and append remain M4.
+
+### Unsorted raw records (M4 task 024)
+
+`writer.begin_unsorted_symbol(id, bounds)` accepts registered writer-owned UEL
+IDs in arbitrary order. Its borrowing `write`/`finish` flow mirrors the sorted
+writer; finish returns the record count and `SpillStatistics`. It uses the run
+memory, scratch directory, byte quota and handle settings explicitly configured
+by `begin_metadata`. Journal and sort shares remain within that aggregate quota.
+
+The implementation spills complete bounded records and merges them through the
+sorted encoder. IDs and typed value bits are preserved. Duplicate raw keys are
+errors even when values differ; invalid or abandoned work prevents publication.
+Strict domain sets must already be complete. Use `statistics()` during ingestion
+or after an ingestion error; parent abort retries owned cleanup after failure.
+See the [unsorted contract](docs/decisions/0018-unsorted-raw-records.md) and
+[task queue](tasks/README.md). String/mapped record adapters and append remain
+pending; this first task does not complete M4's larger-than-RAM acceptance gate.

@@ -1,5 +1,7 @@
 //! Streaming sorted raw records; fixed state only.
 use super::*;
+mod unsorted;
+pub use unsorted::{UnsortedSymbolWriter, UnsortedWriteStatistics};
 
 #[derive(Clone, Copy)]
 pub(super) struct DomainMembership {
@@ -143,18 +145,12 @@ impl SymbolWriter<'_> {
         let result = self.row(keys, values);
         result.map_err(|e| self.writer.fail(e))
     }
-    fn row(&mut self, keys: &[WriterUelId], values: &[Value]) -> Result<()> {
+    fn validate_input(&mut self, keys: &[WriterUelId], values: &[Value]) -> Result<[u32; 20]> {
         self.writer.open()?;
         if keys.len() != self.dim || values.len() != self.kind.fields() {
             return Err(Error::new(
                 ErrorKind::InvalidDimension,
                 "record arity mismatch",
-            ));
-        }
-        if self.count == i32::MAX as u32 {
-            return Err(Error::new(
-                ErrorKind::InvalidCount,
-                "record count exceeds v7 range",
             ));
         }
         let mut current = [0u32; 20];
@@ -168,14 +164,27 @@ impl SymbolWriter<'_> {
             }
             current[d] = key;
         }
+        self.writer
+            .metadata
+            .as_mut()
+            .ok_or_else(|| Error::new(ErrorKind::InvalidWriteState, "metadata is closed"))?
+            .validate_record(&self.domains, keys, values, self.kind)?;
+        Ok(current)
+    }
+    fn row(&mut self, keys: &[WriterUelId], values: &[Value]) -> Result<()> {
+        let current = self.validate_input(keys, values)?;
+        if self.count == i32::MAX as u32 {
+            return Err(Error::new(
+                ErrorKind::InvalidCount,
+                "record count exceeds v7 range",
+            ));
+        }
         if self.count > 0 && current[..self.dim] <= self.previous[..self.dim] {
             return Err(Error::new(
                 ErrorKind::InvalidKeyTag,
                 "keys are duplicate or out of order",
             ));
         }
-        self.writer
-            .metadata_call(|m| m.validate_record(&self.domains, keys, values, self.kind))?;
         let mut packet = RowPacket {
             bytes: [0; 126],
             length: 0,
@@ -210,7 +219,11 @@ impl SymbolWriter<'_> {
         }
         self.emit(&packet.bytes[..packet.length])?;
         if self.kind == SymbolType::Set && self.dim == 1 {
-            self.writer.metadata_call(|m| m.member(self.id, keys[0]))?;
+            self.writer
+                .metadata
+                .as_mut()
+                .ok_or_else(|| Error::new(ErrorKind::InvalidWriteState, "metadata is closed"))?
+                .member(self.id, keys[0])?;
         }
         self.previous = current;
         self.count += 1;

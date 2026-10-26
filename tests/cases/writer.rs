@@ -258,3 +258,67 @@ fn public_sorted_symbol_writer_shared_root_and_alias_domain() {
     drop(copy);
     std::fs::remove_file(output).unwrap();
 }
+
+#[test]
+fn public_unsorted_raw_writer_preserves_registration_ids_and_shared_root() {
+    let marker = super::common::TempFile::new(b"caller");
+    let output = marker.path.with_extension("unsorted.gdx");
+    let reader = Reader::open(
+        "tests/fixtures/v7/optional-domains.gdx",
+        OpenOptions {
+            memory_budget_bytes: 1024 * 1024,
+            ..OpenOptions::default()
+        },
+    )
+    .unwrap();
+    let before = reader.budget_statistics().current_bytes;
+    let mut writer = reader
+        .create_writer(&output, reader.write_options())
+        .unwrap();
+    let mut limits = MetadataOptions::new(output.parent().unwrap());
+    limits.run_bytes = 512;
+    limits.maximum_open_files = 6;
+    limits.merge_fan_in = 2;
+    writer.begin_metadata(&limits).unwrap();
+    let z = writer.register_uel(b"z").unwrap();
+    let a = writer.register_uel(b"a").unwrap();
+    let id = writer
+        .register_symbol(&WriteSymbol::new(b"P", SymbolType::Parameter, 1))
+        .unwrap();
+    let mut rows = writer.begin_unsorted_symbol(id, None).unwrap();
+    rows.write(&[a], &[Value::NumberBits((-2.5f64).to_bits())])
+        .unwrap();
+    rows.write(&[z], &[Value::NumberBits(1.25f64.to_bits())])
+        .unwrap();
+    let stats = rows.finish().unwrap();
+    assert_eq!(stats.records, 2);
+    assert!(stats.spill.complete);
+    assert_eq!(stats.spill.merge_passes, 1);
+    writer.finish().unwrap();
+    drop(writer);
+    assert_eq!(reader.budget_statistics().current_bytes, before);
+    let copy = Reader::open(&output, OpenOptions::default()).unwrap();
+    let h = copy.symbol(SymbolId::new(id.get()).unwrap()).unwrap();
+    let mut c = copy.scan(&h, copy.scan_options()).unwrap();
+    let b = c.next_batch().unwrap().unwrap();
+    assert_eq!(b.len(), 2);
+    assert_eq!(
+        b.key_column(0)
+            .unwrap()
+            .iter()
+            .map(|id| id.get())
+            .collect::<Vec<_>>(),
+        vec![z.get(), a.get()]
+    );
+    assert_eq!(
+        b.value_column(ValueField::Level).unwrap(),
+        &[
+            Value::NumberBits(1.25f64.to_bits()),
+            Value::NumberBits((-2.5f64).to_bits())
+        ]
+    );
+    drop(c);
+    drop(h);
+    drop(copy);
+    std::fs::remove_file(output).unwrap();
+}
