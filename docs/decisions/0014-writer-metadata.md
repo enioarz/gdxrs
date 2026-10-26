@@ -32,7 +32,8 @@ Alias chains serialize their resolved underlying set ID, matching native alias
 creation. Freeze resolves forward aliases/strict domains, checks 1-dimensional set/alias
 semantics and alias cycles with bounded disk traversal, then prohibits mutation.
 Strict-domain validation checks the alias chain but serializes the originally
-resolved reference ID, preserving alias identity. Relaxed domains preserve their byte names; strict and relaxed modes are explicit
+resolved reference ID, preserving alias identity. Task 022 extends this rule to alias
+definitions: serialize the referenced alias ID, after validating its chain. Relaxed domains preserve their byte names; strict and relaxed modes are explicit
 and cannot mix within a symbol. An empty domain list denotes implicit universe.
 
 Metadata is held in checksummed, offset-bound frames with explicit tags, lengths

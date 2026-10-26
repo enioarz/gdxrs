@@ -14,6 +14,8 @@ pub use records::{KeyBounds, SymbolWriter};
 #[cfg(test)]
 mod codec_tests;
 #[cfg(test)]
+mod finalization_tests;
+#[cfg(test)]
 mod tests;
 use crate::{
     budget::{Budget, Buffer, Reservation},
@@ -473,6 +475,20 @@ impl Writer {
             self.section_end()?;
             [symbols, uels, texts, acronyms, symbols, 0]
         };
+        let [symbols, uels, texts, acronyms, next, domains] = offsets;
+        if !(self.index + 80 <= symbols
+            && symbols == next
+            && symbols < texts
+            && texts < uels
+            && uels < acronyms
+            && acronyms < self.position)
+            || domains != 0 && !(acronyms < domains && domains < self.position)
+        {
+            return Err(Error::new(
+                ErrorKind::InvalidOffset,
+                "invalid final metadata offsets",
+            ));
+        }
         let mut patch = [0u8; 52];
         patch[..4].copy_from_slice(&19510624i32.to_le_bytes());
         for (n, position) in offsets.iter().enumerate() {
@@ -582,6 +598,8 @@ enum Event {
     MetadataSeek,
     MetadataSync,
     MetadataRemove,
+    #[cfg(feature = "compression")]
+    Codec,
 }
 fn event(kind: Event) -> io::Result<()> {
     #[cfg(test)]

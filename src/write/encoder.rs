@@ -163,6 +163,7 @@ impl Encoder {
                 .as_mut()
                 .and_then(|b| b.data.first_mut())
                 .ok_or_else(|| Error::new(ErrorKind::InvalidWriteState, "missing encoder state"))?;
+            super::event(super::Event::Codec).map_err(crate::Error::io)?;
             state.reset();
             // Bounded attempt: a useful zlib stream must fit below the raw size.
             // Output exhaustion is stored fallback, never Vec growth.
