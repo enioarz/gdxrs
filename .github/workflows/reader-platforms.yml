@@ -50,9 +50,11 @@ jobs:
           rustc --version --verbose
           test "$(rustc --version --verbose | sed -n 's/^host: //p')" = "${{ matrix.target }}"
       - name: Cargo tests from a clean checkout
-        run: cargo test --locked
+        run: |
+          mkdir -p .work
+          cargo test --locked 2>&1 | tee .work/native-tests.log
       - name: Optimized default-feature tests
-        run: cargo test --locked --release
+        run: cargo test --locked --release 2>&1 | tee .work/native-release.log
       - name: Full reader, feature and frozen-corpus validation
         run: python tools/dev.py reader-check 2>&1 | tee .work/native-reader.log
       - name: Publish native qualification summary
@@ -81,11 +83,12 @@ jobs:
         run: |
           python - <<'PYFAIL'
           from pathlib import Path
-          path = Path('.work/native-reader.log')
-          if path.exists():
-              tail = path.read_text(encoding='utf-8', errors='replace')[-12000:]
-              tail = tail.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-              print('::error title=Native reader validation::' + tail)
+          for name in ['native-tests', 'native-release', 'native-reader']:
+              path = Path('.work') / (name + '.log')
+              if path.exists():
+                  tail = path.read_text(encoding='utf-8', errors='replace')[-3500:]
+                  tail = tail.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::error title=Native reader validation::' + name + '%0A' + tail)
           PYFAIL
       - name: Retain native validation reports
         if: always()
@@ -95,5 +98,7 @@ jobs:
           path: |
             .work/reports/*.json
             .work/native-reader.log
+            .work/native-tests.log
+            .work/native-release.log
           if-no-files-found: warn
           retention-days: 30

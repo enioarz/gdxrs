@@ -2,6 +2,8 @@
 use super::*;
 use std::io::Read;
 const FRAME: usize = 1024;
+// Whole 19-byte ordinal frames; variable journal frames may cross pages.
+const PAGE: usize = 19 * 1724;
 const INITIAL: u64 = 14695981039346656037;
 fn hash(mut h: u64, bytes: &[u8]) -> u64 {
     for &b in bytes {
@@ -23,6 +25,10 @@ pub(super) struct Store {
     file: Option<fs::File>,
     buffer: Buffer<u8>,
     pub length: u64,
+    cache_start: u64,
+    cache_len: usize,
+    cache_dirty: bool,
+    stamp: Option<std::time::SystemTime>,
 }
 impl Store {
     pub fn create(path: &Path, budget: &Arc<Budget>) -> Result<Self> {
@@ -40,6 +46,10 @@ impl Store {
             file: Some(file),
             buffer,
             length: 0,
+            cache_start: 0,
+            cache_len: 0,
+            cache_dirty: false,
+            stamp: None,
         })
     }
     fn file(&mut self) -> Result<&mut fs::File> {
@@ -47,7 +57,10 @@ impl Store {
             .as_mut()
             .ok_or_else(|| Error::new(ErrorKind::InvalidWriteState, "metadata file closed"))
     }
-    pub fn flush(&mut self) -> Result<()> {
+    fn flush_append(&mut self) -> Result<()> {
+        if self.cache_len != 0 {
+            return Ok(());
+        }
         let file = self
             .file
             .as_mut()
@@ -76,6 +89,13 @@ impl Store {
             }
         }
         self.buffer.data.clear();
+        self.cache_len = 0;
+        self.stamp = Some(
+            file.metadata()
+                .map_err(Error::io)?
+                .modified()
+                .map_err(Error::io)?,
+        );
         Ok(())
     }
     pub fn append(
@@ -86,6 +106,14 @@ impl Store {
         peak: &mut u64,
         limit: u64,
     ) -> Result<()> {
+        if self.cache_dirty {
+            self.validate_snapshot()?;
+            self.flush_cache()?;
+        }
+        if self.cache_len != 0 {
+            self.cache_len = 0;
+            self.buffer.data.clear();
+        }
         if !(1..=9).contains(&tag) || payload.len() > FRAME {
             return Err(Error::new(
                 ErrorKind::InvalidSpill,
@@ -126,33 +154,101 @@ impl Store {
         self.length = end;
         Ok(())
     }
-    pub fn read_at(&mut self, at: u64, bytes: &mut [u8]) -> Result<()> {
-        self.flush()?;
+    fn invalid_snapshot() -> Error {
+        Error::new(
+            ErrorKind::InvalidSpill,
+            "metadata extent or cached snapshot changed",
+        )
+    }
+    fn validate_snapshot(&mut self) -> Result<()> {
+        self.flush_append()?;
+        let m = self.file()?.metadata().map_err(Error::io)?;
+        if m.len() != self.length {
+            return Err(Self::invalid_snapshot());
+        }
+        let stamp = m.modified().map_err(Error::io)?;
+        if self.stamp != Some(stamp) {
+            if self.cache_dirty {
+                return Err(Self::invalid_snapshot());
+            }
+            self.cache_len = 0;
+            self.buffer.data.clear();
+            self.stamp = Some(stamp);
+        }
+        Ok(())
+    }
+    fn flush_cache(&mut self) -> Result<()> {
+        if !self.cache_dirty {
+            return Ok(());
+        }
+        event(Event::MetadataSeek).map_err(Error::io)?;
+        let file = self.file.as_mut().ok_or_else(Self::invalid_snapshot)?;
+        file.seek(SeekFrom::Start(self.cache_start))
+            .map_err(Error::io)?;
+        let mut done = 0;
+        while done < self.cache_len {
+            let length = io_chunk(self.cache_len - done);
+            match event(Event::MetadataWrite)
+                .and_then(|_| file.write(&self.buffer.data[done..done + length]))
+            {
+                Ok(0) => {
+                    return Err(Error::io(io::Error::new(
+                        io::ErrorKind::WriteZero,
+                        "metadata cache zero write",
+                    )));
+                }
+                Ok(n) => done += n,
+                Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(Error::io(e)),
+            }
+        }
+        self.stamp = Some(
+            file.metadata()
+                .map_err(Error::io)?
+                .modified()
+                .map_err(Error::io)?,
+        );
+        self.cache_dirty = false;
+        Ok(())
+    }
+    pub fn flush(&mut self) -> Result<()> {
+        self.flush_append()?;
+        self.flush_cache()
+    }
+    fn read_at(&mut self, mut at: u64, mut bytes: &mut [u8]) -> Result<()> {
         if at
             .checked_add(bytes.len() as u64)
             .is_none_or(|n| n > self.length)
         {
-            return Err(Error::new(
-                ErrorKind::InvalidSpill,
-                "metadata read outside extent",
-            ));
+            return Err(Self::invalid_snapshot());
         }
-        event(Event::MetadataSeek).map_err(Error::io)?;
-        let length = self.length;
-        let file = self.file()?;
-        if file.metadata().map_err(Error::io)?.len() != length {
-            return Err(Error::new(
-                ErrorKind::InvalidSpill,
-                "metadata extent changed",
-            ));
+        while !bytes.is_empty() {
+            if at < self.cache_start || at >= self.cache_start + self.cache_len as u64 {
+                self.flush_cache()?;
+                let start = at / (PAGE as u64) * (PAGE as u64);
+                let len = (self.length - start).min(PAGE as u64) as usize;
+                // Reuse the admitted append buffer after flushing; no new allocation.
+                self.buffer.data.resize(PAGE, 0);
+                event(Event::MetadataSeek).map_err(Error::io)?;
+                let file = self.file.as_mut().ok_or_else(Self::invalid_snapshot)?;
+                file.seek(SeekFrom::Start(start)).map_err(Error::io)?;
+                event(Event::MetadataRead).map_err(Error::io)?;
+                file.read_exact(&mut self.buffer.data[..len])
+                    .map_err(Error::io)?;
+                self.cache_start = start;
+                self.cache_len = len;
+            }
+            let start = (at - self.cache_start) as usize;
+            let n = bytes.len().min(self.cache_len - start);
+            bytes[..n].copy_from_slice(&self.buffer.data[start..start + n]);
+            at += n as u64;
+            bytes = &mut bytes[n..];
         }
-        // Reborrow after checking the recorded high-water mark.
-        let file = self.file()?;
-        file.seek(SeekFrom::Start(at)).map_err(Error::io)?;
-        event(Event::MetadataRead).map_err(Error::io)?;
-        file.read_exact(bytes).map_err(Error::io)
+        Ok(())
     }
     pub fn next(&mut self, position: &mut u64) -> Result<Option<Frame>> {
+        self.validate_snapshot()?;
+        event(Event::MetadataRead).map_err(Error::io)?;
         if *position == self.length {
             self.read_at(*position, &mut [])?;
             return Ok(None);
@@ -197,6 +293,7 @@ impl Store {
     }
 }
 impl Store {
+    #[cfg(not(windows))]
     pub fn integer(&mut self, index: u32) -> Result<i64> {
         if index == 0 {
             return Err(Error::new(ErrorKind::InvalidSpill, "zero ordinal index"));
@@ -212,6 +309,36 @@ impl Store {
         b.copy_from_slice(f.payload());
         Ok(i64::from_le_bytes(b))
     }
+    #[cfg(windows)]
+    pub fn integer(&mut self, index: u32) -> Result<i64> {
+        if index == 0 {
+            return Err(Self::invalid_snapshot());
+        }
+        self.validate_snapshot()?;
+        let at = u64::from(index - 1) * 19;
+        if at.checked_add(19).is_none_or(|end| end > self.length) {
+            return Err(Self::invalid_snapshot());
+        }
+        // NTFS last-write time is insufficient to detect callback writes while
+        // another writable handle remains open. Verify the physical ordinal.
+        let mut bytes = [0; 19];
+        event(Event::MetadataSeek).map_err(Error::io)?;
+        let file = self.file()?;
+        file.seek(SeekFrom::Start(at)).map_err(Error::io)?;
+        event(Event::MetadataRead).map_err(Error::io)?;
+        file.read_exact(&mut bytes).map_err(Error::io)?;
+        if bytes[..3] != [8, 8, 0] {
+            return Err(Self::invalid_snapshot());
+        }
+        let mut digest = [0; 8];
+        digest.copy_from_slice(&bytes[11..]);
+        if u64::from_le_bytes(digest) != hash(hash(INITIAL, &at.to_le_bytes()), &bytes[..11]) {
+            return Err(Self::invalid_snapshot());
+        }
+        let mut value = [0; 8];
+        value.copy_from_slice(&bytes[3..11]);
+        Ok(i64::from_le_bytes(value))
+    }
     pub fn set_integer(&mut self, index: u32, value: i64) -> Result<()> {
         self.integer(index)?;
         let at = u64::from(index - 1) * 19;
@@ -220,10 +347,85 @@ impl Store {
         b[3..11].copy_from_slice(&value.to_le_bytes());
         let h = hash(hash(INITIAL, &at.to_le_bytes()), &b[..11]);
         b[11..].copy_from_slice(&h.to_le_bytes());
-        event(Event::MetadataSeek).map_err(Error::io)?;
-        let file = self.file()?;
-        file.seek(SeekFrom::Start(at)).map_err(Error::io)?;
-        event(Event::MetadataWrite).map_err(Error::io)?;
-        file.write_all(&b).map_err(Error::io)
+        #[cfg(windows)]
+        {
+            event(Event::MetadataSeek).map_err(Error::io)?;
+            let file = self.file()?;
+            file.seek(SeekFrom::Start(at)).map_err(Error::io)?;
+            event(Event::MetadataWrite).map_err(Error::io)?;
+            file.write_all(&b).map_err(Error::io)?;
+            // Never retain an ordinal page across a user mapping callback.
+            self.cache_len = 0;
+            self.buffer.data.clear();
+            Ok(())
+        }
+        #[cfg(not(windows))]
+        {
+            let offset = (at - self.cache_start) as usize;
+            // PAGE is a multiple of 19: integer() brought this entire frame into cache.
+            self.buffer
+                .data
+                .get_mut(offset..offset + 19)
+                .ok_or_else(Self::invalid_snapshot)?
+                .copy_from_slice(&b);
+            self.cache_dirty = true;
+            Ok(())
+        }
+    }
+}
+
+#[cfg(test)]
+mod cache_tests {
+    use super::*;
+    use crate::write::tests::{Parent, Reset, short_chunks};
+    #[test]
+    fn pages_preserve_shuffled_ordinal_updates_crossing_frames_and_late_corruption() {
+        let _reset = Reset::new();
+        let p = Parent::new();
+        let budget = Budget::new(1024 * 1024);
+        let mut store = Store::create(&p.destination(), &budget).unwrap();
+        let (mut used, mut peak) = (0, 0);
+        for _ in 0..4096 {
+            store
+                .append(8, &0i64.to_le_bytes(), &mut used, &mut peak, 1024 * 1024)
+                .unwrap();
+        }
+        short_chunks(7);
+        for i in 0..4096 {
+            let ordinal = (i * 37) % 4096 + 1;
+            store.set_integer(ordinal, -i64::from(ordinal)).unwrap();
+        }
+        for i in 1..=4096 {
+            assert_eq!(store.integer(i).unwrap(), -i64::from(i));
+        }
+        store.flush().unwrap();
+        assert_eq!(store.integer(1).unwrap(), -1);
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .open(p.destination())
+            .unwrap();
+        file.seek(SeekFrom::Start(3)).unwrap();
+        file.write_all(&[0]).unwrap();
+        drop(file);
+        assert_eq!(store.integer(1).unwrap_err().kind, ErrorKind::InvalidSpill);
+        drop(store);
+        assert_eq!(budget.statistics().current_bytes, 0);
+        fs::remove_file(p.destination()).unwrap();
+        let mut store = Store::create(&p.destination(), &budget).unwrap();
+        let (mut used, mut peak) = (0, 0);
+        for n in 0..100u32 {
+            let mut b = [b'x'; 1024];
+            b[..4].copy_from_slice(&n.to_le_bytes());
+            store
+                .append(3, &b, &mut used, &mut peak, 1024 * 1024)
+                .unwrap();
+        }
+        let mut at = 0;
+        for n in 0..100u32 {
+            let f = store.next(&mut at).unwrap().unwrap();
+            assert_eq!(&f.payload()[..4], &n.to_le_bytes());
+            assert_eq!(&f.payload()[4..], &[b'x'; 1020]);
+        }
+        assert!(store.next(&mut at).unwrap().is_none());
     }
 }

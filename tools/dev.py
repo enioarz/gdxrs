@@ -171,7 +171,7 @@ def reader_check():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check", "label-pages-check", "m2-scale-check", "writer-check"])
+    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check", "label-pages-check", "m2-scale-check", "writer-check", "m3-writer-check"])
     parser.add_argument("--output", type=Path)
     parser.add_argument("--baseline", type=Path, help="Explicit validated baseline report for m0-check")
     parser.add_argument("--profile", choices=['small','smoke','scale'], default='small')
@@ -182,8 +182,8 @@ def main():
         parser.error('fixtures-generate requires --output NEW_DIRECTORY')
     if args.output is not None and args.command != 'fixtures-generate':
         parser.error('--output only applies to fixtures-generate')
-    if '--profile' in sys.argv and args.command not in ['benchmark-oracle','m2-scale-check']:
-        parser.error('--profile only applies to benchmark-oracle or m2-scale-check')
+    if '--profile' in sys.argv and args.command not in ['benchmark-oracle','m2-scale-check','m3-writer-check']:
+        parser.error('--profile only applies to benchmark-oracle, m2-scale-check or m3-writer-check')
     if args.command == 'benchmark-oracle' and args.profile != 'small':
         parser.error('benchmark-oracle requires profile small')
     def external_command():
@@ -214,6 +214,11 @@ def main():
         if args.command == 'label-pages-check':
             import label_pages
             return label_pages.check(run)
+        if args.command == 'm3-writer-check':
+            if sys.platform != 'linux':
+                raise CheckFailure('m3-writer-check requires Linux OS containment')
+            import writer_scale
+            return writer_scale.check(run, 'smoke' if args.profile == 'small' else args.profile)
         if args.command == 'm2-scale-check':
             if sys.platform != 'linux':
                 raise CheckFailure('m2-scale-check requires Linux OS containment; reader-check is portable')
