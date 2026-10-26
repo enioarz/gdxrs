@@ -6,6 +6,7 @@ import subprocess
 import re
 from pathlib import Path
 import fixtures
+import oracle
 from oracle_limits import isolation_policy
 ROOT=Path(__file__).resolve().parents[1]
 Z='f:0000000000000000';O='f:3ff0000000000000';P='f:3ff4000000000000'
@@ -46,7 +47,18 @@ def recipe(large):
         if name!=b'Empty':lines+=['K\t'+','.join(str(mapped(n,large)) for n in raw)+'\t'+','.join(values) for raw,values in reversed(rows)]
         lines+=['END']
     return '\n'.join(lines)+'\n'
+def build(run,area):
+    native=json.loads((oracle.AREA/'current.json').read_text())
+    library=Path(native['executable']).parent.parent/'gdx/libgdx-static.a'
+    directory=area/'mapped-driver'
+    run([oracle.cmake(),'-S',ROOT/'tools/mapped','-B',directory,'-DCMAKE_BUILD_TYPE=Release',f'-DGDX_ROOT={oracle.AREA/"gdx"}',f'-DGDX_LIBRARY={library}'],capture=True)
+    run([oracle.cmake(),'--build',directory,'--parallel','2'],capture=True,timeout=180)
+    executable=directory/'gdxrs-mapped'
+    digest=hashlib.sha256(oracle.source_fingerprint().encode())
+    for path in ['tools/mapped/CMakeLists.txt','tools/mapped/driver.cpp']:digest.update((ROOT/path).read_bytes())
+    return executable,dict(source_fingerprint=digest.hexdigest(),executable_sha256=oracle.file_digest(executable),frozen_oracle=oracle.file_digest(oracle.executable()))
 def check(run,area,executable):
+    mapped_executable,mapped_identity=build(run,area)
     cases=[]
     probe=area/'map-probe.tsv';probe.write_text('M\t0\t61\nM\t9\t7a\nM\t9\t62\nM\t0\t61\n!M\t1\t61\nS\t50\t1\t1\t0\t\tmap\nK\t9\t'+O+'\nEND\n')
     probe_file=area/'map-probe.gdx';probe_result=run([executable,'recipe',probe_file,probe,'0'],capture=True).stdout
@@ -79,7 +91,7 @@ def check(run,area,executable):
                     for skip in ([False] if large else [False,True]):
                         mapping=area/f'caller-{large}-{skip}.tsv';mapping.write_text(''.join(f'{mapped(n,large)}\t{b.hex()}\n' for n,b in enumerate(labels(large),1) if not skip or n!=2))
                         for symbol in ([1] if large else [1,3,4,5,6]):
-                            native=run([sys.executable,ROOT/'tools/oracle_limits.py',executable,'mapped-dump',source,mapping,str(symbol)],capture=True,timeout=10).stdout
+                            native=run([sys.executable,ROOT/'tools/oracle_limits.py',mapped_executable,'mapped-dump',source,mapping,str(symbol)],capture=True,timeout=10).stdout
                             rust=run(['cargo','run','--locked','--quiet',*feature,'--example','dump_mapped','--',source,area,str(symbol),*(['large'] if large else []),*(['skip'] if skip else [])],capture=True)
                             expected=mapped_expected(symbol,large,skip)
                             if native!=expected or rust.stdout!=expected:
@@ -89,4 +101,4 @@ def check(run,area,executable):
                             checks.append(dict(peak_root=int(resources[1]),peak_handles=int(resources[2]),symbol=symbol,source='native' if source==native_path else 'rust',skip_missing=skip,sha256=hashlib.sha256(expected.encode()).hexdigest()))
                 with path.open('rb') as f:digest=hashlib.file_digest(f,'sha256').hexdigest()
                 cases.append(dict(features=feature,compression=compression,large=large,statistics=stats,sha256=digest,mapped_streams=checks,both_directions_complete_match=True))
-    return dict(cases=cases,negative_probe=negative_probe,native_probe=probe_result,native_probe_raw_sha256=hashlib.sha256(probe_dump.encode()).hexdigest(),native_isolation=isolation_policy(),scope='immutable sparse bijections, original raw IDs, mapped order, strict/skip missing policy; native ambiguous collisions explicitly rejected in Rust')
+    return dict(cases=cases,mapped_driver=mapped_identity,negative_probe=negative_probe,native_probe=probe_result,native_probe_raw_sha256=hashlib.sha256(probe_dump.encode()).hexdigest(),native_isolation=isolation_policy(),scope='immutable sparse bijections, original raw IDs, mapped order, strict/skip missing policy; native ambiguous collisions explicitly rejected in Rust')
