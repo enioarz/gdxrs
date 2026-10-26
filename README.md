@@ -86,7 +86,7 @@ Linux-only; macOS/Windows qualification currently covers functionality and logic
 resource accounting. Cargo/core use requires no Python or native GDX installation.
 
 
-M3 supports bounded metadata and empty-symbol output:
+M3 supports bounded metadata and sorted raw record output:
 
 ```rust,no_run
 use gdxrs::{Writer, WriteOptions};
@@ -96,11 +96,10 @@ writer.finish()?;
 # Ok(()) }
 ```
 
-It creates little-endian v7 files with registered metadata and empty symbols. Set
+It creates little-endian v7 files with registered metadata and sorted symbols. Set
 `WriteOptions::compression` to `WriteCompression::Zlib` for independent 32 KiB
 level-1 zlib blocks with stored fallback; the default is uncompressed.
-Nonempty record writing is the next M3 task. Output is
-buffered under a root budget, finalized/synced/closed and published without
+Output is buffered under a root budget, finalized/synced/closed and published without
 replacing an existing file. `abort()` reports retryable temporary cleanup failures;
 Drop never publishes. Inspect `statistics().published` if finish fails after
 publication. Use `reader.create_writer(path, reader.write_options())` to share an

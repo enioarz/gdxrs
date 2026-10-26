@@ -102,7 +102,7 @@ def check(run, area, executable, decode_blocks):
             run(['cargo','run','--locked','--quiet',*feature,'--example','create_records','--',path,area,*(['zlib'] if compression else [])],capture=True)
             with path.open('rb') as source:data=source.read(2*1024*1024+1)
             if len(data)>2*1024*1024:raise ValueError('fixed record recipe exceeds 2 MiB bound')
-            native=run([sys.executable,ROOT/'tools/oracle_limits.py',executable,'dump',path],capture=True,timeout=10).stdout
+            native=run([sys.executable,ROOT/'tools/oracle_limits.py',executable,'dump',path],capture=True,timeout=5).stdout
             rust=run(['cargo','run','--locked','--quiet',*feature,'--example','dump','--',path],capture=True).stdout
             if native!=expected(compression,'6764787273') or rust!=expected(compression,'<creation-system>'):
                 (area/'records-native.tsv').write_text(native)

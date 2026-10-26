@@ -112,7 +112,7 @@ pub struct Writer {
     _control: Reservation,
 }
 impl Writer {
-    /// Create an exclusive transaction for an empty v7 file, with optional zlib framing.
+    /// Create an exclusive v7 output transaction, with optional zlib framing.
     ///
     /// ```no_run
     /// use gdxrs::{Writer, WriteOptions, WriteStatus};
