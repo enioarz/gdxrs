@@ -109,7 +109,7 @@ def check_bootstrap():
     audit_dependencies(metadata)
     run(["cargo", "tree", "--locked"])
     return {"versions": versions, "runtime_dependencies": 2, "runtime_tests_executed": 0,
-            "dependency_audit": "docs/decisions/0004-compression.md"}
+            "dependency_audit": "docs/decisions/0013-bounded-writer-codec.md"}
 
 
 def audit_dependencies(metadata, compression=True):
@@ -121,8 +121,10 @@ def audit_dependencies(metadata, compression=True):
         raise CheckFailure("resolved dependencies differ from audited codec graph")
     names = {p["id"]: p["name"] for p in metadata["packages"]}
     for node in metadata["resolve"]["nodes"]:
-        if names[node["id"]] != "gdxrs" and node["features"]:
-            raise CheckFailure("codec dependency features differ from bounded no-alloc audit")
+        if names[node["id"]] != "gdxrs":
+            expected_features = ["with-alloc"] if names[node["id"]] == "miniz_oxide" else []
+            if sorted(node["features"]) != expected_features:
+                raise CheckFailure("codec dependency features differ from bounded encoder audit")
 
 
 def test_suite_counts(output):

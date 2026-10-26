@@ -11,4 +11,4 @@ miniz_oxide = { version = "=0.9.1", default-features = false, optional = true }
 
 [features]
 default = ["compression"]
-compression = ["dep:miniz_oxide"]
+compression = ["dep:miniz_oxide", "miniz_oxide/with-alloc"]

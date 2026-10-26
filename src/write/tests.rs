@@ -45,9 +45,9 @@ pub(super) fn sequence_override() -> Option<u64> {
     HOOKS.with(|h| h.borrow_mut().sequence.take())
 }
 
-struct Reset;
+pub(super) struct Reset;
 impl Reset {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         HOOKS.with(|h| *h.borrow_mut() = Hooks::default());
         Self
     }
@@ -57,12 +57,12 @@ impl Drop for Reset {
         HOOKS.with(|h| *h.borrow_mut() = Hooks::default());
     }
 }
-fn fault(event: Event, after: usize, persistent: bool, error: io::ErrorKind) {
+pub(super) fn fault(event: Event, after: usize, persistent: bool, error: io::ErrorKind) {
     HOOKS.with(|h| h.borrow_mut().fault = Some((event, after, persistent, error)));
 }
-struct Parent(PathBuf);
+pub(super) struct Parent(PathBuf);
 impl Parent {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         fs::create_dir_all(".work").unwrap();
         static NEXT: AtomicU64 = AtomicU64::new(0);
         let path = PathBuf::from(".work").join(format!(
@@ -73,10 +73,10 @@ impl Parent {
         fs::create_dir(&path).unwrap();
         Self(path)
     }
-    fn destination(&self) -> PathBuf {
+    pub(super) fn destination(&self) -> PathBuf {
         self.0.join("output.gdx")
     }
-    fn empty(&self) {
+    pub(super) fn empty(&self) {
         assert_eq!(fs::read_dir(&self.0).unwrap().count(), 0);
     }
 }
@@ -85,7 +85,7 @@ impl Drop for Parent {
         let _ = fs::remove_dir_all(&self.0);
     }
 }
-fn options() -> WriteOptions {
+pub(super) fn options() -> WriteOptions {
     WriteOptions {
         memory_budget_bytes: 1024 * 1024,
         ..WriteOptions::default()

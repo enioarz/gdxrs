@@ -44,4 +44,4 @@ pub use large::{
     DomainId, LargeLabelCursor, LargeLabelLookup, LargeResolvedLabel, UniqueDomainCursor,
 };
 
-pub use write::{WriteOptions, WriteStatistics, WriteStatus, Writer};
+pub use write::{WriteCompression, WriteOptions, WriteStatistics, WriteStatus, Writer};

@@ -1,4 +1,9 @@
-//! Bounded v7 creation. Sorted records/registration follow in later M3 tasks.
+//! Bounded v7 creation and raw/stored/zlib sections. Records/registration follow.
+mod encoder;
+use encoder::Encoder;
+pub use encoder::WriteCompression;
+#[cfg(test)]
+mod codec_tests;
 #[cfg(test)]
 mod tests;
 use crate::{
@@ -24,17 +29,20 @@ pub struct WriteOptions {
     pub memory_budget_bytes: usize,
     /// Highest admitted output extent, including pending buffered bytes.
     pub maximum_output_bytes: u64,
+    pub compression: WriteCompression,
 }
 impl Default for WriteOptions {
     fn default() -> Self {
         Self {
             memory_budget_bytes: 64 * 1024 * 1024,
             maximum_output_bytes: i64::MAX as u64,
+            compression: WriteCompression::None,
         }
     }
 }
 impl WriteOptions {
     fn validate(&self) -> Result<()> {
+        self.compression.validate()?;
         if self.memory_budget_bytes < 1024 * 1024 {
             return Err(Error::new(
                 ErrorKind::BudgetTooSmall,
@@ -73,6 +81,8 @@ pub struct WriteStatistics {
     pub published: bool,
 }
 pub struct Writer {
+    encoder: Option<Encoder>,
+    compression: WriteCompression,
     buffer: Option<Buffer<u8>>,
     file: Option<fs::File>,
     destination: PathBuf,
@@ -89,7 +99,7 @@ pub struct Writer {
     _control: Reservation,
 }
 impl Writer {
-    /// Create an exclusive transaction. Task 018 currently finalizes empty v7 files.
+    /// Create an exclusive transaction for an empty v7 file, with optional zlib framing.
     ///
     /// ```no_run
     /// use gdxrs::{Writer, WriteOptions, WriteStatus};
@@ -135,6 +145,7 @@ impl Writer {
                 })?,
         )?;
         let buffer = Buffer::new(&budget, OUTPUT_BUFFER)?;
+        let encoder = Encoder::new(&budget, options.compression)?;
         let parent = path
             .parent()
             .filter(|p| !p.as_os_str().is_empty())
@@ -187,6 +198,8 @@ impl Writer {
             match open.open(&temporary) {
                 Ok(file) => {
                     let mut writer = Self {
+                        encoder: Some(encoder),
+                        compression: options.compression,
                         buffer: Some(buffer),
                         file: Some(file),
                         destination,
@@ -238,6 +251,7 @@ impl Writer {
     fn cleanup(&mut self) -> io::Result<()> {
         self.file = None;
         self.buffer = None;
+        self.encoder = None;
         if self.owned {
             match event(Event::Remove).and_then(|_| fs::remove_file(&self.temporary)) {
                 Ok(()) => self.owned = false,
@@ -359,30 +373,52 @@ impl Writer {
         ])?;
         self.string(b"GAMSGDX")?;
         self.bytes(&7i32.to_le_bytes())?;
-        self.bytes(&0i32.to_le_bytes())?;
+        self.bytes(&i32::from(self.compression == WriteCompression::Zlib).to_le_bytes())?;
         self.string(b"gdxrs")?;
         self.string(b"gdxrs")?;
         self.index = self.position;
         self.bytes(&[0; 80])
     }
+    fn encoded(&mut self, f: impl FnOnce(&mut Encoder, &mut Self) -> Result<()>) -> Result<()> {
+        let mut encoder = self
+            .encoder
+            .take()
+            .ok_or_else(|| Error::new(ErrorKind::InvalidWriteState, "section encoder is closed"))?;
+        let result = f(&mut encoder, self);
+        self.encoder = Some(encoder);
+        result
+    }
+    fn section_string(&mut self, value: &[u8]) -> Result<()> {
+        self.encoded(|e, w| e.string(value, |b| w.bytes(b)))
+    }
+    fn section_i32(&mut self, value: i32) -> Result<()> {
+        self.encoded(|e, w| e.i32(value, |b| w.bytes(b)))
+    }
+    fn section_end(&mut self) -> Result<()> {
+        self.encoded(|e, w| e.end(|b| w.bytes(b)))
+    }
     fn finalize(&mut self) -> Result<()> {
         let symbols = self.position;
-        self.string(b"_SYMB_")?;
-        self.bytes(&0i32.to_le_bytes())?;
-        self.string(b"_SYMB_")?;
+        self.section_string(b"_SYMB_")?;
+        self.section_i32(0)?;
+        self.section_string(b"_SYMB_")?;
+        self.section_end()?;
         let texts = self.position;
-        self.string(b"_SETT_")?;
-        self.bytes(&1i32.to_le_bytes())?;
-        self.string(b"")?;
-        self.string(b"_SETT_")?;
+        self.section_string(b"_SETT_")?;
+        self.section_i32(1)?;
+        self.section_string(b"")?;
+        self.section_string(b"_SETT_")?;
+        self.section_end()?;
         let uels = self.position;
-        self.string(b"_UEL_")?;
-        self.bytes(&0i32.to_le_bytes())?;
-        self.string(b"_UEL_")?;
+        self.section_string(b"_UEL_")?;
+        self.section_i32(0)?;
+        self.section_string(b"_UEL_")?;
+        self.section_end()?;
         let acronyms = self.position;
-        self.string(b"_ACRO_")?;
-        self.bytes(&0i32.to_le_bytes())?;
-        self.string(b"_ACRO_")?;
+        self.section_string(b"_ACRO_")?;
+        self.section_i32(0)?;
+        self.section_string(b"_ACRO_")?;
+        self.section_end()?;
         let mut patch = [0u8; 52];
         patch[..4].copy_from_slice(&19510624i32.to_le_bytes());
         for (n, position) in [symbols, uels, texts, acronyms, symbols, 0]

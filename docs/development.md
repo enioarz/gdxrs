@@ -104,10 +104,10 @@ release tests and CI logs/reports. [Task 017](evidence/017.md) records actual ru
 checked merge identities, the Windows lint correction and scope limitations.
 
 
-Task 018 introduces empty-v7 writer qualification:
+Tasks 018–019 introduce empty-v7 writer and bounded block qualification:
 
 ```sh
-cargo test --locked --lib write::tests:: -- --nocapture
+cargo test --locked --lib write:: -- --nocapture
 cargo test --locked --test reader writer:: -- --nocapture
 python3 tools/dev.py writer-check
 ```
@@ -115,7 +115,14 @@ python3 tools/dev.py writer-check
 `writer-check` uses the pinned native oracle to verify Rust-written empty files in
 all three feature configurations against independent metadata/record/layout
 expectations, then checks native-written stored/compressed empty files with Rust.
+Task 019 also checks compressed Rust-written empty files and eight bounded
+block recipes (empty/single/small/full/final/repeated/incompressible/boundary).
+A separately built helper uses pinned GDX's buffered streams and bundled zlib to
+read Rust blocks and write blocks for Rust to read. Python zlib independently
+checks framing, checksums, decoded bytes and complete stream consumption. Fixture
+reads/collectors are capped at 128 KiB; native processes use the oracle's CPU,
+output, wall-time and Linux address-space limits.
 This command uses the native development toolkit (currently unqualified on
 Windows); native Cargo/reader CI still executes all writer foundation and failure
 unit/integration tests on every platform. No production Python/C++ dependency is
-introduced. Full writer metadata/record interoperability and scale remain 019–023.
+introduced. Full writer metadata/record interoperability and scale remain tasks 020–023.

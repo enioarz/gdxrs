@@ -56,11 +56,12 @@ class DependencyAudit(unittest.TestCase):
             'resolve': {'nodes':[{'id':n, 'features':extra_features if n=='miniz_oxide' and extra_features else []} for n in ['gdxrs','miniz_oxide','adler2']]}
         }
     def test_audited_graph_rejects_changed_versions_and_features(self):
-        dev.audit_dependencies(self.model())
-        changed = self.model()
+        dev.audit_dependencies(self.model(['with-alloc']))
+        changed = self.model(['with-alloc'])
         changed['packages'][1]['version'] = '0.9.2'
         with self.assertRaises(dev.CheckFailure): dev.audit_dependencies(changed)
-        with self.assertRaises(dev.CheckFailure): dev.audit_dependencies(self.model(['with-alloc']))
+        with self.assertRaises(dev.CheckFailure): dev.audit_dependencies(self.model())
+        with self.assertRaises(dev.CheckFailure): dev.audit_dependencies(self.model(['with-alloc','simd']))
         with self.assertRaises(dev.CheckFailure): dev.audit_dependencies(self.model(), compression=False)
 
 
