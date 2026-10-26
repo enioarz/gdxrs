@@ -278,12 +278,14 @@ impl Metadata {
                 std::process::id(),
                 next_sequence()?
             ));
-            let mut create = fs::DirBuilder::new();
+            let create = fs::DirBuilder::new();
             #[cfg(unix)]
-            {
+            let create = {
                 use std::os::unix::fs::DirBuilderExt;
+                let mut create = create;
                 create.mode(0o700);
-            }
+                create
+            };
             event(Event::MetadataCreate).map_err(Error::io)?;
             match create.create(&path) {
                 Ok(()) => {
