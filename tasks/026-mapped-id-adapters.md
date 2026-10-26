@@ -1,6 +1,11 @@
 # 026 — Bounded mapped UEL and record adapters
 
-Milestone: M4. Prerequisite: 025 complete. Status: pending.
+Milestone: M4. Prerequisite: 025 complete. Status: in progress.
+
+[Decision 0020](../docs/decisions/0020-mapped-ids.md) specifies zero-based caller
+IDs, sparse bijections, native differences, source ownership and shared quotas.
+[Mapped API inventory](../docs/mapped-api.md) records the implemented scope and
+remaining native conveniences; general data-error streams stay task 027.
 
 Specify caller-map ownership, missing/colliding entries, mapped ordering and
 original raw-ID identity against the pinned oracle. Implement quota-controlled

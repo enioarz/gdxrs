@@ -379,3 +379,81 @@ fn public_string_writer_extends_registration_without_retained_tokens() {
     drop(copy);
     std::fs::remove_file(output).unwrap();
 }
+
+#[test]
+fn public_mapped_adapters_preserve_original_ids_under_one_root() {
+    let marker = super::common::TempFile::new(b"caller");
+    let output = marker.path.with_extension("mapped.gdx");
+    let mut writer = Writer::create(
+        &output,
+        WriteOptions {
+            memory_budget_bytes: 1024 * 1024,
+            ..WriteOptions::default()
+        },
+    )
+    .unwrap();
+    let mut options = MetadataOptions::new(output.parent().unwrap());
+    options.maximum_open_files = 7;
+    options.merge_fan_in = 2;
+    options.run_bytes = 512;
+    writer.begin_metadata(&options).unwrap();
+    let symbol = writer
+        .register_symbol(&WriteSymbol::new(b"P", SymbolType::Parameter, 1))
+        .unwrap();
+    writer
+        .register_mapped_uels([
+            Ok((MappedUelId::new(9).unwrap(), b"z")),
+            Ok((MappedUelId::new(0).unwrap(), b"a")),
+        ])
+        .unwrap();
+    let mut rows: MappedSymbolWriter<'_> = writer.begin_mapped_symbol(symbol).unwrap();
+    rows.write(
+        &[MappedUelId::new(9).unwrap()],
+        &[Value::NumberBits(1.25f64.to_bits())],
+    )
+    .unwrap();
+    rows.write(
+        &[MappedUelId::new(0).unwrap()],
+        &[Value::Special(SpecialValue::Epsilon)],
+    )
+    .unwrap();
+    rows.finish().unwrap();
+    writer.finish().unwrap();
+    drop(writer);
+    let reader = Reader::open(
+        &output,
+        OpenOptions {
+            memory_budget_bytes: 1024 * 1024,
+            ..OpenOptions::default()
+        },
+    )
+    .unwrap();
+    let h = reader.symbol(SymbolId::new(symbol.get()).unwrap()).unwrap();
+    let before = reader.budget_statistics().current_bytes;
+    let mut map: MappedUels = reader.mapped_uels(&options).unwrap();
+    map.register([
+        Ok((UelId::new(1).unwrap(), MappedUelId::new(9).unwrap())),
+        Ok((UelId::new(2).unwrap(), MappedUelId::new(0).unwrap())),
+    ])
+    .unwrap();
+    let mut scan: MappedCursor<'_> = reader
+        .scan_mapped(&h, &mut map, MappedReadOptions::default())
+        .unwrap();
+    let first = scan.next().unwrap().unwrap();
+    assert_eq!(first.raw_keys, &[UelId::new(2).unwrap()]);
+    assert_eq!(first.mapped_keys, &[MappedUelId::new(0).unwrap()]);
+    assert_eq!(first.values, &[Value::Special(SpecialValue::Epsilon)]);
+    assert_eq!(
+        scan.next().unwrap().unwrap().raw_keys,
+        &[UelId::new(1).unwrap()]
+    );
+    assert!(scan.next().unwrap().is_none());
+    scan.close().unwrap();
+    drop(scan);
+    map.close().unwrap();
+    drop(map);
+    assert_eq!(reader.budget_statistics().current_bytes, before);
+    drop(h);
+    drop(reader);
+    std::fs::remove_file(output).unwrap();
+}
