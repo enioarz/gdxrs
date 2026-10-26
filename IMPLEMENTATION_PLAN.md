@@ -1,8 +1,8 @@
 # gdxrs implementation plan
 
-Status: M0 and M1 are merged; M2 read acceptance has passed on Linux x86_64 ([task 016](docs/evidence/016.md)). Native macOS ARM64/Intel and Windows x64 functionality is qualified ([task 017](docs/evidence/017.md)). M3 sorted-writer acceptance is complete for its measured scope ([task 023](docs/evidence/023.md)); its API and performance limitations are recorded in [M3 API status](docs/m3-api.md). M4 includes bounded unsorted raw records ([task 024](docs/evidence/024.md)) and two-pass string records with first-registration IDs ([task 025](docs/evidence/025.md)). Mapped adapters, further semantic operations, append and M4 scale acceptance remain pending.
+Status: M0 and M1 are merged; M2 read acceptance has passed on Linux x86_64 ([task 016](docs/evidence/016.md)). Native macOS ARM64/Intel and Windows x64 functionality is qualified ([task 017](docs/evidence/017.md)). M3 sorted-writer acceptance is complete for its measured scope ([task 023](docs/evidence/023.md)); its API and performance limitations are recorded in [M3 API status](docs/m3-api.md). M4 includes bounded unsorted raw records ([task 024](docs/evidence/024.md)), two-pass string records with first-registration IDs ([task 025](docs/evidence/025.md)), and sparse mapped registration/write/read streams ([task 026](docs/evidence/026.md)). Further domain/error/value/UEL operations, append and M4 scale acceptance remain pending.
 
-Execution guidance: read [AGENTS.md](AGENTS.md) and the [numbered task queue](tasks/README.md) before implementation. Tasks 001–025 record completed deliverables and evidence; tasks 026–031 specify the remaining M4 gates. Complete each prerequisite before starting its dependent task.
+Execution guidance: read [AGENTS.md](AGENTS.md) and the [numbered task queue](tasks/README.md) before implementation. Tasks 001–026 record completed deliverables and evidence; tasks 027–031 specify the remaining M4 gates. Complete each prerequisite before starting its dependent task.
 
 ## 1. Goal and priorities
 

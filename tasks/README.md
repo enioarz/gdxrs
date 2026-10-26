@@ -124,7 +124,7 @@ M3 tree. Complete one gate at a time; task 031 is the M4 exit gate.
 | --- | --- | --- | --- |
 | [024](024-unsorted-raw-records.md) | Bounded unsorted raw records using the existing merge engine | 023 | Complete; [evidence](../docs/evidence/024.md) |
 | [025](025-string-record-registration.md) | Streamed string records and first-registration dictionary/remap | 024 | Complete; [evidence](../docs/evidence/025.md) |
-| [026](026-mapped-id-adapters.md) | Bounded mapped registration/read/write | 025 | Pending |
+| [026](026-mapped-id-adapters.md) | Bounded mapped registration/read/write | 025 | Complete; [evidence](../docs/evidence/026.md) |
 | [027](027-domain-error-streams.md) | Explicit domain validation and bounded error streams | 026 | Pending |
 | [028](028-value-acronym-policies.md) | Special-value/acronym policies and semantic parity | 027 | Pending |
 | [029](029-uel-metadata-operations.md) | Remaining modern UEL/metadata operations | 028 | Pending |

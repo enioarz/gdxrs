@@ -214,3 +214,26 @@ The phase supports at most i32::MAX label occurrences plus existing UELs.
 Duplicates, invalid references, failed rows and abandonment are terminal, including
 failures discovered during replay. See [decision 0019](docs/decisions/0019-string-records.md).
 General-input OS-capped scale acceptance remains task 031.
+
+
+### Mapped caller IDs
+
+`MappedUelId` accepts caller IDs from zero through i32::MAX; raw `UelId`s remain
+one-based and on-disk IDs never change. `Writer::register_mapped_uels` builds one
+sparse bijection while preserving first-registration raw IDs. Use
+`begin_mapped_symbol`, write caller keys and typed values, then finish the symbol
+and writer. Duplicate assignments are idempotent; ambiguous collisions fail.
+
+For reads, create `Reader::mapped_uels(options)`, register explicit raw/caller
+pairs, then use `Reader::scan_mapped`. Each borrowed row exposes caller keys,
+original raw keys and typed values. This explicit mapped-order operation prescans
+and sorts the symbol, then streams fixed rows; positive limits apply after sorting.
+Missing entries fail by default; `SkipRecord` explicitly filters them and reports
+counts. Raw scans retain their streaming behavior. Close the cursor and map to
+report cleanup errors; abort can retry removal.
+
+Maps and row sorters share one root and the existing scratch halves; configure
+seven available handles for the index plus merge work. IDs near i32::MAX do not
+allocate dense arrays. Mapped throughput/OS-scale qualification remains task 031.
+See [mapped contract](docs/decisions/0020-mapped-ids.md) and
+[API inventory](docs/mapped-api.md) for limits and native semantic differences.

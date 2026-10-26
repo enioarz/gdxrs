@@ -5,19 +5,22 @@ mod records;
 mod store;
 use encoder::Encoder;
 pub use encoder::WriteCompression;
-use metadata::Metadata;
+pub(crate) use metadata::Metadata;
 pub use metadata::{
     MetadataOptions, MetadataStatistics, SymbolReference, WriteDomain, WriteSymbol, WriterSymbolId,
     WriterUelId,
 };
 pub use records::{
-    KeyBounds, StringRecordWriter, StringWriteStatistics, SymbolWriter, UnsortedSymbolWriter,
-    UnsortedWriteStatistics,
+    KeyBounds, MappedSymbolWriter, StringRecordWriter, StringWriteStatistics, SymbolWriter,
+    UnsortedSymbolWriter, UnsortedWriteStatistics,
 };
+pub(crate) use records::{pack_values, unpack_values};
 #[cfg(test)]
 mod codec_tests;
 #[cfg(test)]
 mod finalization_tests;
+#[cfg(test)]
+mod mapped_tests;
 #[cfg(test)]
 mod tests;
 use crate::{

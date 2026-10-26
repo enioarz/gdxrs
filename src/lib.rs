@@ -7,6 +7,7 @@ mod error;
 mod format;
 mod labels;
 mod large;
+mod mapped;
 mod metadata;
 mod model;
 mod reader;
@@ -19,6 +20,10 @@ mod stream;
 mod write;
 pub use budget::BudgetStatistics;
 pub use error::{Error, ErrorKind, Result};
+pub use mapped::{
+    MappedCursor, MappedReadOptions, MappedRecord, MappedScanStatistics, MappedUelId, MappedUels,
+    MissingMapping,
+};
 pub use metadata::{
     AcronymCursor, AcronymView, CommentCursor, CommentView, DomainCursor, DomainMode, DomainView,
     SetTextCursor, SetTextView, SymbolCursor, SymbolHandle, SymbolMetadata, UelCursor, UelEntry,
@@ -45,8 +50,8 @@ pub use large::{
 };
 
 pub use write::{
-    KeyBounds, MetadataOptions, MetadataStatistics, StringRecordWriter, StringWriteStatistics,
-    SymbolReference, SymbolWriter, UnsortedSymbolWriter, UnsortedWriteStatistics, WriteCompression,
-    WriteDomain, WriteOptions, WriteStatistics, WriteStatus, WriteSymbol, Writer, WriterSymbolId,
-    WriterUelId,
+    KeyBounds, MappedSymbolWriter, MetadataOptions, MetadataStatistics, StringRecordWriter,
+    StringWriteStatistics, SymbolReference, SymbolWriter, UnsortedSymbolWriter,
+    UnsortedWriteStatistics, WriteCompression, WriteDomain, WriteOptions, WriteStatistics,
+    WriteStatus, WriteSymbol, Writer, WriterSymbolId, WriterUelId,
 };

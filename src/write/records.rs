@@ -1,9 +1,22 @@
 //! Streaming sorted raw records; fixed state only.
 use super::*;
+mod mapped;
 mod strings;
+pub use mapped::MappedSymbolWriter;
 mod unsorted;
 pub use strings::{StringRecordWriter, StringWriteStatistics};
 pub use unsorted::{UnsortedSymbolWriter, UnsortedWriteStatistics};
+pub(crate) fn pack_values(values: &[Value], buffer: &mut [u8]) -> Result<usize> {
+    let packet = unsorted::Packet::values(values)?;
+    let target = buffer
+        .get_mut(..packet.payload().len())
+        .ok_or_else(|| Error::new(ErrorKind::InvalidSpill, "typed value packet exceeds buffer"))?;
+    target.copy_from_slice(packet.payload());
+    Ok(target.len())
+}
+pub(crate) fn unpack_values(bytes: &[u8], fields: usize) -> Result<[Value; 5]> {
+    unsorted::decode_values(bytes, fields)
+}
 
 #[derive(Clone, Copy)]
 pub(super) struct DomainMembership {

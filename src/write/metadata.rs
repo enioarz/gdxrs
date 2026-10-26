@@ -3,6 +3,7 @@ use super::records::{DomainMembership, Domains, RecordSetup};
 use super::store::{Frame, Store};
 use super::*;
 use crate::model::Bytes;
+mod mapped;
 
 pub type MetadataOptions = SpillOptions;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -233,11 +234,15 @@ fn symbol(f: &Frame) -> Result<Symbol> {
         target,
     })
 }
-pub(super) struct Metadata {
+pub(crate) struct Metadata {
     directory: PathBuf,
     journal: Option<Store>,
-    owned: [bool; 4],
+    owned: [bool; 5],
     string_store: Option<Arc<std::sync::Mutex<Store>>>,
+    mapped_store: Option<Store>,
+    map_entries: u32,
+    map_maximum: u32,
+    map_ready: bool,
     budget: Arc<Budget>,
     options: SpillOptions,
     used: u64,
@@ -381,8 +386,12 @@ impl Metadata {
         let mut m = Self {
             directory,
             journal: None,
-            owned: [false; 4],
+            owned: [false; 5],
             string_store: None,
+            mapped_store: None,
+            map_entries: 0,
+            map_maximum: 0,
+            map_ready: false,
             budget,
             options: limits,
             used: 0,
@@ -406,7 +415,7 @@ impl Metadata {
         Ok(m)
     }
     // Writer must retain the directory owner before this fallible allocation/open.
-    fn initialize_journal(&mut self) -> Result<()> {
+    pub(crate) fn initialize_journal(&mut self) -> Result<()> {
         self.journal = Some(Store::create(&self.path(0), &self.budget)?);
         self.owned[0] = true;
         self.stats.peak_open_files = 1;
@@ -417,7 +426,8 @@ impl Metadata {
             0 => "journal",
             1 => "requests",
             2 => "ordinals",
-            _ => "string-records",
+            3 => "string-records",
+            _ => "mapped-uels",
         })
     }
     fn j(&mut self) -> Result<&mut Store> {
@@ -448,9 +458,13 @@ impl Metadata {
         MetadataStatistics {
             temporary_bytes: self.used + self.sort_used,
             peak_temporary_bytes: self.peak + self.sort_peak,
-            open_files: u64::from(self.journal.is_some()) + u64::from(self.string_store.is_some()),
+            open_files: u64::from(self.journal.is_some())
+                + u64::from(self.string_store.is_some())
+                + u64::from(self.mapped_store.is_some()),
             peak_open_files: self.stats.peak_open_files.max(if self.sort_handles > 0 {
-                3 + self.sort_handles + u64::from(self.string_store.is_some())
+                3 + self.sort_handles
+                    + u64::from(self.string_store.is_some())
+                    + u64::from(self.owned[4])
             } else {
                 0
             }),
@@ -469,7 +483,7 @@ impl Metadata {
         }
         self.id(id)
     }
-    pub(super) fn record_sorter(&mut self) -> Result<SpillSorter> {
+    pub(crate) fn record_sorter(&mut self) -> Result<SpillSorter> {
         if self.sort_directory.is_some() {
             return Err(invalid("metadata sorter already active"));
         }
@@ -478,7 +492,7 @@ impl Metadata {
         self.sort_used = 0;
         Ok(sorter)
     }
-    pub(super) fn record_sort_statistics(&mut self, stats: SpillStatistics) {
+    pub(crate) fn record_sort_statistics(&mut self, stats: SpillStatistics) {
         self.sort_used = stats.temporary_bytes;
         self.sort_peak = self.sort_peak.max(stats.peak_temporary_bytes);
         self.sort_handles = self.sort_handles.max(stats.peak_open_files);
@@ -1128,7 +1142,10 @@ impl Metadata {
         if self.cleaned {
             return Ok(());
         }
+        // Historical peaks must survive release of retained index/spool slots.
+        self.stats.peak_open_files = self.statistics().peak_open_files;
         self.journal = None;
+        self.mapped_store = None;
         let mut first = None;
         if let Some(store) = self.string_store.take() {
             match store.lock() {
@@ -1144,7 +1161,7 @@ impl Metadata {
                 self.sort_used = 0;
             }
         }
-        for n in 0..4 {
+        for n in 0..5 {
             if self.owned[n] {
                 match event(Event::MetadataRemove).and_then(|_| fs::remove_file(self.path(n))) {
                     Ok(()) => self.owned[n] = false,
