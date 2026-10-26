@@ -93,7 +93,9 @@ def check(run):
     records = writer_records.check(run,area,executable,decode_blocks)
     import writer_full
     full = writer_full.check(run,area,executable,decode_blocks)
-    return dict(full=full,scope='tasks 018–022 metadata, sorted records and bounded section codec',records=records,metadata=metadata,codec=codec,cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),native_read_isolation=isolation_policy(),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
+    import writer_strings
+    strings = writer_strings.check(run,area,executable)
+    return dict(strings=strings,full=full,scope='tasks 018–022 metadata, sorted records and bounded section codec',records=records,metadata=metadata,codec=codec,cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),native_read_isolation=isolation_policy(),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
 
 
 def decode_blocks(data):

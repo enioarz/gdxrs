@@ -10,7 +10,10 @@ pub use metadata::{
     MetadataOptions, MetadataStatistics, SymbolReference, WriteDomain, WriteSymbol, WriterSymbolId,
     WriterUelId,
 };
-pub use records::{KeyBounds, SymbolWriter, UnsortedSymbolWriter, UnsortedWriteStatistics};
+pub use records::{
+    KeyBounds, StringRecordWriter, StringWriteStatistics, SymbolWriter, UnsortedSymbolWriter,
+    UnsortedWriteStatistics,
+};
 #[cfg(test)]
 mod codec_tests;
 #[cfg(test)]

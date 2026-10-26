@@ -322,3 +322,60 @@ fn public_unsorted_raw_writer_preserves_registration_ids_and_shared_root() {
     drop(copy);
     std::fs::remove_file(output).unwrap();
 }
+
+#[test]
+fn public_string_writer_extends_registration_without_retained_tokens() {
+    let marker = super::common::TempFile::new(b"caller");
+    let output = marker.path.with_extension("strings.gdx");
+    let reader = Reader::open(
+        "tests/fixtures/v7/optional-domains.gdx",
+        OpenOptions {
+            memory_budget_bytes: 1024 * 1024,
+            ..OpenOptions::default()
+        },
+    )
+    .unwrap();
+    let before = reader.budget_statistics().current_bytes;
+    let mut writer = reader
+        .create_writer(&output, reader.write_options())
+        .unwrap();
+    let mut limits = MetadataOptions::new(output.parent().unwrap());
+    limits.run_bytes = 512;
+    limits.maximum_open_files = 7;
+    limits.merge_fan_in = 2;
+    writer.begin_metadata(&limits).unwrap();
+    writer.register_uel(b"z").unwrap();
+    let id = writer
+        .register_symbol(&WriteSymbol::new(b"P", SymbolType::Parameter, 1))
+        .unwrap();
+    let mut strings: StringRecordWriter<'_> = writer.begin_string_records().unwrap();
+    strings.begin_symbol(id).unwrap();
+    strings
+        .write(&[b"a"], &[Value::Special(SpecialValue::Epsilon)])
+        .unwrap();
+    strings
+        .write(&[b"z"], &[Value::NumberBits(2.0f64.to_bits())])
+        .unwrap();
+    let stats: StringWriteStatistics = strings.finish().unwrap();
+    assert_eq!((stats.records, stats.uels, stats.label_requests), (2, 2, 2));
+    writer.finish().unwrap();
+    drop(writer);
+    assert_eq!(reader.budget_statistics().current_bytes, before);
+    let copy = Reader::open(&output, OpenOptions::default()).unwrap();
+    let h = copy.symbol(SymbolId::new(id.get()).unwrap()).unwrap();
+    let mut scan = copy.scan(&h, copy.scan_options()).unwrap();
+    let b = scan.next_batch().unwrap().unwrap();
+    assert_eq!(b.len(), 2);
+    assert_eq!(b.key_column(0).unwrap()[0].get(), 1);
+    assert_eq!(
+        b.value_column(ValueField::Level).unwrap(),
+        &[
+            Value::NumberBits(2.0f64.to_bits()),
+            Value::Special(SpecialValue::Epsilon)
+        ]
+    );
+    drop(scan);
+    drop(h);
+    drop(copy);
+    std::fs::remove_file(output).unwrap();
+}

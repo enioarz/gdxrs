@@ -218,6 +218,11 @@ pub(crate) struct Bytes {
     data: [u8; 255],
     len: u8,
 }
+impl AsRef<[u8]> for Bytes {
+    fn as_ref(&self) -> &[u8] {
+        self.as_slice()
+    }
+}
 impl Default for Bytes {
     fn default() -> Self {
         Self {
