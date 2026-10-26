@@ -100,7 +100,7 @@ before starting its dependent; task 023 is the M3 release gate.
 | Task | Scope | Status |
 | --- | --- | --- |
 | [018](018-writer-foundation.md) | Writer contract, bounded empty-v7 creation and atomic publication | Complete; [evidence](../docs/evidence/018.md) |
-| [019](019-bounded-writer-codec.md) | Bounded byte/block encoder and stored/zlib compression | In progress; local gates pass, native CI disabled ([evidence](../docs/evidence/019.md)) |
+| [019](019-bounded-writer-codec.md) | Bounded byte/block encoder and stored/zlib compression | Complete; [evidence](../docs/evidence/019.md) |
 | [020](020-writer-metadata-spooling.md) | Original-ID raw registration and metadata spools | Pending |
 | [021](021-sorted-record-writer.md) | Checked sorted raw symbol/record encoding | Pending |
 | [022](022-writer-finalization-interop.md) | Complete metadata/finalization and both interoperability directions | Pending |
