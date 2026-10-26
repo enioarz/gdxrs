@@ -1,6 +1,6 @@
 # 024 — Bounded unsorted raw records
 
-Milestone: M4. Prerequisite: 023 complete. Status: in progress.
+Milestone: M4. Prerequisite: 023 complete. Status: complete; [evidence](../docs/evidence/024.md).
 
 Expose `Writer::begin_unsorted_symbol` and a borrowing symbol writer accepting
 registered writer-owned UEL IDs and typed values in arbitrary input order.

@@ -1,8 +1,8 @@
 # gdxrs implementation plan
 
-Status: M0 and M1 are merged; M2 read acceptance has passed on Linux x86_64. Runtime evidence and performance limitations are recorded in [task 016](docs/evidence/016.md). Native macOS ARM64/Intel and Windows x64 reader compatibility is qualified in [task 017](docs/evidence/017.md). M3 has begun with bounded empty-v7 creation and atomic publication ([task 018](docs/evidence/018.md)), followed by bounded raw/stored/zlib section encoding ([task 019](docs/evidence/019.md)); [task 020](docs/evidence/020.md) adds disk-backed registration/metadata and empty symbols; nonempty record writing and subsequent milestones remain pending.
+Status: M0 and M1 are merged; M2 read acceptance has passed on Linux x86_64 ([task 016](docs/evidence/016.md)). Native macOS ARM64/Intel and Windows x64 functionality is qualified ([task 017](docs/evidence/017.md)). M3 sorted-writer acceptance is complete for its measured scope ([task 023](docs/evidence/023.md)); its API and performance limitations are recorded in [M3 API status](docs/m3-api.md). M4 has begun with bounded unsorted raw records ([task 024](docs/evidence/024.md)). String/mapped adapters, further semantic operations, append and M4 scale acceptance remain pending.
 
-Execution guidance: read [AGENTS.md](AGENTS.md) and the [numbered task queue](tasks/README.md) before implementation. Tasks 001–020 record the completed deliverables and evidence; tasks 021–023 specify the remaining M3 writer gates.
+Execution guidance: read [AGENTS.md](AGENTS.md) and the [numbered task queue](tasks/README.md) before implementation. Tasks 001–024 record completed deliverables and evidence; tasks 025–031 specify the remaining M4 gates. Complete each prerequisite before starting its dependent task.
 
 ## 1. Goal and priorities
 
