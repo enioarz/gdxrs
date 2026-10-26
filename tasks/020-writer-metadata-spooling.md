@@ -1,6 +1,6 @@
 # 020 — Bounded raw registration and metadata spools
 
-Milestone: M3. Prerequisite: 019 complete. Status: pending.
+Milestone: M3. Prerequisite: 019 complete. Status: in progress; [contract](../docs/decisions/0014-writer-metadata.md).
 
 Specify and implement streamed exact-byte UEL registration retaining one-based
 first-registration IDs, ASCII-folded unique symbol names and complete metadata
