@@ -1,6 +1,6 @@
 # 025 — Streamed string records and first-registration IDs
 
-Milestone: M4. Prerequisite: 024 complete. Status: in progress.
+Milestone: M4. Prerequisite: 024 complete. Status: complete; [evidence](../docs/evidence/025.md).
 
 The selected two-pass API, exact-byte policy, native authoring differences,
 seven-handle minimum and occurrence-count limit are specified in
