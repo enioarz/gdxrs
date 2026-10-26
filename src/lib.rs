@@ -16,6 +16,7 @@ mod selection;
 mod source;
 mod spill;
 mod stream;
+mod write;
 pub use budget::BudgetStatistics;
 pub use error::{Error, ErrorKind, Result};
 pub use metadata::{
@@ -42,3 +43,5 @@ pub use spill::{SpillCursor, SpillEntry, SpillOptions, SpillSorter, SpillStatist
 pub use large::{
     DomainId, LargeLabelCursor, LargeLabelLookup, LargeResolvedLabel, UniqueDomainCursor,
 };
+
+pub use write::{WriteOptions, WriteStatistics, WriteStatus, Writer};

@@ -84,3 +84,23 @@ record stream. Unicode paths, concurrent positioned reads and spill handle clean
 are included. The 512 MiB OS-cap and throughput measurements above remain
 Linux-only; macOS/Windows qualification currently covers functionality and logical
 resource accounting. Cargo/core use requires no Python or native GDX installation.
+
+
+M3 has started with an **empty-file writer foundation**:
+
+```rust,no_run
+use gdxrs::{Writer, WriteOptions};
+# fn example() -> gdxrs::Result<()> {
+let mut writer = Writer::create("new.gdx", WriteOptions::default())?;
+writer.finish()?;
+# Ok(()) }
+```
+
+It currently creates only valid empty, uncompressed little-endian v7 files.
+UEL/symbol registration and record writing are the next M3 tasks. Output is
+buffered under a root budget, finalized/synced/closed and published without
+replacing an existing file. `abort()` reports retryable temporary cleanup failures;
+Drop never publishes. Inspect `statistics().published` if finish fails after
+publication. Use `reader.create_writer(path, reader.write_options())` to share an
+existing reader root budget; the writer does not retain its input file.
+See [writer ownership and resource contract](docs/decisions/0012-writer-contract.md).

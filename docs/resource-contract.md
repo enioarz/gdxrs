@@ -99,3 +99,16 @@ and each consumer's own limit check confirm actual containment. Fixed-cap input
 growth retains constant tracked scan/metadata memory. The qualification does not
 turn library accounting into an RSS guarantee for arbitrary consumer collection,
 other platforms, processes outside the capped worker or kernel filesystem cache.
+
+
+## M3 initial output transaction, task 018
+
+The [writer contract](decisions/0012-writer-contract.md) defines the standalone or
+reader-shared root budget. A fixed fallible 32 KiB buffer, audited 16 KiB controls
+and bounded path allowance are charged before allocation/filesystem mutation.
+Logical output high-water extent is admitted before buffering, and index patches
+do not consume another file-size allowance; physical writes are separately counted.
+Only one owned output handle/temporary file exists per writer. There is no metadata
+spool yet. Explicit finish/abort close handles before owned cleanup; Drop never
+publishes. Output quota is logical extent, not physical filesystem-block usage,
+and no writer OS-capped scale or throughput claim exists yet.

@@ -163,12 +163,13 @@ def reader_check():
             "small_exact_labels_and_pages":"executed in Rust suites (task 013)",
             "bounded_spill_primitives":"executed in Rust suites (task 014)",
             "large_lookup_and_unique_domains":"executed in Rust suites (task 015)",
+            "empty_writer_foundation":"executed in Rust suites (task 018); native interop is writer-check",
             "m2_scale_qualification":"requires separate m2-scale-check --profile scale gate"}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check", "label-pages-check", "m2-scale-check"])
+    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check", "label-pages-check", "m2-scale-check", "writer-check"])
     parser.add_argument("--output", type=Path)
     parser.add_argument("--baseline", type=Path, help="Explicit validated baseline report for m0-check")
     parser.add_argument("--profile", choices=['small','smoke','scale'], default='small')
@@ -205,6 +206,9 @@ def main():
         if args.command == 'benchmark-oracle':
             import benchmark
             return benchmark.execute(run, args.profile)
+        if args.command == 'writer-check':
+            import writer
+            return writer.check(run)
         if args.command == 'label-pages-check':
             import label_pages
             return label_pages.check(run)

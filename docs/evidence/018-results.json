@@ -1,0 +1,980 @@
+{
+  "schema": 1,
+  "task": "018",
+  "production_revision": "6d81d1069209d949638c0c0610c47f4f76bff9f3",
+  "interop_followup_revision": "39ea2ecda2aeab567d6c1954ffb0376d519d1368",
+  "reader_check": {
+    "schema": 1,
+    "command": "reader-check",
+    "run_id": "f52b59e86c05454188e0e24b7432fdf0",
+    "revision": "6d81d1069209d949638c0c0610c47f4f76bff9f3",
+    "cwd": "/workspace/gdxrs",
+    "started_utc": "2026-10-25T19:23:31.028234+00:00",
+    "status": "passed",
+    "result": {
+      "bootstrap": {
+        "versions": {
+          "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+          "rustc_verbose": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1"
+        },
+        "runtime_dependencies": 2,
+        "runtime_tests_executed": 0,
+        "dependency_audit": "docs/decisions/0004-compression.md"
+      },
+      "suites": [
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            54,
+            34,
+            3,
+            4
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--no-default-features"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            49,
+            34,
+            3,
+            4
+          ]
+        },
+        {
+          "command": [
+            "cargo",
+            "test",
+            "--locked",
+            "--all-features"
+          ],
+          "unit_integration_doctest_groups_passed": [
+            54,
+            34,
+            3,
+            4
+          ]
+        }
+      ],
+      "differential_fixtures": 10,
+      "public_records_compared": 141358,
+      "no_compression_dependencies": 0,
+      "exact_id_slicing": "executed in Rust suites (task 012)",
+      "small_exact_labels_and_pages": "executed in Rust suites (task 013)",
+      "bounded_spill_primitives": "executed in Rust suites (task 014)",
+      "large_lookup_and_unique_domains": "executed in Rust suites (task 015)",
+      "empty_writer_foundation": "executed in Rust suites (task 018); native interop is writer-check",
+      "m2_scale_qualification": "requires separate m2-scale-check --profile scale gate"
+    },
+    "platform": {
+      "system": "Linux",
+      "machine": "x86_64",
+      "release": "6.18.55"
+    },
+    "elapsed_seconds": 12.344969544996275,
+    "exit_code": 0
+  },
+  "writer_check": {
+    "schema": 1,
+    "command": "writer-check",
+    "run_id": "4a5d3b5f482a4dcb9a27874784b3098d",
+    "revision": "39ea2ecda2aeab567d6c1954ffb0376d519d1368",
+    "cwd": "/workspace/gdxrs",
+    "started_utc": "2026-10-25T19:28:04.368488+00:00",
+    "status": "passed",
+    "result": {
+      "scope": "task 018 empty-v7 foundation only",
+      "cases": [
+        {
+          "direction": "Rust writes \u2192 native reads",
+          "features": [],
+          "artifact": ".work/writer/ee24fe6328294da4a41fa2b494fc971c/rust-empty-0.gdx",
+          "bytes": 197,
+          "sha256": "cb0df5e7d6aa7e82798a32a9731aaf0aa559b26172a7c45dd0e49e2edfb0f4f1",
+          "native_complete_stream_matches": true,
+          "rust_complete_stream_matches": true
+        },
+        {
+          "direction": "Rust writes \u2192 native reads",
+          "features": [
+            "--no-default-features"
+          ],
+          "artifact": ".work/writer/ee24fe6328294da4a41fa2b494fc971c/rust-empty-1.gdx",
+          "bytes": 197,
+          "sha256": "cb0df5e7d6aa7e82798a32a9731aaf0aa559b26172a7c45dd0e49e2edfb0f4f1",
+          "native_complete_stream_matches": true,
+          "rust_complete_stream_matches": true
+        },
+        {
+          "direction": "Rust writes \u2192 native reads",
+          "features": [
+            "--all-features"
+          ],
+          "artifact": ".work/writer/ee24fe6328294da4a41fa2b494fc971c/rust-empty-2.gdx",
+          "bytes": 197,
+          "sha256": "cb0df5e7d6aa7e82798a32a9731aaf0aa559b26172a7c45dd0e49e2edfb0f4f1",
+          "native_complete_stream_matches": true,
+          "rust_complete_stream_matches": true
+        },
+        {
+          "direction": "Native writes \u2192 Rust reads",
+          "compression": 0,
+          "features": [
+            [],
+            [
+              "--all-features"
+            ],
+            [
+              "--no-default-features"
+            ]
+          ],
+          "artifact": ".work/writer/ee24fe6328294da4a41fa2b494fc971c/native-empty-0.gdx",
+          "sha256": "9759fe8e0e61e1cf95760d2a483c8d4f3123844c47cc2335f5102430b81853d2",
+          "complete_stream_matches": true
+        },
+        {
+          "direction": "Native writes \u2192 Rust reads",
+          "compression": 1,
+          "features": [
+            [],
+            [
+              "--all-features"
+            ]
+          ],
+          "artifact": ".work/writer/ee24fe6328294da4a41fa2b494fc971c/native-empty-1.gdx",
+          "sha256": "02f386e6e906bfcaff3eb812c9cec1c7d67918033c6f5c167b5c0031a7583ea0",
+          "complete_stream_matches": true
+        }
+      ],
+      "root": ".work/writer/ee24fe6328294da4a41fa2b494fc971c",
+      "native_executable_sha256": "79b9f3574597cf60339ecc12f0da24633f10c68e28ea208e78c0d5ee38fc249b",
+      "native_read_isolation": {
+        "platform": "linux",
+        "memory_limit": "256 MiB address space or tighter inherited limit",
+        "cpu_seconds_max": 2,
+        "output_bytes_max": 1048576,
+        "core_bytes_max": 0,
+        "wall_timeout_seconds": 5
+      },
+      "pinned_sources": {
+        "schema": 1,
+        "gdx": {
+          "url": "https://github.com/GAMS-dev/gdx.git",
+          "commit": "9e2a8c8932412010cd7d2f94727d1740143bf3da",
+          "license": "MIT"
+        },
+        "zlib": {
+          "url": "https://github.com/madler/zlib.git",
+          "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
+          "license": "Zlib"
+        },
+        "unused_submodules": {
+          "src/apigenerator": "a2db931c5066d7e2253c68609b8d17a5be2016a4"
+        },
+        "build_options": [
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DNO_TESTS=ON",
+          "-DNO_EXAMPLES=ON",
+          "-DNO_TOOLS=ON",
+          "-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=TRUE",
+          "-DGDX_THREAD_SAFE=OFF"
+        ]
+      }
+    },
+    "platform": {
+      "system": "Linux",
+      "machine": "x86_64",
+      "release": "6.18.55"
+    },
+    "elapsed_seconds": 0.4438253940024879,
+    "exit_code": 0
+  },
+  "m0_check": {
+    "revision": "6d81d1069209d949638c0c0610c47f4f76bff9f3",
+    "run_id": "2410dfde350c4c8eb6b1be1b6172334b",
+    "status": "passed",
+    "exit_code": 0
+  },
+  "m0_summary": {
+    "fixtures": {
+      "valid_fixtures": 10,
+      "negative_fixtures": 12,
+      "binary_bytes": 1049685,
+      "symbols": 122,
+      "stored_records": 5153,
+      "verified_coverage": "all required task-003 groups",
+      "unverified": [],
+      "oracle_isolation": {
+        "platform": "linux",
+        "memory_limit": "256 MiB address space or tighter inherited limit",
+        "cpu_seconds_max": 2,
+        "output_bytes_max": 1048576,
+        "core_bytes_max": 0,
+        "wall_timeout_seconds": 5
+      }
+    },
+    "tooling_tests": 41,
+    "baseline": {
+      "status": "verified",
+      "scenarios": 4,
+      "measured_scans": 20,
+      "measured_writes": 20,
+      "write_validation_scans": 20,
+      "large_profile": "unrun",
+      "revision": "a3c648895d8463b889afba695e9f8b93eb7644a7"
+    }
+  },
+  "native_workflow": {
+    "conclusion": "success",
+    "event": "pull_request",
+    "head_sha": "39ea2ecda2aeab567d6c1954ffb0376d519d1368",
+    "html_url": "https://github.com/enioarz/gdxrs/actions/runs/40226174468",
+    "id": 40226174468,
+    "status": "completed"
+  },
+  "checked_merge": {
+    "parents": [
+      "34577c34f32319d9d3e6432536b098f0da469418",
+      "39ea2ecda2aeab567d6c1954ffb0376d519d1368"
+    ],
+    "sha": "57b23bc78f63e4d52f9294b35444cca6dae706b6",
+    "tree": "af2b812a6fc8b283bdddb003e8088d61c73e632f"
+  },
+  "native_results": [
+    {
+      "job": {
+        "conclusion": "success",
+        "html_url": "https://github.com/enioarz/gdxrs/actions/runs/40226174468/job/121267907823",
+        "id": 121267907823,
+        "labels": [
+          "windows-2025"
+        ],
+        "name": "Reader / x86_64-pc-windows-msvc",
+        "status": "completed",
+        "steps": [
+          {
+            "completed_at": "2026-10-25T19:28:17Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "started_at": "2026-10-25T19:28:16Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:27Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "number": 2,
+            "started_at": "2026-10-25T19:28:17Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:28Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+            "number": 3,
+            "started_at": "2026-10-25T19:28:27Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:51Z",
+            "conclusion": "success",
+            "name": "Install pinned toolchain",
+            "number": 4,
+            "started_at": "2026-10-25T19:28:28Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:20Z",
+            "conclusion": "success",
+            "name": "Cargo tests from a clean checkout",
+            "number": 5,
+            "started_at": "2026-10-25T19:28:51Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:56Z",
+            "conclusion": "success",
+            "name": "Optimized default-feature tests",
+            "number": 6,
+            "started_at": "2026-10-25T19:29:20Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:31:10Z",
+            "conclusion": "success",
+            "name": "Full reader, feature and frozen-corpus validation",
+            "number": 7,
+            "started_at": "2026-10-25T19:29:56Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:31:10Z",
+            "conclusion": "success",
+            "name": "Publish native qualification summary",
+            "number": 8,
+            "started_at": "2026-10-25T19:31:10Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:31:10Z",
+            "conclusion": "skipped",
+            "name": "Annotate bounded validation failure details",
+            "number": 9,
+            "started_at": "2026-10-25T19:31:10Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:31:11Z",
+            "conclusion": "success",
+            "name": "Retain native validation reports",
+            "number": 10,
+            "started_at": "2026-10-25T19:31:10Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:31:11Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+            "number": 19,
+            "started_at": "2026-10-25T19:31:11Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:31:14Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "number": 20,
+            "started_at": "2026-10-25T19:31:11Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:31:14Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 21,
+            "started_at": "2026-10-25T19:31:14Z",
+            "status": "completed"
+          }
+        ]
+      },
+      "report": {
+        "revision": "57b23bc78f63e4d52f9294b35444cca6dae706b6",
+        "platform": {
+          "system": "Windows",
+          "machine": "AMD64",
+          "release": "2025Server"
+        },
+        "host": "x86_64-pc-windows-msvc",
+        "profiles": [
+          "debug default/minimal/all",
+          "release default"
+        ],
+        "run_id": "16f3ab6d341749c18cb4bd5f5de481d8",
+        "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "suites": [
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              54,
+              34,
+              3,
+              4
+            ]
+          },
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked",
+              "--no-default-features"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              49,
+              34,
+              3,
+              4
+            ]
+          },
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked",
+              "--all-features"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              54,
+              34,
+              3,
+              4
+            ]
+          }
+        ],
+        "fixtures": 10,
+        "records": 141358,
+        "report": ".work\\reports\\reader-check-16f3ab6d341749c18cb4bd5f5de481d8.json"
+      }
+    },
+    {
+      "job": {
+        "conclusion": "success",
+        "html_url": "https://github.com/enioarz/gdxrs/actions/runs/40226174468/job/121267907945",
+        "id": 121267907945,
+        "labels": [
+          "macos-15-intel"
+        ],
+        "name": "Reader / x86_64-apple-darwin",
+        "status": "completed",
+        "steps": [
+          {
+            "completed_at": "2026-10-25T19:28:21Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "started_at": "2026-10-25T19:28:18Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:26Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "number": 2,
+            "started_at": "2026-10-25T19:28:21Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:26Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+            "number": 3,
+            "started_at": "2026-10-25T19:28:26Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:40Z",
+            "conclusion": "success",
+            "name": "Install pinned toolchain",
+            "number": 4,
+            "started_at": "2026-10-25T19:28:26Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:00Z",
+            "conclusion": "success",
+            "name": "Cargo tests from a clean checkout",
+            "number": 5,
+            "started_at": "2026-10-25T19:28:40Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:18Z",
+            "conclusion": "success",
+            "name": "Optimized default-feature tests",
+            "number": 6,
+            "started_at": "2026-10-25T19:29:00Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:52Z",
+            "conclusion": "success",
+            "name": "Full reader, feature and frozen-corpus validation",
+            "number": 7,
+            "started_at": "2026-10-25T19:29:18Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:52Z",
+            "conclusion": "success",
+            "name": "Publish native qualification summary",
+            "number": 8,
+            "started_at": "2026-10-25T19:29:52Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:52Z",
+            "conclusion": "skipped",
+            "name": "Annotate bounded validation failure details",
+            "number": 9,
+            "started_at": "2026-10-25T19:29:52Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:54Z",
+            "conclusion": "success",
+            "name": "Retain native validation reports",
+            "number": 10,
+            "started_at": "2026-10-25T19:29:52Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:54Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+            "number": 19,
+            "started_at": "2026-10-25T19:29:54Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:54Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "number": 20,
+            "started_at": "2026-10-25T19:29:54Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:55Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 21,
+            "started_at": "2026-10-25T19:29:54Z",
+            "status": "completed"
+          }
+        ]
+      },
+      "report": {
+        "revision": "57b23bc78f63e4d52f9294b35444cca6dae706b6",
+        "platform": {
+          "system": "Darwin",
+          "machine": "x86_64",
+          "release": "24.6.0"
+        },
+        "host": "x86_64-apple-darwin",
+        "profiles": [
+          "debug default/minimal/all",
+          "release default"
+        ],
+        "run_id": "bc4cf699798b42529353fbe41b9739f5",
+        "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "suites": [
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              54,
+              34,
+              3,
+              4
+            ]
+          },
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked",
+              "--no-default-features"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              49,
+              34,
+              3,
+              4
+            ]
+          },
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked",
+              "--all-features"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              54,
+              34,
+              3,
+              4
+            ]
+          }
+        ],
+        "fixtures": 10,
+        "records": 141358,
+        "report": ".work/reports/reader-check-bc4cf699798b42529353fbe41b9739f5.json"
+      }
+    },
+    {
+      "job": {
+        "conclusion": "success",
+        "html_url": "https://github.com/enioarz/gdxrs/actions/runs/40226174468/job/121267908002",
+        "id": 121267908002,
+        "labels": [
+          "macos-15"
+        ],
+        "name": "Reader / aarch64-apple-darwin",
+        "status": "completed",
+        "steps": [
+          {
+            "completed_at": "2026-10-25T19:28:14Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "started_at": "2026-10-25T19:28:14Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:16Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "number": 2,
+            "started_at": "2026-10-25T19:28:14Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:16Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+            "number": 3,
+            "started_at": "2026-10-25T19:28:16Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:21Z",
+            "conclusion": "success",
+            "name": "Install pinned toolchain",
+            "number": 4,
+            "started_at": "2026-10-25T19:28:16Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:27Z",
+            "conclusion": "success",
+            "name": "Cargo tests from a clean checkout",
+            "number": 5,
+            "started_at": "2026-10-25T19:28:21Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:31Z",
+            "conclusion": "success",
+            "name": "Optimized default-feature tests",
+            "number": 6,
+            "started_at": "2026-10-25T19:28:27Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:45Z",
+            "conclusion": "success",
+            "name": "Full reader, feature and frozen-corpus validation",
+            "number": 7,
+            "started_at": "2026-10-25T19:28:31Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:45Z",
+            "conclusion": "success",
+            "name": "Publish native qualification summary",
+            "number": 8,
+            "started_at": "2026-10-25T19:28:45Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:45Z",
+            "conclusion": "skipped",
+            "name": "Annotate bounded validation failure details",
+            "number": 9,
+            "started_at": "2026-10-25T19:28:45Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:46Z",
+            "conclusion": "success",
+            "name": "Retain native validation reports",
+            "number": 10,
+            "started_at": "2026-10-25T19:28:45Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:46Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+            "number": 19,
+            "started_at": "2026-10-25T19:28:46Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:46Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "number": 20,
+            "started_at": "2026-10-25T19:28:46Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:47Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 21,
+            "started_at": "2026-10-25T19:28:46Z",
+            "status": "completed"
+          }
+        ]
+      },
+      "report": {
+        "revision": "57b23bc78f63e4d52f9294b35444cca6dae706b6",
+        "platform": {
+          "system": "Darwin",
+          "machine": "arm64",
+          "release": "24.6.0"
+        },
+        "host": "aarch64-apple-darwin",
+        "profiles": [
+          "debug default/minimal/all",
+          "release default"
+        ],
+        "run_id": "2844c251e07941ef9065e194389c2841",
+        "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "suites": [
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              54,
+              34,
+              3,
+              4
+            ]
+          },
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked",
+              "--no-default-features"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              49,
+              34,
+              3,
+              4
+            ]
+          },
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked",
+              "--all-features"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              54,
+              34,
+              3,
+              4
+            ]
+          }
+        ],
+        "fixtures": 10,
+        "records": 141358,
+        "report": ".work/reports/reader-check-2844c251e07941ef9065e194389c2841.json"
+      }
+    },
+    {
+      "job": {
+        "conclusion": "success",
+        "html_url": "https://github.com/enioarz/gdxrs/actions/runs/40226174468/job/121267908006",
+        "id": 121267908006,
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "name": "Reader / x86_64-unknown-linux-gnu",
+        "status": "completed",
+        "steps": [
+          {
+            "completed_at": "2026-10-25T19:28:16Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "started_at": "2026-10-25T19:28:15Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:17Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "number": 2,
+            "started_at": "2026-10-25T19:28:16Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:17Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+            "number": 3,
+            "started_at": "2026-10-25T19:28:17Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:28Z",
+            "conclusion": "success",
+            "name": "Install pinned toolchain",
+            "number": 4,
+            "started_at": "2026-10-25T19:28:17Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:36Z",
+            "conclusion": "success",
+            "name": "Cargo tests from a clean checkout",
+            "number": 5,
+            "started_at": "2026-10-25T19:28:28Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:28:47Z",
+            "conclusion": "success",
+            "name": "Optimized default-feature tests",
+            "number": 6,
+            "started_at": "2026-10-25T19:28:36Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:07Z",
+            "conclusion": "success",
+            "name": "Full reader, feature and frozen-corpus validation",
+            "number": 7,
+            "started_at": "2026-10-25T19:28:47Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:07Z",
+            "conclusion": "success",
+            "name": "Publish native qualification summary",
+            "number": 8,
+            "started_at": "2026-10-25T19:29:07Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:07Z",
+            "conclusion": "skipped",
+            "name": "Annotate bounded validation failure details",
+            "number": 9,
+            "started_at": "2026-10-25T19:29:07Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:08Z",
+            "conclusion": "success",
+            "name": "Retain native validation reports",
+            "number": 10,
+            "started_at": "2026-10-25T19:29:07Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:08Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+            "number": 19,
+            "started_at": "2026-10-25T19:29:08Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:08Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "number": 20,
+            "started_at": "2026-10-25T19:29:08Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-10-25T19:29:08Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 21,
+            "started_at": "2026-10-25T19:29:08Z",
+            "status": "completed"
+          }
+        ]
+      },
+      "report": {
+        "revision": "57b23bc78f63e4d52f9294b35444cca6dae706b6",
+        "platform": {
+          "system": "Linux",
+          "machine": "x86_64",
+          "release": "6.17.0-1022-azure"
+        },
+        "host": "x86_64-unknown-linux-gnu",
+        "profiles": [
+          "debug default/minimal/all",
+          "release default"
+        ],
+        "run_id": "2b2549187a9d48b08ec8b650e00c0dbb",
+        "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "suites": [
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              54,
+              34,
+              3,
+              4
+            ]
+          },
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked",
+              "--no-default-features"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              49,
+              34,
+              3,
+              4
+            ]
+          },
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked",
+              "--all-features"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              54,
+              34,
+              3,
+              4
+            ]
+          }
+        ],
+        "fixtures": 10,
+        "records": 141358,
+        "report": ".work/reports/reader-check-2b2549187a9d48b08ec8b650e00c0dbb.json"
+      }
+    }
+  ],
+  "resource_observations": {
+    "output_bytes": 197,
+    "physical_bytes_written_with_index_patch": 249,
+    "buffer_bytes": 32768,
+    "unit_root_limit_bytes": 1048576,
+    "final_owner_root_bytes": 0,
+    "peak_rss": "not measured for writer; task 023",
+    "writer_throughput": "not measured; task 023"
+  },
+  "scope": "Empty canonical v7 files only. Registration/records/compression/full M3 scale remain tasks 019\u2013023."
+}

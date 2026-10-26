@@ -480,3 +480,6 @@ mod large;
 
 #[path = "cases/platforms.rs"]
 mod platforms;
+
+#[path = "cases/writer.rs"]
+mod writer;
