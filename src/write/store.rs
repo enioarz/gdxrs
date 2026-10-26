@@ -31,6 +31,9 @@ pub(super) struct Store {
     stamp: Option<std::time::SystemTime>,
 }
 impl Store {
+    pub fn close(&mut self) {
+        self.file = None;
+    }
     pub fn create(path: &Path, budget: &Arc<Budget>) -> Result<Self> {
         let buffer = Buffer::new(budget, 32768)?;
         let mut options = fs::OpenOptions::new();

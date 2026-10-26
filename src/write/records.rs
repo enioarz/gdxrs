@@ -1,6 +1,8 @@
 //! Streaming sorted raw records; fixed state only.
 use super::*;
+mod strings;
 mod unsorted;
+pub use strings::{StringRecordWriter, StringWriteStatistics};
 pub use unsorted::{UnsortedSymbolWriter, UnsortedWriteStatistics};
 
 #[derive(Clone, Copy)]

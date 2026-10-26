@@ -1,6 +1,10 @@
 # 025 — Streamed string records and first-registration IDs
 
-Milestone: M4. Prerequisite: 024 complete. Status: pending.
+Milestone: M4. Prerequisite: 024 complete. Status: in progress.
+
+The selected two-pass API, exact-byte policy, native authoring differences,
+seven-handle minimum and occurrence-count limit are specified in
+[decision 0019](../docs/decisions/0019-string-records.md).
 
 Define a bounded string-key record adapter using a two-pass disk dictionary/remap
 or immutable-run dictionary, selected with source/measurement evidence. Preserve

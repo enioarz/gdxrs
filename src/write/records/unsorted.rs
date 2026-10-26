@@ -8,7 +8,7 @@ pub struct UnsortedWriteStatistics {
 }
 /// Explicit external sorting. Finish is required; failed/abandoned writes cannot publish.
 pub struct UnsortedSymbolWriter<'a> {
-    inner: Option<SymbolWriter<'a>>,
+    pub(super) inner: Option<SymbolWriter<'a>>,
     sorter: Option<SpillSorter>,
     keys: Buffer<WriterUelId>,
     input: u32,
@@ -58,7 +58,7 @@ impl UnsortedSymbolWriter<'_> {
             .as_ref()
             .map_or(self.last_statistics, SpillSorter::statistics)
     }
-    fn reject(&mut self, mut error: Error) -> Error {
+    pub(super) fn reject(&mut self, mut error: Error) -> Error {
         if let Some(mut sorter) = self.sorter.take() {
             let observe = sorter.observer();
             if let Err(cleanup) = sorter.cancel()
@@ -192,11 +192,24 @@ impl Drop for UnsortedSymbolWriter<'_> {
         }
     }
 }
-struct Packet {
+pub(super) struct Packet {
     bytes: [u8; PAYLOAD],
     length: usize,
 }
 impl Packet {
+    pub(super) fn values(values: &[Value]) -> Result<Self> {
+        let mut packet = Self {
+            bytes: [0; PAYLOAD],
+            length: 0,
+        };
+        for value in values {
+            packet.value(*value)?;
+        }
+        Ok(packet)
+    }
+    pub(super) fn payload(&self) -> &[u8] {
+        &self.bytes[..self.length]
+    }
     fn bytes(&mut self, value: &[u8]) -> Result<()> {
         let end = self.length.checked_add(value.len()).ok_or_else(invalid)?;
         self.bytes
@@ -254,8 +267,21 @@ fn decode(
             .bound_uel(u32::from_be_bytes(b))?;
         keys.push(id)?;
     }
+    decode_values(bytes.get(at..).ok_or_else(invalid)?, inner.kind.fields())
+}
+pub(super) fn decode_values(bytes: &[u8], fields: usize) -> Result<[Value; 5]> {
+    fn take<'a>(bytes: &'a [u8], at: &mut usize, n: usize) -> Result<&'a [u8]> {
+        let end = at.checked_add(n).ok_or_else(invalid)?;
+        let out = bytes.get(*at..end).ok_or_else(invalid)?;
+        *at = end;
+        Ok(out)
+    }
+    if fields > 5 {
+        return Err(invalid());
+    }
+    let mut at = 0;
     let mut values = [Value::ZERO; 5];
-    for value in values.iter_mut().take(inner.kind.fields()) {
+    for value in values.iter_mut().take(fields) {
         *value = match take(bytes, &mut at, 1)?[0] {
             0 => {
                 let mut b = [0; 8];

@@ -115,6 +115,9 @@ fn label(bytes: &[u8]) -> Result<()> {
     }
     Ok(())
 }
+pub(super) fn validate_string_label(bytes: &[u8]) -> Result<()> {
+    label(bytes)
+}
 struct Packet {
     b: [u8; 1024],
     n: usize,
@@ -233,7 +236,8 @@ fn symbol(f: &Frame) -> Result<Symbol> {
 pub(super) struct Metadata {
     directory: PathBuf,
     journal: Option<Store>,
-    owned: [bool; 3],
+    owned: [bool; 4],
+    string_store: Option<Arc<std::sync::Mutex<Store>>>,
     budget: Arc<Budget>,
     options: SpillOptions,
     used: u64,
@@ -251,6 +255,79 @@ pub(super) struct Metadata {
     _paths: Reservation,
 }
 impl Metadata {
+    pub(super) fn string_begin(&mut self) -> Result<Arc<std::sync::Mutex<Store>>> {
+        self.mutable()?;
+        // One additional live spool handle, taken from the existing cap.
+        if self.string_store.is_some() || self.options.maximum_open_files < 4 {
+            return Err(invalid(
+                "string records require at least seven scratch handles",
+            ));
+        }
+        let store = Store::create(&self.path(3), &self.budget)?;
+        self.owned[3] = true;
+        let shared = Arc::new(std::sync::Mutex::new(store));
+        self.string_store = Some(Arc::clone(&shared));
+        self.options.maximum_open_files -= 1;
+        self.options.merge_fan_in = self
+            .options
+            .merge_fan_in
+            .min(self.options.maximum_open_files - 1);
+        self.stats.peak_open_files = self.stats.peak_open_files.max(2);
+        Ok(shared)
+    }
+    pub(super) fn string_shape(&mut self, id: WriterSymbolId) -> Result<(SymbolType, usize)> {
+        self.mutable()?;
+        let n = self.check(id)?;
+        let s = self.lookup(n)?;
+        if s.kind == SymbolType::Alias {
+            return Err(invalid("aliases have no own records"));
+        }
+        Ok((s.kind, usize::from(s.dim)))
+    }
+    pub(super) fn string_symbol(&self, id: u32) -> Result<WriterSymbolId> {
+        let token = WriterSymbolId {
+            owner: self.owner,
+            id: SymbolId::new(id)?,
+        };
+        self.check(token)?;
+        Ok(token)
+    }
+    pub(super) fn string_append(&mut self, store: &mut Store, tag: u8, bytes: &[u8]) -> Result<()> {
+        store.append(
+            tag,
+            bytes,
+            &mut self.used,
+            &mut self.peak,
+            self.options.maximum_temporary_bytes,
+        )
+    }
+    pub(super) fn string_reserve_mapping(&mut self, bytes: u64) -> Result<()> {
+        self.used = self
+            .used
+            .checked_add(bytes)
+            .filter(|n| *n <= self.options.maximum_temporary_bytes)
+            .ok_or_else(|| {
+                Error::new(
+                    ErrorKind::TemporarySpaceExceeded,
+                    "string remap scratch quota exceeded",
+                )
+            })?;
+        self.peak = self.peak.max(self.used);
+        Ok(())
+    }
+    pub(super) fn string_done(&mut self, bytes: u64) -> Result<()> {
+        self.stats.peak_open_files = self.statistics().peak_open_files;
+        if let Some(store) = self.string_store.take() {
+            store.lock().map_err(|_| corrupt())?.close();
+        }
+        event(Event::MetadataRemove).map_err(Error::io)?;
+        fs::remove_file(self.path(3)).map_err(Error::io)?;
+        self.owned[3] = false;
+        self.used = self.used.checked_sub(bytes).ok_or_else(corrupt)?;
+        // Keep the conservative reduced fan-in; restore the admitted handle slot.
+        self.options.maximum_open_files += 1;
+        Ok(())
+    }
     pub fn new(budget: Arc<Budget>, owner: u64, options: &MetadataOptions) -> Result<Self> {
         options.validate()?;
         if options.directory.as_os_str().len() > 4096
@@ -304,7 +381,8 @@ impl Metadata {
         let mut m = Self {
             directory,
             journal: None,
-            owned: [false; 3],
+            owned: [false; 4],
+            string_store: None,
             budget,
             options: limits,
             used: 0,
@@ -338,7 +416,8 @@ impl Metadata {
         self.directory.join(match n {
             0 => "journal",
             1 => "requests",
-            _ => "ordinals",
+            2 => "ordinals",
+            _ => "string-records",
         })
     }
     fn j(&mut self) -> Result<&mut Store> {
@@ -369,9 +448,9 @@ impl Metadata {
         MetadataStatistics {
             temporary_bytes: self.used + self.sort_used,
             peak_temporary_bytes: self.peak + self.sort_peak,
-            open_files: u64::from(self.journal.is_some()),
+            open_files: u64::from(self.journal.is_some()) + u64::from(self.string_store.is_some()),
             peak_open_files: self.stats.peak_open_files.max(if self.sort_handles > 0 {
-                3 + self.sort_handles
+                3 + self.sort_handles + u64::from(self.string_store.is_some())
             } else {
                 0
             }),
@@ -848,17 +927,69 @@ impl Metadata {
         if self.stats.uels != 0 {
             return Err(invalid("bulk UEL registration requires a fresh dictionary"));
         }
+        self.bulk_extend(labels, &mut mapping)
+    }
+    pub(super) fn bulk_extend<I, B, F>(&mut self, labels: I, mut mapping: F) -> Result<()>
+    where
+        I: IntoIterator<Item = Result<B>>,
+        B: AsRef<[u8]>,
+        F: FnMut(u64, WriterUelId) -> Result<()>,
+    {
+        self.mutable()?;
+        let existing = self.stats.uels;
         let mut requests = Store::create(&self.path(1), &self.budget)?;
         self.owned[1] = true;
         self.stats.peak_open_files = self.stats.peak_open_files.max(2);
         let mut index = Store::create(&self.path(2), &self.budget)?;
         self.owned[2] = true;
         self.stats.peak_open_files = self.stats.peak_open_files.max(3);
-        let mut sort = SpillSorter::with_budget(Arc::clone(&self.budget), None, &self.options)?;
-        self.sort_directory = Some(sort.directory().to_path_buf());
-        let observe = sort.observer();
-        let result = (|| {
+        let mut sort = Some(SpillSorter::with_budget(
+            Arc::clone(&self.budget),
+            None,
+            &self.options,
+        )?);
+        self.sort_directory = Some(sort.as_ref().ok_or_else(corrupt)?.directory().to_path_buf());
+        let observe = sort.as_ref().ok_or_else(corrupt)?.observer();
+        let mut result = (|| {
             let mut ordinal = 0u32;
+            let mut at = 0;
+            // Seed original IDs first, without retaining a dictionary in RAM.
+            while let Some(f) = self.j()?.next(&mut at)? {
+                if f.tag != 1 {
+                    continue;
+                }
+                let mut parse = Parse::new(f.payload());
+                let original = parse.u32()?;
+                let bytes = parse.string()?;
+                parse.done()?;
+                if original != ordinal + 1 {
+                    return Err(corrupt());
+                }
+                ordinal = next_id(ordinal)?;
+                let mut p = Packet::new();
+                p.u32(ordinal)?;
+                p.string(bytes.as_slice())?;
+                requests.append(
+                    1,
+                    p.payload(),
+                    &mut self.used,
+                    &mut self.peak,
+                    self.options.maximum_temporary_bytes,
+                )?;
+                index.append(
+                    8,
+                    &0i64.to_le_bytes(),
+                    &mut self.used,
+                    &mut self.peak,
+                    self.options.maximum_temporary_bytes,
+                )?;
+                sort.as_mut()
+                    .ok_or_else(corrupt)?
+                    .push(bytes.as_slice(), u64::from(ordinal))?;
+            }
+            if ordinal != existing {
+                return Err(corrupt());
+            }
             for bytes in labels {
                 let bytes = bytes?;
                 let bytes = bytes.as_ref();
@@ -881,22 +1012,37 @@ impl Metadata {
                     &mut self.peak,
                     self.options.maximum_temporary_bytes,
                 )?;
-                sort.push(bytes, u64::from(ordinal))?;
+                sort.as_mut()
+                    .ok_or_else(corrupt)?
+                    .push(bytes, u64::from(ordinal))?;
             }
-            let mut sorted = sort.finish()?;
-            let mut last = None::<Bytes>;
-            let mut first = 0u32;
-            while let Some(entry) = sorted.next()? {
-                let n = u32::try_from(entry.id).map_err(|_| corrupt())?;
-                if n == 0 || n > ordinal {
-                    return Err(corrupt());
+            let mut sorted = sort.take().ok_or_else(corrupt)?.finish()?;
+            let replay = (|| {
+                let mut last = None::<Bytes>;
+                let mut first = 0u32;
+                while let Some(entry) = sorted.next()? {
+                    let n = u32::try_from(entry.id).map_err(|_| corrupt())?;
+                    if n == 0 || n > ordinal {
+                        return Err(corrupt());
+                    }
+                    if last.as_ref().is_none_or(|v| v.as_slice() != entry.label) {
+                        first = n;
+                        last = Some(Bytes::from_slice(entry.label)?);
+                    }
+                    index.set_integer(n, i64::from(first))?;
                 }
-                if last.as_ref().is_none_or(|v| v.as_slice() != entry.label) {
-                    first = n;
-                    last = Some(Bytes::from_slice(entry.label)?);
+                Ok(())
+            })();
+            let closed = sorted.close();
+            if let Err(mut error) = replay {
+                if let Err(cleanup) = closed
+                    && error.cleanup_error().is_none()
+                {
+                    error = error.with_cleanup(io::Error::other(cleanup));
                 }
-                index.set_integer(n, i64::from(first))?;
+                return Err(error);
             }
+            closed?;
             let mut at = 0;
             let mut seen = 0u32;
             while let Some(f) = requests.next(&mut at)? {
@@ -912,7 +1058,12 @@ impl Metadata {
                 if canonical <= 0 || canonical > i64::from(n) {
                     return Err(corrupt());
                 }
-                let id = if canonical == i64::from(n) {
+                let id = if n <= existing {
+                    if canonical != i64::from(n) {
+                        return Err(corrupt());
+                    }
+                    n
+                } else if canonical == i64::from(n) {
                     let id = next_id(self.stats.uels)?;
                     let mut p = Packet::new();
                     p.u32(id)?;
@@ -933,20 +1084,29 @@ impl Metadata {
                 return Err(corrupt());
             }
             index.sync()?;
-            for n in 1..=ordinal {
+            for n in existing + 1..=ordinal {
                 let id = index.integer(n)?;
                 if id >= 0 || id < -i64::from(self.stats.uels) {
                     return Err(corrupt());
                 }
-                mapping(u64::from(n), self.id((-id) as u32)?)?;
+                mapping(u64::from(n - existing), self.id((-id) as u32)?)?;
             }
-            self.stats.bulk_requests = u64::from(ordinal);
+            self.stats.bulk_requests = u64::from(ordinal - existing);
             Ok(())
         })();
+        if let Some(mut sorter) = sort.take()
+            && let Err(cleanup) = sorter.cancel()
+        {
+            result = match result {
+                Err(error) if error.cleanup_error().is_some() => Err(error),
+                Err(error) => Err(error.with_cleanup(io::Error::other(cleanup))),
+                Ok(()) => Err(cleanup),
+            };
+        }
         let statistics = observe();
         self.sort_used = statistics.temporary_bytes;
         self.sort_peak = self.sort_peak.max(statistics.peak_temporary_bytes);
-        self.sort_handles = statistics.peak_open_files;
+        self.sort_handles = self.sort_handles.max(statistics.peak_open_files);
         self.stats.merge_passes = statistics.merge_passes;
         result?;
         let bytes = requests
@@ -970,6 +1130,12 @@ impl Metadata {
         }
         self.journal = None;
         let mut first = None;
+        if let Some(store) = self.string_store.take() {
+            match store.lock() {
+                Ok(mut store) => store.close(),
+                Err(poisoned) => poisoned.into_inner().close(),
+            }
+        }
         if let Some(path) = &self.sort_directory {
             if let Err(e) = cleanup_sort_directory(path) {
                 first = Some(e);
@@ -978,7 +1144,7 @@ impl Metadata {
                 self.sort_used = 0;
             }
         }
-        for n in 0..3 {
+        for n in 0..4 {
             if self.owned[n] {
                 match event(Event::MetadataRemove).and_then(|_| fs::remove_file(self.path(n))) {
                     Ok(()) => self.owned[n] = false,

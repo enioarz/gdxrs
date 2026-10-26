@@ -194,3 +194,23 @@ or after an ingestion error; parent abort retries owned cleanup after failure.
 See the [unsorted contract](docs/decisions/0018-unsorted-raw-records.md) and
 [task queue](tasks/README.md). String/mapped record adapters and append remain
 pending; this first task does not complete M4's larger-than-RAM acceptance gate.
+
+
+### String records
+
+Register symbol metadata first, then call `begin_string_records()`. Its
+`begin_symbol(id)` starts a contiguous input group and closes the previous one;
+`write(&[&[u8]], &[Value])` accepts arbitrary-order rows without retaining label
+slices or token arrays. Finish the string phase, then finish the writer to publish.
+Existing UEL IDs come first; new exact-byte labels receive IDs in first-encounter
+order across all groups. Domain sets must precede dependent symbols.
+
+This is a two-pass disk dictionary/remap and record replay, using the same root
+and aggregate scratch quota as metadata and unsorted raw writes. Configure at
+least seven scratch handles. Labels are case-sensitive exact bytes, including
+non-UTF-8; numeric bits retain the core's policy. These deliberately preserve more
+identity than native string authoring's case folding / negative-zero normalization.
+The phase supports at most i32::MAX label occurrences plus existing UELs.
+Duplicates, invalid references, failed rows and abandonment are terminal, including
+failures discovered during replay. See [decision 0019](docs/decisions/0019-string-records.md).
+General-input OS-capped scale acceptance remains task 031.
