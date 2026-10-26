@@ -1,4 +1,5 @@
 //! Disk-backed registration; controls/frames have fixed bounds.
+use super::records::{DomainMembership, Domains, RecordSetup};
 use super::store::{Frame, Store};
 use super::*;
 use crate::model::Bytes;
@@ -986,24 +987,173 @@ impl Metadata {
     fn emit(w: &mut Writer, b: &[u8]) -> Result<()> {
         w.encoded(|e, w| e.bytes(b, |b| w.bytes(b)))
     }
-    fn position(&mut self, id: u32) -> Result<u64> {
+    fn record_info(&mut self, id: u32) -> Result<Option<(u64, u32, u64)>> {
         let mut at = 0;
         while let Some(f) = self.j()?.next(&mut at)? {
             if f.tag == 8 {
                 let mut p = Parse::new(f.payload());
                 let n = p.u32()?;
                 let pos = p.u64()?;
+                let count = p.u32()?;
+                let start = p.u64()?;
                 p.done()?;
                 if n == id {
-                    return Ok(pos);
+                    return Ok(Some((pos, count, start)));
                 }
             }
         }
-        Err(corrupt())
+        Ok(None)
+    }
+    pub(super) fn start_records(&mut self, id: WriterSymbolId) -> Result<RecordSetup> {
+        self.freeze()?;
+        let id = self.check(id)?;
+        if self.record_info(id)?.is_some() {
+            return Err(invalid("symbol already written"));
+        }
+        let s = self.lookup(id)?;
+        if s.kind == SymbolType::Alias {
+            return Err(invalid("aliases have no own records"));
+        }
+        let mut domains = [None; 20];
+        if self.mode(id)? == Some(1) {
+            for axis in 0..s.dim {
+                let (_, r) = self.domain(id, axis)?;
+                let target = self.set_target(&r)?;
+                if target != 0 {
+                    let (_, count, start) = self.record_info(target)?.ok_or_else(|| {
+                        invalid("complete strict domain set before dependent symbol")
+                    })?;
+                    domains[usize::from(axis)] = Some(DomainMembership {
+                        target,
+                        count,
+                        start,
+                    });
+                }
+            }
+        }
+        Ok(RecordSetup {
+            kind: s.kind,
+            dimension: s.dim,
+            domains,
+            members: self.j()?.length,
+        })
+    }
+    pub(super) fn validate_record(
+        &mut self,
+        domains: &Domains,
+        keys: &[WriterUelId],
+        values: &[Value],
+        kind: SymbolType,
+    ) -> Result<()> {
+        for (axis, key) in keys.iter().enumerate() {
+            if key.owner != self.owner || key.get() > self.stats.uels {
+                return Err(Error::new(
+                    ErrorKind::SourceMismatch,
+                    "UEL belongs to another writer",
+                ));
+            }
+            if let Some(DomainMembership {
+                target,
+                count,
+                start,
+            }) = domains[axis]
+            {
+                let (mut low, mut high) = (0u32, count);
+                let mut found = false;
+                while low < high {
+                    let mid = low + (high - low) / 2;
+                    let mut at = start.checked_add(u64::from(mid) * 19).ok_or_else(corrupt)?;
+                    let f = self.j()?.next(&mut at)?.ok_or_else(corrupt)?;
+                    if f.tag != 9 {
+                        return Err(corrupt());
+                    }
+                    let mut p = Parse::new(f.payload());
+                    if p.u32()? != target {
+                        return Err(corrupt());
+                    }
+                    let member = p.u32()?;
+                    p.done()?;
+                    match member.cmp(&key.get()) {
+                        std::cmp::Ordering::Less => low = mid + 1,
+                        std::cmp::Ordering::Greater => high = mid,
+                        std::cmp::Ordering::Equal => {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if !found {
+                    return Err(invalid("key is outside strict domain"));
+                }
+            }
+        }
+        for value in values {
+            match *value {
+                Value::NumberBits(bits) => {
+                    if Value::ordinary(bits)? != *value {
+                        return Err(invalid("use typed acronym value"));
+                    }
+                }
+                Value::Acronym { id, encoded_bits } => {
+                    if Value::ordinary(encoded_bits)? != *value {
+                        return Err(invalid("acronym bits disagree with ID"));
+                    }
+                    let mut at = 0;
+                    let mut found = false;
+                    while let Some(f) = self.j()?.next(&mut at)? {
+                        if f.tag == 5 && Parse::new(f.payload()).u32()? == id.get() {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        return Err(invalid("unregistered acronym"));
+                    }
+                }
+                Value::Special(_) => {}
+            }
+            if kind == SymbolType::Set {
+                let Value::NumberBits(bits) = *value else {
+                    return Err(invalid("set value must be a set-text ID"));
+                };
+                let n = f64::from_bits(bits);
+                if !n.is_finite()
+                    || n < 0.0
+                    || n.fract() != 0.0
+                    || n >= f64::from(self.stats.set_texts)
+                {
+                    return Err(invalid("invalid set-text ID"));
+                }
+            }
+        }
+        Ok(())
+    }
+    pub(super) fn member(&mut self, id: WriterSymbolId, key: WriterUelId) -> Result<()> {
+        let mut p = Packet::new();
+        p.u32(id.get())?;
+        p.u32(key.get())?;
+        self.append(9, &p)
+    }
+    pub(super) fn complete_records(
+        &mut self,
+        id: WriterSymbolId,
+        position: u64,
+        count: u32,
+        start: u64,
+    ) -> Result<()> {
+        let mut p = Packet::new();
+        p.u32(id.get())?;
+        p.u64(position)?;
+        p.u32(count)?;
+        p.u64(start)?;
+        self.append(8, &p)
     }
     pub fn sections(&mut self, w: &mut Writer) -> Result<[u64; 6]> {
         self.freeze()?;
         for id in 1..=self.stats.symbols {
+            if self.record_info(id)?.is_some() {
+                continue;
+            }
             let s = self.lookup(id)?;
             let position = if s.kind == SymbolType::Alias {
                 0
@@ -1020,17 +1170,18 @@ impl Metadata {
                 w.section_end()?;
                 position
             };
-            let mut p = Packet::new();
-            p.u32(id)?;
-            p.u64(position)?;
-            self.append(8, &p)?;
+            let token = WriterSymbolId {
+                owner: self.owner,
+                id: SymbolId::new(id)?,
+            };
+            self.complete_records(token, position, 0, 0)?;
         }
         let symbols = w.position;
         w.section_string(b"_SYMB_")?;
         w.section_i32(self.stats.symbols as i32)?;
         for id in 1..=self.stats.symbols {
             let s = self.lookup(id)?;
-            let position = self.position(id)?;
+            let (position, record_count, _) = self.record_info(id)?.ok_or_else(corrupt)?;
             let mode = self.mode(id)?;
             w.section_string(s.name.as_slice())?;
             Self::emit(w, &position.to_le_bytes())?;
@@ -1042,7 +1193,7 @@ impl Metadata {
                 s.user
             };
             w.section_i32(user)?;
-            w.section_i32(0)?;
+            w.section_i32(record_count as i32)?;
             w.section_i32(0)?;
             Self::emit(w, &[0])?;
             w.section_string(s.description.as_slice())?;
@@ -1180,7 +1331,7 @@ impl Metadata {
     }
 }
 impl Writer {
-    fn open(&self) -> Result<()> {
+    pub(super) fn open(&self) -> Result<()> {
         if self.statistics.status != WriteStatus::Open {
             return Err(self.error.clone().unwrap_or_else(|| {
                 Error::new(ErrorKind::InvalidWriteState, "writer is not open")
@@ -1202,7 +1353,10 @@ impl Writer {
             Err(e) => Err(self.fail(e)),
         }
     }
-    fn metadata_call<T>(&mut self, f: impl FnOnce(&mut Metadata) -> Result<T>) -> Result<T> {
+    pub(super) fn metadata_call<T>(
+        &mut self,
+        f: impl FnOnce(&mut Metadata) -> Result<T>,
+    ) -> Result<T> {
         self.open()?;
         let result = self
             .metadata

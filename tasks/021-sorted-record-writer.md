@@ -1,6 +1,6 @@
 # 021 — Sorted raw symbol records
 
-Milestone: M3. Prerequisite: 020 complete. Status: pending.
+Milestone: M3. Prerequisite: 020 complete. Status: in progress.
 
 Expose a borrowing symbol writer over Writer's shared budget/output. Accept
 registered typed UEL IDs and typed values, with validated dimension/kind/subtype,

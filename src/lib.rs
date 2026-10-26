@@ -45,6 +45,7 @@ pub use large::{
 };
 
 pub use write::{
-    MetadataOptions, MetadataStatistics, SymbolReference, WriteCompression, WriteDomain,
-    WriteOptions, WriteStatistics, WriteStatus, WriteSymbol, Writer, WriterSymbolId, WriterUelId,
+    KeyBounds, MetadataOptions, MetadataStatistics, SymbolReference, SymbolWriter,
+    WriteCompression, WriteDomain, WriteOptions, WriteStatistics, WriteStatus, WriteSymbol, Writer,
+    WriterSymbolId, WriterUelId,
 };

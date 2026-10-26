@@ -179,3 +179,82 @@ fn public_metadata_registration_shared_root_and_cleanup() {
     }
     std::fs::remove_dir(parent).unwrap();
 }
+
+#[test]
+fn public_sorted_symbol_writer_shared_root_and_alias_domain() {
+    let marker = super::common::TempFile::new(b"caller");
+    let output = marker.path.with_extension("records.gdx");
+    let reader = Reader::open(
+        "tests/fixtures/v7/optional-domains.gdx",
+        OpenOptions::default(),
+    )
+    .unwrap();
+    let before = reader.budget_statistics().current_bytes;
+    let mut writer = reader
+        .create_writer(&output, reader.write_options())
+        .unwrap();
+    writer
+        .begin_metadata(&MetadataOptions::new(output.parent().unwrap()))
+        .unwrap();
+    let key = writer.register_uel(b"registered").unwrap();
+    let set = writer
+        .register_symbol(&WriteSymbol::new(b"I", SymbolType::Set, 1))
+        .unwrap();
+    let mut spec = WriteSymbol::new(b"J", SymbolType::Alias, 1);
+    spec.alias_target = Some(SymbolReference::Registered(set));
+    let alias = writer.register_symbol(&spec).unwrap();
+    let param = writer
+        .register_symbol(&WriteSymbol::new(b"P", SymbolType::Parameter, 1))
+        .unwrap();
+    writer
+        .set_domains(
+            param,
+            &[WriteDomain::Strict(SymbolReference::Registered(alias))],
+        )
+        .unwrap();
+    let mut rows = writer.begin_symbol(set, None).unwrap();
+    rows.write(&[key], &[Value::ZERO]).unwrap();
+    assert_eq!(rows.finish().unwrap(), 1);
+    let mut rows = writer
+        .begin_symbol(
+            param,
+            Some(&[KeyBounds {
+                minimum: 1,
+                maximum: 255,
+            }]),
+        )
+        .unwrap();
+    rows.write(&[key], &[Value::Special(SpecialValue::Epsilon)])
+        .unwrap();
+    assert_eq!(rows.finish().unwrap(), 1);
+    writer.finish().unwrap();
+    drop(writer);
+    assert_eq!(reader.budget_statistics().current_bytes, before);
+    let copy = Reader::open(&output, OpenOptions::default()).unwrap();
+    let param = copy.find_symbol(b"P").unwrap().unwrap();
+    let mut domains = copy.domains(&param).unwrap();
+    assert_eq!(
+        domains
+            .next()
+            .unwrap()
+            .unwrap()
+            .strict_symbol
+            .unwrap()
+            .get(),
+        alias.get()
+    );
+    drop(domains);
+    let mut scan = copy.scan(&param, copy.scan_options()).unwrap();
+    let batch = scan.next_batch().unwrap().unwrap();
+    assert_eq!(batch.len(), 1);
+    assert_eq!(batch.key_column(0).unwrap()[0].get(), key.get());
+    assert_eq!(
+        batch.value_column(ValueField::Level).unwrap(),
+        &[Value::Special(SpecialValue::Epsilon)]
+    );
+    assert!(scan.next_batch().unwrap().is_none());
+    drop(scan);
+    drop(param);
+    drop(copy);
+    std::fs::remove_file(output).unwrap();
+}

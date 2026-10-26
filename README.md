@@ -124,9 +124,41 @@ symbol ID. Set descriptions/alias targets in the spec, then stream `add_comment`
 existing writer-bound symbol or a forward name; relaxed domains preserve names.
 `freeze_metadata()` resolves/validates references and prevents further mutation;
 `finish()` also freezes automatically. Aliases and empty scalar defaults follow
-native semantics. No nonempty record writer is exposed yet.
+native semantics. Sorted raw records are available through `begin_symbol` below.
 
 Metadata uses checksummed disk journals and explicit aggregate scratch-byte/handle
 limits. Disk scans for incremental names/references can be quadratic; the bulk
 UEL path is intended for large dictionaries. Logical quota accounting is separate
 from OS RSS. See [metadata ownership, phases and quotas](docs/decisions/0014-writer-metadata.md).
+
+
+### Sorted raw records
+
+Register all metadata first. `begin_symbol(id, bounds)` freezes registration and
+borrows the output transaction; `write(keys, values)` accepts writer-owned UEL
+IDs and typed `Value`s. Keys must be strictly increasing. Supplied `KeyBounds`
+are inclusive; `None` uses conservative four-byte widths without a prescan.
+Explicitly finish each symbol, then finish the file:
+
+```rust,no_run
+# use gdxrs::*;
+# fn example() -> gdxrs::Result<()> {
+let mut writer = Writer::create("records.gdx", WriteOptions::default())?;
+writer.begin_metadata(&MetadataOptions::new("scratch"))?;
+let key = writer.register_uel(b"a")?;
+let symbol = writer.register_symbol(&WriteSymbol::new(b"P", SymbolType::Parameter, 1))?;
+let mut records = writer.begin_symbol(symbol, None)?;
+records.write(&[key], &[Value::NumberBits(2.5f64.to_bits())])?;
+records.finish()?;
+writer.finish()?;
+# Ok(()) }
+```
+
+Complete strict domain sets before writing dependent symbols. Alias IDs remain
+in domain metadata; membership checks follow the underlying set with a bounded
+disk index. Untouched symbols remain empty (scalars expose native defaults).
+Duplicate/out-of-order rows, invalid references, failed rows and abandoned symbol
+writers make publication fail. Set values are registered set-text IDs. The
+[record contract](docs/decisions/0015-sorted-record-writer.md) describes storage,
+ordering, bounds and value semantics. Full writer finalization qualification and
+OS-capped pipeline acceptance remain tasks 022–023.

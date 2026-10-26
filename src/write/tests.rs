@@ -507,3 +507,7 @@ fn explicit_abort_cleanup_failure_is_retryable_and_existing_directories_survive(
     drop(w);
     p.empty();
 }
+
+pub(super) fn short_chunks(n: usize) {
+    HOOKS.with(|h| h.borrow_mut().chunk = n);
+}
