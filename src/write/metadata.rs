@@ -384,6 +384,30 @@ impl Metadata {
             id: UelId::new(id)?,
         })
     }
+    pub(super) fn bound_uel(&self, id: u32) -> Result<WriterUelId> {
+        if id > self.stats.uels {
+            return Err(corrupt());
+        }
+        self.id(id)
+    }
+    pub(super) fn record_sorter(&mut self) -> Result<SpillSorter> {
+        if self.sort_directory.is_some() {
+            return Err(invalid("metadata sorter already active"));
+        }
+        let sorter = SpillSorter::with_budget(Arc::clone(&self.budget), None, &self.options)?;
+        self.sort_directory = Some(sorter.directory().to_path_buf());
+        self.sort_used = 0;
+        Ok(sorter)
+    }
+    pub(super) fn record_sort_statistics(&mut self, stats: SpillStatistics) {
+        self.sort_used = stats.temporary_bytes;
+        self.sort_peak = self.sort_peak.max(stats.peak_temporary_bytes);
+        self.sort_handles = self.sort_handles.max(stats.peak_open_files);
+        self.stats.merge_passes = stats.merge_passes;
+        if stats.complete {
+            self.sort_directory = None;
+        }
+    }
     fn check(&self, id: WriterSymbolId) -> Result<u32> {
         if id.owner != self.owner || id.get() == 0 || id.get() > self.stats.symbols {
             Err(Error::new(

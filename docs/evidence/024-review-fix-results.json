@@ -1,0 +1,957 @@
+{
+  "schema": 1,
+  "implementation_revision": "db6d093f276a8fb754221003eae97688673fb521",
+  "issue": "Replay failures discarded secondary SpillCursor cleanup errors",
+  "reproduction": "New regression failed against 5dd8c84 at cleanup_error().is_some() after OutputLimitExceeded. Both output and malformed-payload cases pass after the fix.",
+  "reports": [
+    {
+      "sha256": "aa1346d814cca3d010a4481b3c189ad7dd2a1d8699b7edcd77363c0cb250daa1",
+      "report": {
+        "schema": 1,
+        "command": "reader-check",
+        "run_id": "4da0f6b800854329889b3c2c7b3db899",
+        "revision": "db6d093f276a8fb754221003eae97688673fb521",
+        "cwd": "/workspace/gdxrs",
+        "started_utc": "2026-10-26T18:58:07.951949+00:00",
+        "status": "passed",
+        "result": {
+          "bootstrap": {
+            "versions": {
+              "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+              "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+              "rustc_verbose": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1"
+            },
+            "runtime_dependencies": 2,
+            "runtime_tests_executed": 0,
+            "dependency_audit": "docs/decisions/0013-bounded-writer-codec.md"
+          },
+          "suites": [
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                93,
+                38,
+                3,
+                4
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--no-default-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                85,
+                37,
+                3,
+                4
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--all-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                93,
+                38,
+                3,
+                4
+              ]
+            }
+          ],
+          "differential_fixtures": 10,
+          "public_records_compared": 141358,
+          "no_compression_dependencies": 0,
+          "exact_id_slicing": "executed in Rust suites (task 012)",
+          "small_exact_labels_and_pages": "executed in Rust suites (task 013)",
+          "bounded_spill_primitives": "executed in Rust suites (task 014)",
+          "large_lookup_and_unique_domains": "executed in Rust suites (task 015)",
+          "empty_writer_foundation": "executed in Rust suites (task 018); native interop is writer-check",
+          "m2_scale_qualification": "requires separate m2-scale-check --profile scale gate"
+        },
+        "platform": {
+          "system": "Linux",
+          "machine": "x86_64",
+          "release": "6.18.55"
+        },
+        "elapsed_seconds": 30.07490907900501,
+        "exit_code": 0
+      }
+    },
+    {
+      "sha256": "c04bfc468015966455df7b368a71b6b3e8c785793ce57b5d9f2768935b949559",
+      "report": {
+        "schema": 1,
+        "command": "writer-check",
+        "run_id": "9de878b2a2db4326aa590736de177e7b",
+        "revision": "db6d093f276a8fb754221003eae97688673fb521",
+        "cwd": "/workspace/gdxrs",
+        "started_utc": "2026-10-26T18:58:07.934380+00:00",
+        "status": "passed",
+        "result": {
+          "full": {
+            "unsorted_cases": [
+              {
+                "features": [],
+                "compression": 0,
+                "bytes": 1600,
+                "sha256": "e6dea0b9a15faab19f8afee43a23ff3b3d4f12dd039e751903db84e565ee9f43",
+                "forced_external_merge": true,
+                "complete_native_and_rust_stream_match": true
+              },
+              {
+                "features": [
+                  "--all-features"
+                ],
+                "compression": 0,
+                "bytes": 1600,
+                "sha256": "e6dea0b9a15faab19f8afee43a23ff3b3d4f12dd039e751903db84e565ee9f43",
+                "forced_external_merge": true,
+                "complete_native_and_rust_stream_match": true
+              },
+              {
+                "features": [
+                  "--no-default-features"
+                ],
+                "compression": 0,
+                "bytes": 1600,
+                "sha256": "e6dea0b9a15faab19f8afee43a23ff3b3d4f12dd039e751903db84e565ee9f43",
+                "forced_external_merge": true,
+                "complete_native_and_rust_stream_match": true
+              },
+              {
+                "features": [],
+                "compression": 1,
+                "bytes": 715,
+                "sha256": "5bab69056e12a69460ea0995bd7d6462dfbbfa9d79c4e5cc6eac8e8909b51c90",
+                "forced_external_merge": true,
+                "complete_native_and_rust_stream_match": true
+              },
+              {
+                "features": [
+                  "--all-features"
+                ],
+                "compression": 1,
+                "bytes": 715,
+                "sha256": "5bab69056e12a69460ea0995bd7d6462dfbbfa9d79c4e5cc6eac8e8909b51c90",
+                "forced_external_merge": true,
+                "complete_native_and_rust_stream_match": true
+              }
+            ],
+            "cases": [
+              {
+                "features": [],
+                "compression": 0,
+                "bytes": 1600,
+                "sha256": "e6dea0b9a15faab19f8afee43a23ff3b3d4f12dd039e751903db84e565ee9f43",
+                "native_sha256": "997b7c61e22d8216abc7759e2fe49d597388233e7f7391cbb6c2571529de501a",
+                "both_directions_complete_stream_match": true,
+                "canonical_offsets_and_section_markers_match": true
+              },
+              {
+                "features": [
+                  "--all-features"
+                ],
+                "compression": 0,
+                "bytes": 1600,
+                "sha256": "e6dea0b9a15faab19f8afee43a23ff3b3d4f12dd039e751903db84e565ee9f43",
+                "native_sha256": "997b7c61e22d8216abc7759e2fe49d597388233e7f7391cbb6c2571529de501a",
+                "both_directions_complete_stream_match": true,
+                "canonical_offsets_and_section_markers_match": true
+              },
+              {
+                "features": [
+                  "--no-default-features"
+                ],
+                "compression": 0,
+                "bytes": 1600,
+                "sha256": "e6dea0b9a15faab19f8afee43a23ff3b3d4f12dd039e751903db84e565ee9f43",
+                "native_sha256": "997b7c61e22d8216abc7759e2fe49d597388233e7f7391cbb6c2571529de501a",
+                "both_directions_complete_stream_match": true,
+                "canonical_offsets_and_section_markers_match": true
+              },
+              {
+                "features": [],
+                "compression": 1,
+                "bytes": 715,
+                "sha256": "5bab69056e12a69460ea0995bd7d6462dfbbfa9d79c4e5cc6eac8e8909b51c90",
+                "native_sha256": "8488e10b5281ab4ea76e52b7a07b4b72642aaa0ef8bee7b2ebbb8eb6ecadbf15",
+                "both_directions_complete_stream_match": true,
+                "canonical_offsets_and_section_markers_match": true
+              },
+              {
+                "features": [
+                  "--all-features"
+                ],
+                "compression": 1,
+                "bytes": 715,
+                "sha256": "5bab69056e12a69460ea0995bd7d6462dfbbfa9d79c4e5cc6eac8e8909b51c90",
+                "native_sha256": "8488e10b5281ab4ea76e52b7a07b4b72642aaa0ef8bee7b2ebbb8eb6ecadbf15",
+                "both_directions_complete_stream_match": true,
+                "canonical_offsets_and_section_markers_match": true
+              }
+            ],
+            "scope": "complete supported metadata and records; 9 symbols, 4 UELs, 20 public rows per case",
+            "recipe_sha256": "1c0bb4acb51a9f15b0a0e6c016edf34c0257ac4e37613b84d35fdd98df350756",
+            "native_isolation": {
+              "platform": "linux",
+              "memory_limit": "256 MiB address space or tighter inherited limit",
+              "cpu_seconds_max": 2,
+              "output_bytes_max": 1048576,
+              "core_bytes_max": 0,
+              "wall_timeout_seconds": 5
+            }
+          },
+          "scope": "tasks 018\u2013022 metadata, sorted records and bounded section codec",
+          "records": {
+            "cases": [
+              {
+                "features": [],
+                "compression": 0,
+                "bytes": 76565,
+                "sha256": "19f6f06440ed736810c19276bb80ae72b653a03a3aa084bf2a21d64942d09188",
+                "symbols": 45,
+                "complete_native_and_rust_stream_matches": true,
+                "independent_key_bytes_match": true
+              },
+              {
+                "features": [
+                  "--all-features"
+                ],
+                "compression": 0,
+                "bytes": 76565,
+                "sha256": "19f6f06440ed736810c19276bb80ae72b653a03a3aa084bf2a21d64942d09188",
+                "symbols": 45,
+                "complete_native_and_rust_stream_matches": true,
+                "independent_key_bytes_match": true
+              },
+              {
+                "features": [
+                  "--no-default-features"
+                ],
+                "compression": 0,
+                "bytes": 76565,
+                "sha256": "19f6f06440ed736810c19276bb80ae72b653a03a3aa084bf2a21d64942d09188",
+                "symbols": 45,
+                "complete_native_and_rust_stream_matches": true,
+                "independent_key_bytes_match": true
+              },
+              {
+                "features": [],
+                "compression": 1,
+                "bytes": 3841,
+                "sha256": "7128adc756803227f081d1702842d642baefb84a02ccfb85c452ca208c6550b2",
+                "symbols": 45,
+                "complete_native_and_rust_stream_matches": true,
+                "independent_key_bytes_match": true
+              },
+              {
+                "features": [
+                  "--all-features"
+                ],
+                "compression": 1,
+                "bytes": 3841,
+                "sha256": "7128adc756803227f081d1702842d642baefb84a02ccfb85c452ca208c6550b2",
+                "symbols": 45,
+                "complete_native_and_rust_stream_matches": true,
+                "independent_key_bytes_match": true
+              }
+            ],
+            "native_isolation": {
+              "platform": "linux",
+              "memory_limit": "256 MiB address space or tighter inherited limit",
+              "cpu_seconds_max": 2,
+              "output_bytes_max": 1048576,
+              "core_bytes_max": 0,
+              "wall_timeout_seconds": 5
+            },
+            "scope": "task 021 sorted raw records; 700 UELs and 45 symbols per case"
+          },
+          "metadata": {
+            "scope": "task 020 registered metadata and empty symbols only",
+            "cases": [
+              {
+                "features": [],
+                "compression": 0,
+                "bytes": 748,
+                "sha256": "acb1fbdb2736f4346ac4ce5dababc6f9d31e67b2bc3c356450aea83f4092eb14",
+                "complete_native_and_rust_stream_matches": true
+              },
+              {
+                "features": [
+                  "--all-features"
+                ],
+                "compression": 0,
+                "bytes": 748,
+                "sha256": "acb1fbdb2736f4346ac4ce5dababc6f9d31e67b2bc3c356450aea83f4092eb14",
+                "complete_native_and_rust_stream_matches": true
+              },
+              {
+                "features": [
+                  "--no-default-features"
+                ],
+                "compression": 0,
+                "bytes": 748,
+                "sha256": "acb1fbdb2736f4346ac4ce5dababc6f9d31e67b2bc3c356450aea83f4092eb14",
+                "complete_native_and_rust_stream_matches": true
+              },
+              {
+                "features": [],
+                "compression": 1,
+                "bytes": 581,
+                "sha256": "0ee8803f1b4ed2334c1146b6393c90765a30d1f437a5099c72ba8f349f06259b",
+                "complete_native_and_rust_stream_matches": true
+              },
+              {
+                "features": [
+                  "--all-features"
+                ],
+                "compression": 1,
+                "bytes": 581,
+                "sha256": "0ee8803f1b4ed2334c1146b6393c90765a30d1f437a5099c72ba8f349f06259b",
+                "complete_native_and_rust_stream_matches": true
+              }
+            ]
+          },
+          "codec": {
+            "cases": [
+              {
+                "name": "empty",
+                "decoded_bytes": 0,
+                "rust_blocks": [],
+                "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "rust_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "native_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              {
+                "name": "one",
+                "decoded_bytes": 1,
+                "rust_blocks": [
+                  {
+                    "tag": 0,
+                    "encoded": 1,
+                    "decoded": 1
+                  }
+                ],
+                "raw_sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+                "rust_sha256": "616fd1f970e568fd8e59f7afb1cbe7e5b32fd7122f020b2cc20dccdc93636299",
+                "native_sha256": "616fd1f970e568fd8e59f7afb1cbe7e5b32fd7122f020b2cc20dccdc93636299"
+              },
+              {
+                "name": "small",
+                "decoded_bytes": 3,
+                "rust_blocks": [
+                  {
+                    "tag": 0,
+                    "encoded": 3,
+                    "decoded": 3
+                  }
+                ],
+                "raw_sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+                "rust_sha256": "fe13b428c0835fb72bd2d87037dd38b3662d560fc0ead6e0a847e887483e9efc",
+                "native_sha256": "fe13b428c0835fb72bd2d87037dd38b3662d560fc0ead6e0a847e887483e9efc"
+              },
+              {
+                "name": "full",
+                "decoded_bytes": 32768,
+                "rust_blocks": [
+                  {
+                    "tag": 1,
+                    "encoded": 172,
+                    "decoded": 32768
+                  }
+                ],
+                "raw_sha256": "427965f49a857174e308658227325dbd23ff4eccbe399d5ad4817dda3ec79f87",
+                "rust_sha256": "1a3262b29706c3c09e1c489ed32ce2c88b83eed80aa385dda572be88fbad7732",
+                "native_sha256": "9050bd798b27f48bdf39dbf096846e6a445f7a2b40125fe3d28a38de91b56793"
+              },
+              {
+                "name": "final",
+                "decoded_bytes": 32769,
+                "rust_blocks": [
+                  {
+                    "tag": 1,
+                    "encoded": 172,
+                    "decoded": 32768
+                  },
+                  {
+                    "tag": 0,
+                    "encoded": 1,
+                    "decoded": 1
+                  }
+                ],
+                "raw_sha256": "cd72c76486c91c4032a0b357522fe03413380d37ad7d8661bd98feb5209f1bf6",
+                "rust_sha256": "37bdaa166eb0d709e2bb145e21987c808137f22398c868f70e4b2eaa3cd49259",
+                "native_sha256": "9a0f4a7d071825c6e6f2e39b47e09faa888bdbdf9539f73bccbb144bec2a81ad"
+              },
+              {
+                "name": "repeat",
+                "decoded_bytes": 65537,
+                "rust_blocks": [
+                  {
+                    "tag": 1,
+                    "encoded": 172,
+                    "decoded": 32768
+                  },
+                  {
+                    "tag": 1,
+                    "encoded": 172,
+                    "decoded": 32768
+                  },
+                  {
+                    "tag": 0,
+                    "encoded": 1,
+                    "decoded": 1
+                  }
+                ],
+                "raw_sha256": "1abe08ebecf1c18cab71f6fe28aaddf20268f85bad78bb9a72f88ca47c874662",
+                "rust_sha256": "fff057c4c744b24cbcb4e488ef3bc678236d280da09772174957eb21629b40f6",
+                "native_sha256": "fdf907c218b14bc11a76b6e5517c703537a5181e029dbb26beeab37fc2b39503"
+              },
+              {
+                "name": "noise",
+                "decoded_bytes": 32768,
+                "rust_blocks": [
+                  {
+                    "tag": 0,
+                    "encoded": 32768,
+                    "decoded": 32768
+                  }
+                ],
+                "raw_sha256": "5855385382aef19b0c73daee724d50674980141b845cfda2a3d4490f3eeb8ca9",
+                "rust_sha256": "9480e3964ee0155ad03f48177e0db51460a083133d689924c37b3343092ca259",
+                "native_sha256": "9480e3964ee0155ad03f48177e0db51460a083133d689924c37b3343092ca259"
+              },
+              {
+                "name": "boundary",
+                "decoded_bytes": 65543,
+                "rust_blocks": [
+                  {
+                    "tag": 1,
+                    "encoded": 176,
+                    "decoded": 32768
+                  },
+                  {
+                    "tag": 1,
+                    "encoded": 184,
+                    "decoded": 32768
+                  },
+                  {
+                    "tag": 0,
+                    "encoded": 7,
+                    "decoded": 7
+                  }
+                ],
+                "raw_sha256": "65082654eee1f52b5f17fab5be5ab6789cd16fc6a86be12ea975fd85b554fafb",
+                "rust_sha256": "93bdb73c9a3caba9e8f603e30df1cdc3ba439f7106dfcf02765ff7521f46f974",
+                "native_sha256": "774c207cec2088ab79e7f06a6e765e975dfd580fe554f9f68206484f4a5ddf10"
+              }
+            ],
+            "helper_build_identity": "7cb06b8e28daae4b97b6c6d54454c66c99bd7649cc141673e34cefeca27b6819",
+            "helper_sha256": "1b3802aa58db09f4b87543e40991dd060f6800cc3b1a8168bd90cd5bd8f3577d",
+            "oracle_identity": "b28f8cb0e43762deb6c3b346b532fecf56e0dffd4051df62fa41ec0b44c06718",
+            "native_isolation": {
+              "platform": "linux",
+              "memory_limit": "256 MiB address space or tighter inherited limit",
+              "cpu_seconds_max": 2,
+              "output_bytes_max": 1048576,
+              "core_bytes_max": 0,
+              "wall_timeout_seconds": 5
+            },
+            "rust_native_read_features": [
+              "default",
+              "all"
+            ],
+            "visible_state_bytes": 65712,
+            "private_state_reservation_bytes": 327680
+          },
+          "cases": [
+            {
+              "direction": "Rust writes \u2192 native reads",
+              "features": [],
+              "artifact": ".work/writer/2f6c5fdbc96144978c2f2ad1e7da36b9/rust-empty-0.gdx",
+              "bytes": 197,
+              "sha256": "cb0df5e7d6aa7e82798a32a9731aaf0aa559b26172a7c45dd0e49e2edfb0f4f1",
+              "native_complete_stream_matches": true,
+              "rust_complete_stream_matches": true
+            },
+            {
+              "direction": "Rust writes \u2192 native reads",
+              "features": [
+                "--no-default-features"
+              ],
+              "artifact": ".work/writer/2f6c5fdbc96144978c2f2ad1e7da36b9/rust-empty-1.gdx",
+              "bytes": 197,
+              "sha256": "cb0df5e7d6aa7e82798a32a9731aaf0aa559b26172a7c45dd0e49e2edfb0f4f1",
+              "native_complete_stream_matches": true,
+              "rust_complete_stream_matches": true
+            },
+            {
+              "direction": "Rust writes \u2192 native reads",
+              "features": [
+                "--all-features"
+              ],
+              "artifact": ".work/writer/2f6c5fdbc96144978c2f2ad1e7da36b9/rust-empty-2.gdx",
+              "bytes": 197,
+              "sha256": "cb0df5e7d6aa7e82798a32a9731aaf0aa559b26172a7c45dd0e49e2edfb0f4f1",
+              "native_complete_stream_matches": true,
+              "rust_complete_stream_matches": true
+            },
+            {
+              "direction": "Rust writes \u2192 native reads",
+              "compression": 1,
+              "features": [],
+              "artifact": ".work/writer/2f6c5fdbc96144978c2f2ad1e7da36b9/rust-zlib-empty-3.gdx",
+              "bytes": 209,
+              "sha256": "2c86a127251762267746b37119dca7a0418959d1ba7eceb4d6c5b3cfa6e29a42",
+              "native_complete_stream_matches": true,
+              "rust_complete_stream_matches": true
+            },
+            {
+              "direction": "Rust writes \u2192 native reads",
+              "compression": 1,
+              "features": [
+                "--all-features"
+              ],
+              "artifact": ".work/writer/2f6c5fdbc96144978c2f2ad1e7da36b9/rust-zlib-empty-4.gdx",
+              "bytes": 209,
+              "sha256": "2c86a127251762267746b37119dca7a0418959d1ba7eceb4d6c5b3cfa6e29a42",
+              "native_complete_stream_matches": true,
+              "rust_complete_stream_matches": true
+            },
+            {
+              "direction": "Native writes \u2192 Rust reads",
+              "compression": 0,
+              "features": [
+                [],
+                [
+                  "--all-features"
+                ],
+                [
+                  "--no-default-features"
+                ]
+              ],
+              "artifact": ".work/writer/2f6c5fdbc96144978c2f2ad1e7da36b9/native-empty-0.gdx",
+              "sha256": "9759fe8e0e61e1cf95760d2a483c8d4f3123844c47cc2335f5102430b81853d2",
+              "complete_stream_matches": true
+            },
+            {
+              "direction": "Native writes \u2192 Rust reads",
+              "compression": 1,
+              "features": [
+                [],
+                [
+                  "--all-features"
+                ]
+              ],
+              "artifact": ".work/writer/2f6c5fdbc96144978c2f2ad1e7da36b9/native-empty-1.gdx",
+              "sha256": "02f386e6e906bfcaff3eb812c9cec1c7d67918033c6f5c167b5c0031a7583ea0",
+              "complete_stream_matches": true
+            }
+          ],
+          "root": ".work/writer/2f6c5fdbc96144978c2f2ad1e7da36b9",
+          "native_executable_sha256": "79b9f3574597cf60339ecc12f0da24633f10c68e28ea208e78c0d5ee38fc249b",
+          "native_read_isolation": {
+            "platform": "linux",
+            "memory_limit": "256 MiB address space or tighter inherited limit",
+            "cpu_seconds_max": 2,
+            "output_bytes_max": 1048576,
+            "core_bytes_max": 0,
+            "wall_timeout_seconds": 5
+          },
+          "pinned_sources": {
+            "schema": 1,
+            "gdx": {
+              "url": "https://github.com/GAMS-dev/gdx.git",
+              "commit": "9e2a8c8932412010cd7d2f94727d1740143bf3da",
+              "license": "MIT"
+            },
+            "zlib": {
+              "url": "https://github.com/madler/zlib.git",
+              "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
+              "license": "Zlib"
+            },
+            "unused_submodules": {
+              "src/apigenerator": "a2db931c5066d7e2253c68609b8d17a5be2016a4"
+            },
+            "build_options": [
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-DNO_TESTS=ON",
+              "-DNO_EXAMPLES=ON",
+              "-DNO_TOOLS=ON",
+              "-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=TRUE",
+              "-DGDX_THREAD_SAFE=OFF"
+            ]
+          }
+        },
+        "platform": {
+          "system": "Linux",
+          "machine": "x86_64",
+          "release": "6.18.55"
+        },
+        "elapsed_seconds": 11.883645156980492,
+        "exit_code": 0
+      }
+    }
+  ],
+  "native_run_url": "https://github.com/enioarz/gdxrs/actions/runs/40382469389",
+  "review": "Implementer self-review. Explicit cursor close runs before parent cleanup on every replay result; an existing secondary error is preserved. Successful replay still checks EOF/count/completion and cleanup. No new dependency, allocation, quota or format change.",
+  "not_rerun": [
+    "47 tooling tests",
+    "label-pages-check",
+    "eight M3 capped smoke cases"
+  ],
+  "not_rerun_reason": "Previously passed at 5dd8c84 as confirmed by reviewer; this change only preserves replay cleanup diagnostics.",
+  "native_run": {
+    "id": 40382469389,
+    "conclusion": "success",
+    "url": "https://github.com/enioarz/gdxrs/actions/runs/40382469389",
+    "head_sha": "db6d093f276a8fb754221003eae97688673fb521",
+    "tested_revision": "0d463dadc4007a40c64c8d6a2aaa77148ed040e5",
+    "tree": "a0934294e317ae9e36517b95d8158e2f44e8f636",
+    "implementation_tree_matches": true,
+    "checks": [
+      {
+        "name": "Reader / x86_64-pc-windows-msvc",
+        "conclusion": "success",
+        "url": "https://github.com/enioarz/gdxrs/actions/runs/40382469389/job/121782040979",
+        "qualification": {
+          "revision": "0d463dadc4007a40c64c8d6a2aaa77148ed040e5",
+          "platform": {
+            "system": "Windows",
+            "machine": "AMD64",
+            "release": "2025Server"
+          },
+          "host": "x86_64-pc-windows-msvc",
+          "profiles": [
+            "debug default/minimal/all",
+            "release default"
+          ],
+          "run_id": "fe770185e47542f0b726868af3469e1a",
+          "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "suites": [
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                93,
+                38,
+                3,
+                4
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--no-default-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                85,
+                37,
+                3,
+                4
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--all-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                93,
+                38,
+                3,
+                4
+              ]
+            }
+          ],
+          "fixtures": 10,
+          "records": 141358,
+          "report": ".work\\reports\\reader-check-fe770185e47542f0b726868af3469e1a.json"
+        },
+        "annotations": [
+          {
+            "path": ".github",
+            "blob_href": "https://github.com/enioarz/gdxrs/blob/db6d093f276a8fb754221003eae97688673fb521/.github",
+            "start_line": 31,
+            "start_column": null,
+            "end_line": 31,
+            "end_column": null,
+            "annotation_level": "notice",
+            "title": "Native reader qualification",
+            "message": "{\"revision\": \"0d463dadc4007a40c64c8d6a2aaa77148ed040e5\", \"platform\": {\"system\": \"Windows\", \"machine\": \"AMD64\", \"release\": \"2025Server\"}, \"host\": \"x86_64-pc-windows-msvc\", \"profiles\": [\"debug default/minimal/all\", \"release default\"], \"run_id\": \"fe770185e47542f0b726868af3469e1a\", \"compiler\": \"rustc 1.99.1 (58cf8f9c3 2026-10-13)\", \"suites\": [{\"command\": [\"cargo\", \"test\", \"--locked\"], \"unit_integration_doctest_groups_passed\": [93, 38, 3, 4]}, {\"command\": [\"cargo\", \"test\", \"--locked\", \"--no-default-features\"], \"unit_integration_doctest_groups_passed\": [85, 37, 3, 4]}, {\"command\": [\"cargo\", \"test\", \"--locked\", \"--all-features\"], \"unit_integration_doctest_groups_passed\": [93, 38, 3, 4]}], \"fixtures\": 10, \"records\": 141358, \"report\": \".work\\\\reports\\\\reader-check-fe770185e47542f0b726868af3469e1a.json\"}",
+            "raw_details": ""
+          }
+        ]
+      },
+      {
+        "name": "Reader / x86_64-apple-darwin",
+        "conclusion": "success",
+        "url": "https://github.com/enioarz/gdxrs/actions/runs/40382469389/job/121782040968",
+        "qualification": {
+          "revision": "0d463dadc4007a40c64c8d6a2aaa77148ed040e5",
+          "platform": {
+            "system": "Darwin",
+            "machine": "x86_64",
+            "release": "24.6.0"
+          },
+          "host": "x86_64-apple-darwin",
+          "profiles": [
+            "debug default/minimal/all",
+            "release default"
+          ],
+          "run_id": "aea3c52437294bbfaf749f9fe567b9ac",
+          "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "suites": [
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                93,
+                38,
+                3,
+                4
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--no-default-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                85,
+                37,
+                3,
+                4
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--all-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                93,
+                38,
+                3,
+                4
+              ]
+            }
+          ],
+          "fixtures": 10,
+          "records": 141358,
+          "report": ".work/reports/reader-check-aea3c52437294bbfaf749f9fe567b9ac.json"
+        },
+        "annotations": [
+          {
+            "path": ".github",
+            "blob_href": "https://github.com/enioarz/gdxrs/blob/db6d093f276a8fb754221003eae97688673fb521/.github",
+            "start_line": 31,
+            "start_column": null,
+            "end_line": 31,
+            "end_column": null,
+            "annotation_level": "notice",
+            "title": "Native reader qualification",
+            "message": "{\"revision\": \"0d463dadc4007a40c64c8d6a2aaa77148ed040e5\", \"platform\": {\"system\": \"Darwin\", \"machine\": \"x86_64\", \"release\": \"24.6.0\"}, \"host\": \"x86_64-apple-darwin\", \"profiles\": [\"debug default/minimal/all\", \"release default\"], \"run_id\": \"aea3c52437294bbfaf749f9fe567b9ac\", \"compiler\": \"rustc 1.99.1 (58cf8f9c3 2026-10-13)\", \"suites\": [{\"command\": [\"cargo\", \"test\", \"--locked\"], \"unit_integration_doctest_groups_passed\": [93, 38, 3, 4]}, {\"command\": [\"cargo\", \"test\", \"--locked\", \"--no-default-features\"], \"unit_integration_doctest_groups_passed\": [85, 37, 3, 4]}, {\"command\": [\"cargo\", \"test\", \"--locked\", \"--all-features\"], \"unit_integration_doctest_groups_passed\": [93, 38, 3, 4]}], \"fixtures\": 10, \"records\": 141358, \"report\": \".work/reports/reader-check-aea3c52437294bbfaf749f9fe567b9ac.json\"}",
+            "raw_details": ""
+          }
+        ]
+      },
+      {
+        "name": "Reader / aarch64-apple-darwin",
+        "conclusion": "success",
+        "url": "https://github.com/enioarz/gdxrs/actions/runs/40382469389/job/121782040926",
+        "qualification": {
+          "revision": "0d463dadc4007a40c64c8d6a2aaa77148ed040e5",
+          "platform": {
+            "system": "Darwin",
+            "machine": "arm64",
+            "release": "24.6.0"
+          },
+          "host": "aarch64-apple-darwin",
+          "profiles": [
+            "debug default/minimal/all",
+            "release default"
+          ],
+          "run_id": "137d4c7f81b34217a2b64350c3db6cd3",
+          "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "suites": [
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                93,
+                38,
+                3,
+                4
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--no-default-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                85,
+                37,
+                3,
+                4
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--all-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                93,
+                38,
+                3,
+                4
+              ]
+            }
+          ],
+          "fixtures": 10,
+          "records": 141358,
+          "report": ".work/reports/reader-check-137d4c7f81b34217a2b64350c3db6cd3.json"
+        },
+        "annotations": [
+          {
+            "path": ".github",
+            "blob_href": "https://github.com/enioarz/gdxrs/blob/db6d093f276a8fb754221003eae97688673fb521/.github",
+            "start_line": 31,
+            "start_column": null,
+            "end_line": 31,
+            "end_column": null,
+            "annotation_level": "notice",
+            "title": "Native reader qualification",
+            "message": "{\"revision\": \"0d463dadc4007a40c64c8d6a2aaa77148ed040e5\", \"platform\": {\"system\": \"Darwin\", \"machine\": \"arm64\", \"release\": \"24.6.0\"}, \"host\": \"aarch64-apple-darwin\", \"profiles\": [\"debug default/minimal/all\", \"release default\"], \"run_id\": \"137d4c7f81b34217a2b64350c3db6cd3\", \"compiler\": \"rustc 1.99.1 (58cf8f9c3 2026-10-13)\", \"suites\": [{\"command\": [\"cargo\", \"test\", \"--locked\"], \"unit_integration_doctest_groups_passed\": [93, 38, 3, 4]}, {\"command\": [\"cargo\", \"test\", \"--locked\", \"--no-default-features\"], \"unit_integration_doctest_groups_passed\": [85, 37, 3, 4]}, {\"command\": [\"cargo\", \"test\", \"--locked\", \"--all-features\"], \"unit_integration_doctest_groups_passed\": [93, 38, 3, 4]}], \"fixtures\": 10, \"records\": 141358, \"report\": \".work/reports/reader-check-137d4c7f81b34217a2b64350c3db6cd3.json\"}",
+            "raw_details": ""
+          },
+          {
+            "path": ".github",
+            "blob_href": "https://github.com/enioarz/gdxrs/blob/db6d093f276a8fb754221003eae97688673fb521/.github",
+            "start_line": 1,
+            "start_column": null,
+            "end_line": 1,
+            "end_column": null,
+            "annotation_level": "notice",
+            "title": "",
+            "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.",
+            "raw_details": ""
+          }
+        ]
+      },
+      {
+        "name": "Reader / x86_64-unknown-linux-gnu",
+        "conclusion": "success",
+        "url": "https://github.com/enioarz/gdxrs/actions/runs/40382469389/job/121782040576",
+        "qualification": {
+          "revision": "0d463dadc4007a40c64c8d6a2aaa77148ed040e5",
+          "platform": {
+            "system": "Linux",
+            "machine": "x86_64",
+            "release": "6.17.0-1022-azure"
+          },
+          "host": "x86_64-unknown-linux-gnu",
+          "profiles": [
+            "debug default/minimal/all",
+            "release default"
+          ],
+          "run_id": "edf877da5347419280e5d1ab4ae36bfc",
+          "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "suites": [
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                93,
+                38,
+                3,
+                4
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--no-default-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                85,
+                37,
+                3,
+                4
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--all-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                93,
+                38,
+                3,
+                4
+              ]
+            }
+          ],
+          "fixtures": 10,
+          "records": 141358,
+          "report": ".work/reports/reader-check-edf877da5347419280e5d1ab4ae36bfc.json"
+        },
+        "annotations": [
+          {
+            "path": ".github",
+            "blob_href": "https://github.com/enioarz/gdxrs/blob/db6d093f276a8fb754221003eae97688673fb521/.github",
+            "start_line": 32,
+            "start_column": null,
+            "end_line": 32,
+            "end_column": null,
+            "annotation_level": "notice",
+            "title": "Native reader qualification",
+            "message": "{\"revision\": \"0d463dadc4007a40c64c8d6a2aaa77148ed040e5\", \"platform\": {\"system\": \"Linux\", \"machine\": \"x86_64\", \"release\": \"6.17.0-1022-azure\"}, \"host\": \"x86_64-unknown-linux-gnu\", \"profiles\": [\"debug default/minimal/all\", \"release default\"], \"run_id\": \"edf877da5347419280e5d1ab4ae36bfc\", \"compiler\": \"rustc 1.99.1 (58cf8f9c3 2026-10-13)\", \"suites\": [{\"command\": [\"cargo\", \"test\", \"--locked\"], \"unit_integration_doctest_groups_passed\": [93, 38, 3, 4]}, {\"command\": [\"cargo\", \"test\", \"--locked\", \"--no-default-features\"], \"unit_integration_doctest_groups_passed\": [85, 37, 3, 4]}, {\"command\": [\"cargo\", \"test\", \"--locked\", \"--all-features\"], \"unit_integration_doctest_groups_passed\": [93, 38, 3, 4]}], \"fixtures\": 10, \"records\": 141358, \"report\": \".work/reports/reader-check-edf877da5347419280e5d1ab4ae36bfc.json\"}",
+            "raw_details": ""
+          }
+        ]
+      }
+    ]
+  }
+}

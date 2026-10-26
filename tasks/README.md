@@ -111,5 +111,22 @@ M3's sorted-writer exit gate passes at `cc972bf`; see [M3 API status](../docs/m3
 Linux OS/RSS qualification is separate from native Rust functionality on all four
 platforms. Bulk metadata registration remains slower than eager native registration;
 compressed timings use different compression levels. No M4 append/general-input
-adapter or full native C API parity is implied. Next milestone: M4, with separately
-specified tasks before implementation. PRs #16/#17 retain task boundaries for review.
+adapter or full native C API parity is implied. M4 is authorized and separately specified below. PRs #16/#17 retain task boundaries for review.
+
+## M4 — general write and modern semantic parity
+
+The user authorized beginning M4 after the M3 gate passed. Tasks 018–023 are
+qualified and the final native CI passed. PR #18 integrates M3 onto main because
+PR #17 merged into the already-merged feature branch; M4 builds on that validated
+M3 tree. Complete one gate at a time; task 031 is the M4 exit gate.
+
+| Task | Scope | Prerequisites | Status |
+| --- | --- | --- | --- |
+| [024](024-unsorted-raw-records.md) | Bounded unsorted raw records using the existing merge engine | 023 | Complete; [evidence](../docs/evidence/024.md) |
+| [025](025-string-record-registration.md) | Streamed string records and first-registration dictionary/remap | 024 | Pending |
+| [026](026-mapped-id-adapters.md) | Bounded mapped registration/read/write | 025 | Pending |
+| [027](027-domain-error-streams.md) | Explicit domain validation and bounded error streams | 026 | Pending |
+| [028](028-value-acronym-policies.md) | Special-value/acronym policies and semantic parity | 027 | Pending |
+| [029](029-uel-metadata-operations.md) | Remaining modern UEL/metadata operations | 028 | Pending |
+| [030](030-atomic-append.md) | Atomic copy/rewrite append | 029 | Pending |
+| [031](031-m4-acceptance.md) | API inventory, general-input scale and M4 acceptance | 024–030 | Pending |

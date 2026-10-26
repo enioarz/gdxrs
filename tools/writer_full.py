@@ -55,6 +55,7 @@ def recipe():
 
 def check(run,area,executable,decode_blocks):
     cases=[]
+    unsorted_cases=[]
     recipe_path=area/'full.recipe.tsv';recipe_path.write_text(recipe())
     for compression in [0,1]:
         native_path=area/f'full-native-{compression}.gdx'
@@ -87,4 +88,13 @@ def check(run,area,executable,decode_blocks):
             if native!=expected(compression,b'gdxrs'.hex(),b'gdxrs'.hex()) or rust!=expected(compression,b'gdxrs'.hex(),'<creation-system>'):
                 raise ValueError('Rust writes → native reads complete metadata/record mismatch')
             cases.append(dict(features=feature,compression=compression,bytes=len(data),sha256=hashlib.sha256(data).hexdigest(),native_sha256=hashlib.sha256(native_path.read_bytes()).hexdigest(),both_directions_complete_stream_match=True,canonical_offsets_and_section_markers_match=True))
-    return dict(cases=cases,scope='complete supported metadata and records; 9 symbols, 4 UELs, 20 public rows per case',recipe_sha256=hashlib.sha256(recipe_path.read_bytes()).hexdigest(),native_isolation=isolation_policy())
+            unsorted_path=area/f'full-unsorted-{compression}-{len(cases)}.gdx'
+            created=run(['cargo','run','--locked','--quiet',*feature,'--example','create_full','--',unsorted_path,area,*(['zlib'] if compression else []),'unsorted'],capture=True)
+            if 'unsorted_records=2 merge_passes=1' not in created.stderr:raise ValueError('unsorted author did not exercise forced external merging')
+            with unsorted_path.open('rb') as source:unsorted=source.read(16385)
+            if unsorted!=data:raise ValueError('reversed unsorted input differs from independently qualified full output bytes')
+            native_unsorted=run([sys.executable,ROOT/'tools/oracle_limits.py',executable,'dump',unsorted_path],capture=True,timeout=5).stdout
+            rust_unsorted=run(['cargo','run','--locked','--quiet',*feature,'--example','dump','--',unsorted_path],capture=True).stdout
+            if native_unsorted!=expected(compression,b'gdxrs'.hex(),b'gdxrs'.hex()) or rust_unsorted!=expected(compression,b'gdxrs'.hex(),'<creation-system>'):raise ValueError('unsorted complete metadata/record streams differ from independent expectation')
+            unsorted_cases.append(dict(features=feature,compression=compression,bytes=len(unsorted),sha256=hashlib.sha256(unsorted).hexdigest(),forced_external_merge=True,complete_native_and_rust_stream_match=True))
+    return dict(unsorted_cases=unsorted_cases,cases=cases,scope='complete supported metadata and records; 9 symbols, 4 UELs, 20 public rows per case',recipe_sha256=hashlib.sha256(recipe_path.read_bytes()).hexdigest(),native_isolation=isolation_policy())
