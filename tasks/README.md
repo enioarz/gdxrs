@@ -102,6 +102,6 @@ before starting its dependent; task 023 is the M3 release gate.
 | [018](018-writer-foundation.md) | Writer contract, bounded empty-v7 creation and atomic publication | Complete; [evidence](../docs/evidence/018.md) |
 | [019](019-bounded-writer-codec.md) | Bounded byte/block encoder and stored/zlib compression | Complete; [evidence](../docs/evidence/019.md) |
 | [020](020-writer-metadata-spooling.md) | Original-ID raw registration and metadata spools | Complete; [review fixes](../docs/evidence/020-review-fixes.md); merged in PR #14 at `8997385` |
-| [021](021-sorted-record-writer.md) | Checked sorted raw symbol/record encoding | In progress |
+| [021](021-sorted-record-writer.md) | Checked sorted raw symbol/record encoding | Complete; [evidence](../docs/evidence/021.md) |
 | [022](022-writer-finalization-interop.md) | Complete metadata/finalization and both interoperability directions | Pending |
 | [023](023-m3-writer-acceptance.md) | OS-capped record/metadata/pipeline scale and M3 acceptance | Pending |
