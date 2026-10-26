@@ -7,3 +7,10 @@ The low-level fixed-slice inflater is used, not `decompress_to_vec`. The state i
 On the pinned Linux x86_64/Rust 1.99.1 build, `size_of::<DecompressorOxide>()` is **10,504 bytes**, below the 128 KiB ceiling. That state is reserved before construction; fixed stream storage is additionally conservatively reserved. No codec-side heap allocation feature is enabled. The fixed safe control-owner OOM limitation in decision 0003 still applies. No-default-features has no third-party runtime dependency and rejects compressed streams explicitly.
 
 Verification includes a complete independently hashed 50,025-byte decoded symbol, an eight-byte read spanning the 32 KiB boundary, checksum rejection, and a valid independent zlib stream expanding to 32,769 bytes rejected without buffer growth. The latter payload was independently checked with Python zlib before the final Rust test; an initial hand-copied test payload had a checksum error and was corrected from its declared zero-byte input, rather than weakening the output-size assertion.
+
+
+Task 019 extends the same pinned dependency with its `with-alloc` feature for the
+encoder only; [decision 0013](0013-bounded-writer-codec.md) records the separately
+charged fixed heap state and standard allocator-OOM limitation. The fixed-slice
+inflater API/validation above remains unchanged; the original feature description
+is the historical task-008 configuration.

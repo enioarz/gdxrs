@@ -22,7 +22,7 @@ fn main() -> gdxrs::Result<()> {
 
 Keys retain one-based file UEL IDs. Typed values preserve ordinary numeric bits, the five GDX special classes, and acronym identity. Metadata is streamed through lending views; cold lookups may scan tables without building a full dictionary. Independent cursors share the reader's configurable memory quota, including codec scratch and output buffers. Sources must remain immutable.
 
-Compression is enabled by default using one direct dependency (`miniz_oxide`) and one transitive dependency (`adler2`). Disabling default features removes both and rejects compressed input explicitly. Production code uses safe Rust and no native GDX/GAMS/Python runtime.
+Compression is enabled by default using one direct dependency (`miniz_oxide`) and one transitive dependency (`adler2`). Disabling default features removes both and rejects compressed input/output explicitly. Production code uses safe Rust and no native GDX/GAMS/Python runtime.
 
 ```sh
 cargo run --locked --release --example dump -- FILE.gdx
@@ -96,11 +96,14 @@ writer.finish()?;
 # Ok(()) }
 ```
 
-It currently creates only valid empty, uncompressed little-endian v7 files.
+It currently creates valid empty little-endian v7 files. Set
+`WriteOptions::compression` to `WriteCompression::Zlib` for independent 32 KiB
+level-1 zlib blocks with stored fallback; the default is uncompressed.
 UEL/symbol registration and record writing are the next M3 tasks. Output is
 buffered under a root budget, finalized/synced/closed and published without
 replacing an existing file. `abort()` reports retryable temporary cleanup failures;
 Drop never publishes. Inspect `statistics().published` if finish fails after
 publication. Use `reader.create_writer(path, reader.write_options())` to share an
 existing reader root budget; the writer does not retain its input file.
-See [writer ownership and resource contract](docs/decisions/0012-writer-contract.md).
+See [writer ownership and resource contract](docs/decisions/0012-writer-contract.md)
+and [bounded encoder allocation audit](docs/decisions/0013-bounded-writer-codec.md).

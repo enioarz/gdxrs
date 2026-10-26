@@ -1,9 +1,13 @@
 """Bounded development interoperability for the current M3 writer foundation."""
+import hashlib
 import json
+import os
+import re
 from pathlib import Path
 import struct
 import sys
 import uuid
+import zlib
 
 import oracle
 import fixtures
@@ -43,6 +47,30 @@ def check(run):
         if rust != expected(0,RUST_PRODUCER,'<creation-system>'):
             raise ValueError('Rust metadata/record stream differs from independent empty expectation')
         cases.append(dict(direction='Rust writes → native reads',features=feature,artifact=str(path.relative_to(ROOT)),bytes=len(data),sha256=oracle.file_digest(path),native_complete_stream_matches=True,rust_complete_stream_matches=True))
+    for feature in [[], ['--all-features']]:
+        path = area/f'rust-zlib-empty-{len(cases)}.gdx'
+        created = run(['cargo','run','--locked','--quiet',*feature,'--example','create_empty','--',path,'zlib'],capture=True)
+        stats = json.loads(created.stdout)
+        if not (126 < path.stat().st_size <= 209):
+            raise ValueError('compressed empty writer exceeds independent bound')
+        with path.open('rb') as stream:
+            data = stream.read(210)
+        if stats != dict(output_bytes=len(data),bytes_written=len(data)+52,published=True):
+            raise ValueError('compressed writer statistics differ')
+        offsets = struct.unpack_from('<6q',data,50)
+        if offsets[0] != 126 or offsets[4:] != (126,0) or struct.unpack_from('<i',data,30)[0] != 1:
+            raise ValueError('compressed empty header offsets/flag differ')
+        boundaries = [offsets[0],offsets[2],offsets[1],offsets[3],len(data)]
+        chunks = [b'\x06_SYMB_\0\0\0\0\x06_SYMB_',b'\x06_SETT_\x01\0\0\0\0\x06_SETT_',b'\x05_UEL_\0\0\0\0\x05_UEL_',b'\x06_ACRO_\0\0\0\0\x06_ACRO_']
+        for start,end,wanted in zip(boundaries,boundaries[1:],chunks):
+            actual,_ = decode_blocks(data[start:end])
+            if actual != wanted:
+                raise ValueError('independently decoded compressed empty section differs')
+        native = run([sys.executable,ROOT/'tools/oracle_limits.py',executable,'dump',path],capture=True,timeout=5).stdout
+        rust = run(['cargo','run','--locked','--quiet',*feature,'--example','dump','--',path],capture=True).stdout
+        if native != expected(1,RUST_PRODUCER,RUST_PRODUCER) or rust != expected(1,RUST_PRODUCER,'<creation-system>'):
+            raise ValueError('compressed empty complete semantic stream differs')
+        cases.append(dict(direction='Rust writes → native reads',compression=1,features=feature,artifact=str(path.relative_to(ROOT)),bytes=len(data),sha256=oracle.file_digest(path),native_complete_stream_matches=True,rust_complete_stream_matches=True))
     recipe = area/'empty.recipe.tsv'
     recipe.write_text('# No UELs or symbols; upstream initializes empty set-text ID 0.\n')
     for compression in [0,1]:
@@ -59,4 +87,93 @@ def check(run):
             if actual != expected(compression,NATIVE_PRODUCER,'<creation-system>'):
                 raise ValueError('Rust failed complete upstream-written empty metadata/record stream')
         cases.append(dict(direction='Native writes → Rust reads',compression=compression,features=features,artifact=str(path.relative_to(ROOT)),sha256=oracle.file_digest(path),complete_stream_matches=True))
-    return dict(scope='task 018 empty-v7 foundation only',cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),native_read_isolation=isolation_policy(),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
+    codec = codec_check(run, area)
+    return dict(scope='tasks 018–019 empty-v7 writer and bounded section codec only',codec=codec,cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),native_read_isolation=isolation_policy(),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
+
+
+def decode_blocks(data):
+    """Independent Python-zlib framing/checksum/full-consumption verification."""
+    output = bytearray()
+    blocks = []
+    offset = 0
+    while offset < len(data):
+        if len(data)-offset < 3:
+            raise ValueError('truncated block header')
+        tag,n = data[offset],int.from_bytes(data[offset+1:offset+3],'big')
+        if tag not in [0,1] or not 1 <= n <= 32768 or offset+3+n > len(data):
+            raise ValueError('invalid output framing')
+        payload = data[offset+3:offset+3+n]
+        if tag:
+            decoder = zlib.decompressobj()
+            decoded = decoder.decompress(payload,32769)
+            if not decoder.eof or decoder.unused_data or decoder.unconsumed_tail or not n < len(decoded) <= 32768:
+                raise ValueError('non-independent/checksum/size/useful-compression failure')
+        else:
+            decoded = payload
+        blocks.append(dict(tag=tag,encoded=n,decoded=len(decoded)))
+        output.extend(decoded)
+        if len(output) > 131072:
+            raise ValueError('development decoded fixture bound exceeded')
+        offset += n+3
+    return bytes(output),blocks
+
+
+def bounded_read(path):
+    if path.stat().st_size > 131072:
+        raise ValueError('development fixture size bound exceeded')
+    with path.open('rb') as stream:
+        data = stream.read(131073)
+    if len(data) > 131072:
+        raise ValueError('development fixture grew beyond bound')
+    return data
+
+
+def codec_check(run, area):
+    current = json.loads((ROOT/'.work/oracle/current.json').read_text())
+    sources = ['tools/writer-codec/driver.cpp','tools/writer-codec/CMakeLists.txt']
+    digest = hashlib.sha256(current['identity'].encode())
+    for source in sources:
+        digest.update(source.encode()); digest.update((ROOT/source).read_bytes())
+    identity = digest.hexdigest()
+    build = ROOT/'.work/writer-codec/builds'/identity
+    run([oracle.cmake(),'-S',ROOT/'tools/writer-codec','-B',build,'-DCMAKE_BUILD_TYPE=Release',f'-DGDX_ROOT={ROOT/".work/oracle/gdx"}',f'-DGDX_LIBRARY={Path(current["executable"]).parents[1]/"gdx/libgdx-static.a"}'])
+    run([oracle.cmake(),'--build',build,'--parallel','2'])
+    executable = build/'gdxrs-writer-codec'
+    probes = area/'codec'
+    probes.mkdir()
+    env = dict(os.environ, GDXRS_CODEC_PROBES=str(probes))
+    env.pop('GDXRS_CODEC_VERIFY_NATIVE',None)
+    command = ['cargo','test','--locked','--lib','write::codec_tests::native_codec_probes','--','--exact','--nocapture']
+    generated = run(command,env=env,capture=True)
+    if '1 passed; 0 failed' not in generated.stdout:
+        raise ValueError('native codec probe generator did not execute')
+    state = 0x12345678
+    noise = bytearray()
+    for _ in range(32768):
+        state ^= (state << 13) & 0xffffffff; state ^= state >> 17; state ^= (state << 5) & 0xffffffff
+        noise.append(state & 255)
+    recipes = dict(empty=b'',one=b'x',small=b'abc',full=b'x'*32768,final=b'x'*32769,repeat=b'x'*65537,noise=bytes(noise),boundary=b'a'*32766+b'\x78\x56\x34\x12\xff'+b'z'*255+b'q'*32508+b'\x08boundary')
+    cases = []
+    for name,wanted in recipes.items():
+        raw = probes/f'{name}.raw'; encoded = probes/f'{name}.blocks'
+        if bounded_read(raw) != wanted:
+            raise ValueError('Rust test input differs from independent Python recipe')
+        data = bounded_read(encoded)
+        decoded,blocks = decode_blocks(data)
+        if decoded != wanted or len(blocks) != (len(wanted)+32767)//32768:
+            raise ValueError('Rust blocks differ from independent Python expectation')
+        native_decoded = probes/f'{name}.decoded'
+        native_encoded = probes/f'{name}.native'
+        for mode,input_path,output in [('decode',encoded,native_decoded),('encode',raw,native_encoded)]:
+            actual = run([sys.executable,ROOT/'tools/oracle_limits.py',executable,mode,input_path,output],capture=True,timeout=5)
+            if int(actual.stdout.strip()) != len(wanted):
+                raise ValueError('native buffered stream byte count differs')
+        if bounded_read(native_decoded) != wanted or decode_blocks(bounded_read(native_encoded))[0] != wanted:
+            raise ValueError('native buffered stream differs from independent recipe')
+        cases.append(dict(name=name,decoded_bytes=len(wanted),rust_blocks=blocks,raw_sha256=hashlib.sha256(wanted).hexdigest(),rust_sha256=hashlib.sha256(data).hexdigest(),native_sha256=oracle.file_digest(native_encoded)))
+    env['GDXRS_CODEC_VERIFY_NATIVE']='1'
+    for features in [[],['--all-features']]:
+        actual = run(['cargo','test','--locked',*features,'--lib','write::codec_tests::native_codec_probes','--','--exact','--nocapture'],env=env,capture=True)
+        if '1 passed; 0 failed' not in actual.stdout:
+            raise ValueError('Rust native-stream comparison did not execute')
+    return dict(cases=cases,helper_build_identity=identity,helper_sha256=oracle.file_digest(executable),oracle_identity=current['identity'],native_isolation=isolation_policy(),rust_native_read_features=['default','all'],visible_state_bytes=int(re.search(r'encoder_visible_state_bytes=(\d+)',generated.stderr).group(1)),private_state_reservation_bytes=320*1024)

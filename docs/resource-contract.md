@@ -112,3 +112,27 @@ Only one owned output handle/temporary file exists per writer. There is no metad
 spool yet. Explicit finish/abort close handles before owned cleanup; Drop never
 publishes. Output quota is logical extent, not physical filesystem-block usage,
 and no writer OS-capped scale or throughput claim exists yet.
+
+
+## M3 bounded section encoding, task 019
+
+The [encoder audit](decisions/0013-bounded-writer-codec.md) records the exact
+miniz_oxide feature and fixed allocation paths. Zlib adds a fallible 32768-byte
+input buffer, a fallible 32771-byte framed-output buffer, a fallible one-element
+visible codec-state buffer (65712 bytes on qualified native targets), and a
+conservative 320 KiB reservation for five private fixed heap objects. All compete
+for the existing root and are admitted before constructing the codec or creating
+an output file. The additional tracked encoder reservation is 458931 bytes on
+those targets. Private fixed boxes retain the documented allocator-OOM abort
+exception; data buffers are fallible and never grow. Raw mode allocates no extra
+encoder buffers/state. This changes no dependency versions/counts.
+
+Every nonempty <=32 KiB input block resets the dictionary and checksum. A zlib
+attempt can fill at most raw-length minus one output bytes; otherwise stored
+fallback copies to the same fixed framed buffer. Admit the entire header+payload
+to the output sink together; a sink error makes the encoder terminal. End flushes
+only a pending final block; repeated empty flushes emit nothing. Section boundaries
+are flushed before recording the next physical offset, and compressed data is
+never patched. Compressed empty GDX output uses stored blocks because its tiny
+sections do not benefit from zlib; the separate full/boundary block probes exercise
+actual zlib output. No record-writer RSS or throughput result is claimed.
