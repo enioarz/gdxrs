@@ -1142,6 +1142,8 @@ impl Metadata {
         if self.cleaned {
             return Ok(());
         }
+        // Historical peaks must survive release of retained index/spool slots.
+        self.stats.peak_open_files = self.statistics().peak_open_files;
         self.journal = None;
         self.mapped_store = None;
         let mut first = None;

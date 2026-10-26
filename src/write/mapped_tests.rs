@@ -104,7 +104,9 @@ fn mapped_write_and_read_order_zero_sparse_ids_values_and_raw_identity() {
     c.close().unwrap();
     drop(c);
     assert!(m.statistics().peak_open_files <= 7);
+    let peak_handles = m.statistics().peak_open_files;
     m.close().unwrap();
+    assert_eq!(m.statistics().peak_open_files, peak_handles);
     drop(m);
     assert_eq!(r.budget_statistics().current_bytes, baseline);
 }
