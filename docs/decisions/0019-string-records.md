@@ -43,10 +43,13 @@ After ingestion, the dictionary iterator scans label frames; the mapping callbac
 appends fixed 19-byte ordinal/UEL frames to the same Store. Replay streams original
 frames and mapping frames with two offsets, validating checksums, shapes, counts,
 tags, extents, ordinals and registered IDs before external record sorting.
+Prefetch at most 1024 mapping IDs (4 KiB, root-charged) to avoid switching the
+shared page cache between distant offsets for every key. This is a fixed batch,
+not an input-sized token array or a second dictionary cache.
 
 The Store has one existing 32 KiB root-charged buffer. Admission reserves 16 KiB
 for fixed controls/frames, including its small shared owner, and a 20-token key
-buffer. The Arc/Mutex control allocation is fixed and admitted but uses std's
+buffer and the 4 KiB mapping batch. The Arc/Mutex control allocation is fixed and admitted but uses std's
 infallible Arc constructor, like existing shared budget/spill controls; it does
 not provide an allocator-OOM recovery guarantee. There is one local spool mutex,
 never a global decoder lock. Locks are released before dictionary callbacks and

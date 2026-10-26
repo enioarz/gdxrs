@@ -343,3 +343,31 @@ fn spill_io_secondary_errors_and_abort_retry_close_string_spool() {
         p.empty();
     }
 }
+
+#[test]
+fn occurrence_overflow_and_replay_output_failure_keep_primary_errors() {
+    for overflow in [false, true] {
+        let p = Parent::new();
+        let (mut w, i, _) = setup(&p);
+        let mut rows = w.begin_string_records().unwrap();
+        rows.begin_symbol(i).unwrap();
+        if overflow {
+            rows.statistics.label_requests = i32::MAX as u32;
+            assert_eq!(
+                rows.write(&[b"a"], &[Value::ZERO]).unwrap_err().kind,
+                ErrorKind::InvalidCount
+            );
+            drop(rows);
+        } else {
+            rows.write(&[b"a"], &[Value::ZERO]).unwrap();
+            rows.writer.limit = 147;
+            assert_eq!(
+                rows.finish().unwrap_err().kind,
+                ErrorKind::OutputLimitExceeded
+            );
+        }
+        assert!(!w.statistics().published);
+        w.abort().unwrap();
+        p.empty();
+    }
+}

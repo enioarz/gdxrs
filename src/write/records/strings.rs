@@ -43,6 +43,7 @@ pub struct StringRecordWriter<'a> {
     group_records: u32,
     statistics: StringWriteStatistics,
     keys: Buffer<WriterUelId>,
+    mapping: Buffer<u32>,
     finished: bool,
     _state: Reservation,
 }
@@ -61,10 +62,11 @@ impl Writer {
                 return Err(invalid());
             }
             let keys = Buffer::new(&self.budget, 20)?;
+            let mapping = Buffer::new(&self.budget, 1024)?;
             let store = self.metadata_call(Metadata::string_begin)?;
-            Ok((state, keys, store))
+            Ok((state, keys, mapping, store))
         })();
-        let (state, keys, store) = prepared.map_err(|e| self.fail(e))?;
+        let (state, keys, mapping, store) = prepared.map_err(|e| self.fail(e))?;
         self.symbol_active = true;
         Ok(StringRecordWriter {
             writer: self,
@@ -79,6 +81,7 @@ impl Writer {
                 merge_passes: 0,
             },
             keys,
+            mapping,
             finished: false,
             _state: state,
         })
@@ -149,7 +152,12 @@ impl StringRecordWriter<'_> {
                 .label_requests
                 .checked_add(dim as u32)
                 .filter(|v| *v <= i32::MAX as u32)
-                .ok_or_else(invalid)?;
+                .ok_or_else(|| {
+                    Error::new(
+                        ErrorKind::InvalidCount,
+                        "string label count exceeds adapter range",
+                    )
+                })?;
             for bytes in labels {
                 super::super::metadata::validate_string_label(bytes)?;
             }
@@ -260,6 +268,8 @@ impl StringRecordWriter<'_> {
         self.writer.symbol_active = false;
         let (mut at, mut mapping, mut ordinal, mut symbols, mut records) =
             (0, extent, 0u32, 0u32, 0u64);
+        let mut map_index = 0usize;
+        let mut loaded = 0u32;
         while at < extent {
             let frame = next(&self.store, &mut at, extent, 1)?;
             let id = self
@@ -293,14 +303,31 @@ impl StringRecordWriter<'_> {
                         // Verify the original label frame as well as the ordinal mapping.
                         let label = next(&self.store, &mut at, extent, 3)?;
                         super::super::metadata::validate_string_label(label.payload())?;
-                        let mapped = next(&self.store, &mut mapping, limit, 8)?;
-                        if mapped.payload().len() != 8 {
-                            return Err(invalid());
+                        if map_index == self.mapping.data.len() {
+                            self.mapping.data.clear();
+                            map_index = 0;
+                            while self.mapping.data.len() < self.mapping.data.capacity()
+                                && loaded < expected
+                            {
+                                let mapped = next(&self.store, &mut mapping, limit, 8)?;
+                                if mapped.payload().len() != 8 {
+                                    return Err(invalid());
+                                }
+                                loaded = count(loaded)?;
+                                if number(&mapped.payload()[..4])? != loaded {
+                                    return Err(invalid());
+                                }
+                                self.mapping.push(number(&mapped.payload()[4..])?)?;
+                            }
                         }
                         ordinal = count(ordinal)?;
-                        if number(&mapped.payload()[..4])? != ordinal {
-                            return Err(invalid());
-                        }
+                        let mapped_id = self
+                            .mapping
+                            .data
+                            .get(map_index)
+                            .copied()
+                            .ok_or_else(invalid)?;
+                        map_index = map_index.checked_add(1).ok_or_else(invalid)?;
                         let id = rows
                             .inner
                             .as_ref()
@@ -309,7 +336,7 @@ impl StringRecordWriter<'_> {
                             .metadata
                             .as_ref()
                             .ok_or_else(invalid)?
-                            .bound_uel(number(&mapped.payload()[4..])?)?;
+                            .bound_uel(mapped_id)?;
                         self.keys.push(id)?;
                     }
                     rows.write(&self.keys.data, &values[..fields])?;
@@ -335,6 +362,7 @@ impl StringRecordWriter<'_> {
         if at != extent
             || mapping != limit
             || ordinal != expected
+            || loaded != expected
             || symbols != self.statistics.symbols
             || records != self.statistics.records
         {
