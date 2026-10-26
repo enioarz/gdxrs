@@ -1,6 +1,6 @@
 # gdxrs
 
-An independent Rust reader for modern GDX v7 files, designed around bounded memory and streaming reads. M0 and M1 are merged. M2 provides exact raw-ID selections, small exact-label lookup, bounded label pages, quota-controlled scratch sorting, large requests and unique-domain enumeration. Record-heavy and independently metadata-heavy scale qualification has passed on Linux x86_64. Writing, indexes, parallel decoding and Polars integration follow later.
+An independent Rust reader for modern GDX v7 files, designed around bounded memory and streaming reads. M0 and M1 are merged. M2 provides exact raw-ID selections, small exact-label lookup, bounded label pages, quota-controlled scratch sorting, large requests and unique-domain enumeration. Record-heavy and independently metadata-heavy scale qualification has passed on Linux x86_64. M3 adds bounded metadata/empty-symbol writing; nonempty records, indexes, parallel decoding and Polars integration follow later.
 
 ```rust,no_run
 use gdxrs::{OpenOptions, Reader};
@@ -86,7 +86,7 @@ Linux-only; macOS/Windows qualification currently covers functionality and logic
 resource accounting. Cargo/core use requires no Python or native GDX installation.
 
 
-M3 has started with an **empty-file writer foundation**:
+M3 supports bounded metadata and empty-symbol output:
 
 ```rust,no_run
 use gdxrs::{Writer, WriteOptions};
@@ -96,10 +96,10 @@ writer.finish()?;
 # Ok(()) }
 ```
 
-It currently creates valid empty little-endian v7 files. Set
+It creates little-endian v7 files with registered metadata and empty symbols. Set
 `WriteOptions::compression` to `WriteCompression::Zlib` for independent 32 KiB
 level-1 zlib blocks with stored fallback; the default is uncompressed.
-UEL/symbol registration and record writing are the next M3 tasks. Output is
+Nonempty record writing is the next M3 task. Output is
 buffered under a root budget, finalized/synced/closed and published without
 replacing an existing file. `abort()` reports retryable temporary cleanup failures;
 Drop never publishes. Inspect `statistics().published` if finish fails after
@@ -107,3 +107,26 @@ publication. Use `reader.create_writer(path, reader.write_options())` to share a
 existing reader root budget; the writer does not retain its input file.
 See [writer ownership and resource contract](docs/decisions/0012-writer-contract.md)
 and [bounded encoder allocation audit](docs/decisions/0013-bounded-writer-codec.md).
+
+
+Start registration with `writer.begin_metadata(&MetadataOptions::new(scratch_parent))`.
+`register_uel` preserves exact native-compatible bytes and returns a writer-bound
+ID; duplicate labels keep their first ID. Incremental duplicate lookup scans disk.
+For large fresh dictionaries, `register_uels_fresh` consumes a fallible iterator
+of borrowed bytes or bounded owned byte arrays and streams `(one-based request
+ordinal, writer-bound ID)` through a fallible callback. It detects duplicates by
+external sorting and preserves first-registration order. Producers/consumers must
+budget their own retained memory; the writer retains no full dictionary.
+
+`register_symbol(&WriteSymbol::new(name, kind, dimension))` returns a writer-bound
+symbol ID. Set descriptions/alias targets in the spec, then stream `add_comment`,
+`add_set_text`, `add_acronym` and `set_domains` calls. Strict domains accept an
+existing writer-bound symbol or a forward name; relaxed domains preserve names.
+`freeze_metadata()` resolves/validates references and prevents further mutation;
+`finish()` also freezes automatically. Aliases and empty scalar defaults follow
+native semantics. No nonempty record writer is exposed yet.
+
+Metadata uses checksummed disk journals and explicit aggregate scratch-byte/handle
+limits. Disk scans for incremental names/references can be quadratic; the bulk
+UEL path is intended for large dictionaries. Logical quota accounting is separate
+from OS RSS. See [metadata ownership, phases and quotas](docs/decisions/0014-writer-metadata.md).

@@ -88,7 +88,8 @@ def check(run):
                 raise ValueError('Rust failed complete upstream-written empty metadata/record stream')
         cases.append(dict(direction='Native writes → Rust reads',compression=compression,features=features,artifact=str(path.relative_to(ROOT)),sha256=oracle.file_digest(path),complete_stream_matches=True))
     codec = codec_check(run, area)
-    return dict(scope='tasks 018–019 empty-v7 writer and bounded section codec only',codec=codec,cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),native_read_isolation=isolation_policy(),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
+    metadata = metadata_check(run, area, executable)
+    return dict(scope='tasks 018–020 metadata/empty symbols and bounded section codec only',metadata=metadata,codec=codec,cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),native_read_isolation=isolation_policy(),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
 
 
 def decode_blocks(data):
@@ -177,3 +178,47 @@ def codec_check(run, area):
         if '1 passed; 0 failed' not in actual.stdout:
             raise ValueError('Rust native-stream comparison did not execute')
     return dict(cases=cases,helper_build_identity=identity,helper_sha256=oracle.file_digest(executable),oracle_identity=current['identity'],native_isolation=isolation_policy(),rust_native_read_features=['default','all'],visible_state_bytes=int(re.search(r'encoder_visible_state_bytes=(\d+)',generated.stderr).group(1)),private_state_reservation_bytes=320*1024)
+
+
+def metadata_expected(compression, audit):
+    """Independent recipe for create_metadata, including native scalar defaults."""
+    lines=['GDXRS-ORACLE\t1',f'F\t7\t{compression}\t8\t7\t{RUST_PRODUCER}\t{audit}']
+    labels=[b'z',b'a',b'A',b'\x80label',b' space ',b'',b"single'"]
+    for n,label in enumerate(labels,1): lines.append(f'U\t{n}\t{label.hex()}')
+    lines += ['T\t0\t0\t','T\t1\t0\t'+b'note'.hex(),'A\t1\t7\t'+b'Acro'.hex()+'\t'+b'acronym'.hex()]
+    zero='f:0000000000000000';one='f:3ff0000000000000'
+    symbols=[(b'*',1,0,7,0,b'Universe'),(b'Alias',1,4,0,2,b''),(b'I',1,0,0,0,b'domain set'),(b'Scalar',0,1,1,0,b'scalar'),(b'P',2,1,0,0,b''),(b'V',1,2,0,5,b''),(b'E',0,3,1,53,b''),(b'All',1,4,0,0,b''),(b'PAlias',1,1,0,0,b'')]
+    for n,(name,dimension,kind,count,user,description) in enumerate(symbols):
+        lines.append(f'S\t{n}\t{name.hex()}\t{dimension}\t{kind}\t{count}\t{user}\t{description.hex()}')
+        if n:
+            mode=3 if n in [4,8] else 2 if n==5 else 1
+            domains=['1:'+b'Alias'.hex()] if n==8 else ['2:'+b'I'.hex(),'0:2a'] if n==4 else ['0:'+b'future'.hex()] if n==5 else ['0:2a']*dimension
+            lines.append(f'D\t{n}\t{mode}'+''.join('\t'+d for d in domains))
+            if n==2:
+                for c,text in enumerate([b'first',b'second'],1): lines.append(f'C\t{n}\t{c}\t{text.hex()}')
+        if n in [0,7]:
+            for id in range(1,8): lines.append(f'R\t{n}\t{id}\t{zero}')
+            rows=7
+        elif n in [3,6]:
+            values=zero if n==3 else ','.join([zero]*4+[one])
+            lines.append(f'R\t{n}\t\t{values}');rows=1
+        else: rows=0
+        lines.append(f'E\t{n}\t{rows}')
+    return '\n'.join(lines)+'\n'
+
+
+def metadata_check(run, area, executable):
+    cases=[]
+    for compression in [0,1]:
+        features=[[],['--all-features']]
+        if not compression: features.append(['--no-default-features'])
+        for feature in features:
+            path=area/f'metadata-{compression}-{len(cases)}.gdx'
+            run(['cargo','run','--locked','--quiet',*feature,'--example','create_metadata','--',path,area,*(['zlib'] if compression else [])],capture=True)
+            if len(bounded_read(path))>4096: raise ValueError('metadata fixture exceeds independent small bound')
+            native=run([sys.executable,ROOT/'tools/oracle_limits.py',executable,'dump',path],capture=True,timeout=5).stdout
+            rust=run(['cargo','run','--locked','--quiet',*feature,'--example','dump','--',path],capture=True).stdout
+            if native!=metadata_expected(compression,RUST_PRODUCER) or rust!=metadata_expected(compression,'<creation-system>'):
+                raise ValueError('metadata/symbol/empty-scalar streams differ from independent recipe')
+            cases.append(dict(features=feature,compression=compression,bytes=path.stat().st_size,sha256=oracle.file_digest(path),complete_native_and_rust_stream_matches=True))
+    return dict(scope='task 020 registered metadata and empty symbols only',cases=cases)

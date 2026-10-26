@@ -110,3 +110,72 @@ fn public_compressed_empty_writer_shares_root_and_validates_metadata() {
     drop(copy);
     std::fs::remove_file(output).unwrap();
 }
+
+#[test]
+fn public_metadata_registration_shared_root_and_cleanup() {
+    let marker = super::common::TempFile::new(b"caller");
+    let parent = marker.path.with_extension("metadata-é");
+    std::fs::create_dir(&parent).unwrap();
+    let reader = Reader::open(
+        "tests/fixtures/v7/optional-domains.gdx",
+        OpenOptions {
+            memory_budget_bytes: 1024 * 1024,
+            ..OpenOptions::default()
+        },
+    )
+    .unwrap();
+    let before = reader.budget_statistics().current_bytes;
+    let mut modes = vec![WriteCompression::None];
+    if cfg!(feature = "compression") {
+        modes.push(WriteCompression::Zlib);
+    }
+    for (n, compression) in modes.into_iter().enumerate() {
+        let output = parent.join(format!("output-{n}.gdx"));
+        let mut writer = reader
+            .create_writer(
+                &output,
+                WriteOptions {
+                    compression,
+                    ..reader.write_options()
+                },
+            )
+            .unwrap();
+        let mut limits = MetadataOptions::new(&parent);
+        limits.maximum_open_files = 6;
+        limits.merge_fan_in = 2;
+        limits.run_bytes = 1024;
+        writer.begin_metadata(&limits).unwrap();
+        writer
+            .register_uels_fresh([Ok(b"z".as_slice()), Ok(b"a"), Ok(b"z")], |ordinal, id| {
+                assert_eq!(id.get(), if ordinal == 2 { 2 } else { 1 });
+                Ok(())
+            })
+            .unwrap();
+        let i = writer
+            .register_symbol(&WriteSymbol::new(b"I", SymbolType::Set, 1))
+            .unwrap();
+        writer.add_comment(i, b"comment").unwrap();
+        writer.add_set_text(b"text").unwrap();
+        writer.finish().unwrap();
+        assert_eq!(writer.metadata_statistics().temporary_bytes, 0);
+        drop(writer);
+        assert_eq!(reader.budget_statistics().current_bytes, before);
+        let copy = Reader::open(&output, OpenOptions::default()).unwrap();
+        assert_eq!(
+            (
+                copy.information().unwrap().symbol_count,
+                copy.information().unwrap().uel_count
+            ),
+            (1, 2)
+        );
+        let i = copy.find_symbol(b"i").unwrap().unwrap();
+        assert_eq!(
+            copy.comments(&i).unwrap().next().unwrap().unwrap().text,
+            b"comment"
+        );
+        drop(i);
+        drop(copy);
+        std::fs::remove_file(output).unwrap();
+    }
+    std::fs::remove_dir(parent).unwrap();
+}
