@@ -1,6 +1,6 @@
 # 026 — Bounded mapped UEL and record adapters
 
-Milestone: M4. Prerequisite: 025 complete. Status: in progress.
+Milestone: M4. Prerequisite: 025 complete. Status: complete; [evidence](../docs/evidence/026.md).
 
 [Decision 0020](../docs/decisions/0020-mapped-ids.md) specifies zero-based caller
 IDs, sparse bijections, native differences, source ownership and shared quotas.

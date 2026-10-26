@@ -1,5 +1,6 @@
 # M4 mapped API disposition after task 026
 
+[Task 026 evidence](evidence/026.md) records source-bound validation.
 This is the current implementation inventory for the mapped rows in the original
 [API plan](api-parity.csv). It does not claim full C-call/state compatibility.
 
