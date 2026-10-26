@@ -1,6 +1,6 @@
 # 022 — Complete v7 metadata/finalization interoperability
 
-Milestone: M3. Prerequisite: 021 complete. Status: pending.
+Milestone: M3. Prerequisite: 021 complete. Status: in progress.
 
 Finalize all metadata spools in canonical v7 order with bounded replay, validated
 counts/references/section offsets, patch only the uncompressed major index, flush/

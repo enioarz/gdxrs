@@ -218,7 +218,8 @@ fn forward_alias_domains_cycles_missing_refs_and_foreign_writer_ids() {
     w.finish().unwrap();
     let r = Reader::open(p.destination(), OpenOptions::default()).unwrap();
     let s = r.find_symbol(b"A").unwrap().unwrap();
-    assert_eq!(s.metadata().unwrap().user_information, 3);
+    // Native GDX preserves A -> B, even when B resolves to set I.
+    assert_eq!(s.metadata().unwrap().user_information, 2);
 }
 #[test]
 fn invalid_registration_and_frozen_mutation_are_terminal_without_publication() {
@@ -605,4 +606,32 @@ fn initialization_allocation_and_cleanup_failure_keep_retryable_owner() {
     assert!(repeated.cleanup_error().is_some());
     drop(w);
     assert_eq!(root.statistics().current_bytes, 0);
+}
+
+#[test]
+fn finalization_rejects_corrupt_completed_counts_positions_and_membership_extents() {
+    for (position, count, start) in [
+        (0, 0, 0),
+        (u64::MAX, 0, 0),
+        (126, u32::MAX, 0),
+        (126, 1, u64::MAX),
+    ] {
+        let p = Parent::new();
+        let mut w = writer(&p);
+        let s = w
+            .register_symbol(&WriteSymbol::new(b"I", SymbolType::Set, 1))
+            .unwrap();
+        w.freeze_metadata().unwrap();
+        w.metadata
+            .as_mut()
+            .unwrap()
+            .complete_records(s, position, count, start)
+            .unwrap();
+        // Occupy a valid data extent so invalid membership is checked too.
+        w.bytes(&[0; 30]).unwrap();
+        assert_eq!(w.finish().unwrap_err().kind, ErrorKind::InvalidSpill);
+        assert!(!p.destination().exists());
+        w.abort().unwrap();
+        p.empty();
+    }
 }

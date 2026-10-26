@@ -217,6 +217,9 @@ fn symbol(f: &Frame) -> Result<Symbol> {
         name: p.string()?,
     };
     p.done()?;
+    if dim > 20 {
+        return Err(corrupt());
+    }
     Ok(Symbol {
         id,
         name,
@@ -997,6 +1000,9 @@ impl Metadata {
                 let count = p.u32()?;
                 let start = p.u64()?;
                 p.done()?;
+                if count > i32::MAX as u32 || n == 0 || n > self.stats.symbols {
+                    return Err(corrupt());
+                }
                 if n == id {
                     return Ok(Some((pos, count, start)));
                 }
@@ -1177,6 +1183,26 @@ impl Metadata {
             self.complete_records(token, position, 0, 0)?;
         }
         let symbols = w.position;
+        for id in 1..=self.stats.symbols {
+            let s = self.lookup(id)?;
+            let (position, count, start) = self.record_info(id)?.ok_or_else(corrupt)?;
+            if s.kind == SymbolType::Alias {
+                if position != 0 || count != 0 {
+                    return Err(corrupt());
+                }
+            } else if position < w.index + 80 || position >= symbols {
+                return Err(corrupt());
+            }
+            if s.kind == SymbolType::Set
+                && s.dim == 1
+                && count != 0
+                && start
+                    .checked_add(u64::from(count) * 19)
+                    .is_none_or(|end| end > self.journal.as_ref().map_or(0, |j| j.length))
+            {
+                return Err(corrupt());
+            }
+        }
         w.section_string(b"_SYMB_")?;
         w.section_i32(self.stats.symbols as i32)?;
         for id in 1..=self.stats.symbols {
@@ -1188,7 +1214,7 @@ impl Metadata {
             w.section_i32(i32::from(s.dim))?;
             Self::emit(w, &[s.kind.code()])?;
             let user = if s.kind == SymbolType::Alias {
-                self.set_target(&s.target)? as i32
+                self.resolve_ref(&s.target)? as i32
             } else {
                 s.user
             };
