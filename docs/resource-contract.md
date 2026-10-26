@@ -136,3 +136,33 @@ are flushed before recording the next physical offset, and compressed data is
 never patched. Compressed empty GDX output uses stored blocks because its tiny
 sections do not benefit from zlib; the separate full/boundary block probes exercise
 actual zlib output. No record-writer RSS or throughput result is claimed.
+
+
+## M3 metadata registration, task 020
+
+[Decision 0014](decisions/0014-writer-metadata.md) defines writer-bound IDs and the
+registration/frozen phases. One checksummed journal and at most two bulk auxiliary
+files use fallible fixed 32 KiB buffers and fixed <=1024-byte frames. Controls and
+bounded path allowances compete with the writer/reader root. The reused sorter
+receives the actual writer budget without a fabricated Reader. A fallible producer
+can yield fixed owned arrays; a fallible callback streams original-ordinal IDs.
+Metadata payloads, full dictionaries and per-label offset lists never accumulate.
+
+Half of `MetadataOptions::maximum_temporary_bytes` bounds the journal/auxiliaries;
+the other half bounds one external sort, including merge input/output coexistence.
+Three scratch handles are reserved for metadata; remaining handles bound sort
+fan-in plus output. Six total are the minimum. GDX output extent/handle remain
+separate. Peak statistics conservatively sum the per-share peaks; they are not
+sampled simultaneous physical disk/descriptor or RSS measurements. The writer
+retains ownership of a sort directory after failed cleanup and can retry through
+abort; cleanup streams validated run names and preserves unexpected entries.
+Untrusted external mutation of the private namespace remains unsupported.
+
+Each metadata read checks frame tag/length, offset-bound checksum and file extent.
+Freeze verifies counts/references/alias chains before publication. Explicit failure
+and cancellation close all owned handles and attempt every known cleanup, keeping
+primary/secondary errors visible. Post-publication cleanup failure preserves the
+valid destination and reports Failed/published, as in task 018. Drop never publishes.
+The bulk UEL path preserves dense first-occurrence IDs with bounded external
+sorting and a fixed disk ordinal index. Incremental duplicate/reference scans can
+be quadratic; writer performance/OS-capped scale acceptance remains task 023.

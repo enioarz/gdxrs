@@ -3,7 +3,7 @@ mod run;
 #[cfg(test)]
 mod tests;
 use crate::{
-    budget::{Buffer, Reservation},
+    budget::{Budget, Buffer, Reservation},
     model::Bytes,
     source::Source,
     *,
@@ -39,7 +39,7 @@ impl SpillOptions {
             merge_fan_in: 8,
         }
     }
-    fn validate(&self) -> Result<()> {
+    pub(crate) fn validate(&self) -> Result<()> {
         if self.directory.as_os_str().len() > 4096
             || !(2..=64).contains(&self.merge_fan_in)
             || self.maximum_open_files <= self.merge_fan_in
@@ -190,7 +190,8 @@ impl Record {
     }
 }
 struct Session {
-    source: Arc<Source>,
+    source: Option<Arc<Source>>,
+    budget: Arc<Budget>,
     directory: PathBuf,
     metrics: Arc<Metrics>,
     next_id: u64,
@@ -201,8 +202,12 @@ struct Session {
     _control: Reservation,
 }
 impl Session {
-    fn new(source: Arc<Source>, options: &SpillOptions) -> Result<Self> {
-        let control = source.budget.reserve(CONTROL)?;
+    fn new(
+        budget: Arc<Budget>,
+        source: Option<Arc<Source>>,
+        options: &SpillOptions,
+    ) -> Result<Self> {
+        let control = budget.reserve(CONTROL)?;
         let path_bytes = options
             .directory
             .as_os_str()
@@ -210,7 +215,7 @@ impl Session {
             .checked_mul(8)
             .and_then(|v| v.checked_add(64 * 1024))
             .ok_or_else(|| Error::new(ErrorKind::BudgetTooSmall, "scratch path layout overflow"))?;
-        let paths = source.budget.reserve(path_bytes)?;
+        let paths = budget.reserve(path_bytes)?;
         let parent = fs::canonicalize(&options.directory).map_err(Error::io)?;
         let parent_metadata = fs::metadata(&parent).map_err(Error::io)?;
         if parent.as_os_str().len() > 4096
@@ -247,6 +252,7 @@ impl Session {
                 Ok(()) => {
                     return Ok(Self {
                         source,
+                        budget,
                         directory,
                         metrics,
                         next_id: 0,
@@ -273,7 +279,7 @@ impl Session {
         ))
     }
     fn decorate(&self, mut e: Error) -> Error {
-        e.source_id = Some(self.source.id);
+        e.source_id = self.source.as_ref().map(|s| s.id);
         if e.section.is_none() {
             e.section = Some("spill");
         }
@@ -408,17 +414,30 @@ impl Reader {
     /// # Ok(()) }
     /// ```
     pub fn spill_sort(&self, options: &SpillOptions) -> Result<SpillSorter> {
+        SpillSorter::with_budget(
+            Arc::clone(&self.source.budget),
+            Some(Arc::clone(&self.source)),
+            options,
+        )
+    }
+}
+impl SpillSorter {
+    pub(crate) fn with_budget(
+        budget: Arc<Budget>,
+        source: Option<Arc<Source>>,
+        options: &SpillOptions,
+    ) -> Result<Self> {
         options.validate()?;
-        if size_of::<SpillSorter>() > CONTROL || size_of::<SpillCursor>() > CONTROL {
+        if size_of::<Self>() > CONTROL || size_of::<SpillCursor>() > CONTROL {
             return Err(Error::new(
                 ErrorKind::BudgetTooSmall,
                 "spill fixed state exceeds allowance",
             ));
         }
-        let state = self.source.budget.reserve(CONTROL)?;
-        let records = Buffer::new(&self.source.budget, options.run_bytes / size_of::<Record>())?;
-        let session = Session::new(Arc::clone(&self.source), options)?;
-        Ok(SpillSorter {
+        let state = budget.reserve(CONTROL)?;
+        let records = Buffer::new(&budget, options.run_bytes / size_of::<Record>())?;
+        let session = Session::new(budget, source, options)?;
+        Ok(Self {
             records: Some(records),
             error: None,
             cancelled: false,
@@ -426,8 +445,11 @@ impl Reader {
             session,
         })
     }
-}
-impl SpillSorter {
+
+    pub(crate) fn observer(&self) -> impl Fn() -> SpillStatistics + use<> {
+        let metrics = Arc::clone(&self.session.metrics);
+        move || metrics.snapshot()
+    }
     pub fn directory(&self) -> &Path {
         &self.session.directory
     }
@@ -497,7 +519,7 @@ impl SpillSorter {
             let mut consumed = 0;
             while consumed < count {
                 let number = (count - consumed).min(self.session.fan_in as u64) as usize;
-                let mut slots = Buffer::new(&self.session.source.budget, number)?;
+                let mut slots = Buffer::new(&self.session.budget, number)?;
                 for n in 0..number {
                     let mut reader = RunReader::open(&self.session, start + consumed + n as u64)?;
                     let head = reader.advance()?;
@@ -687,12 +709,24 @@ impl SpillCursor {
                     "membership controls exceed allowance",
                 ));
             }
+            let maximum = self
+                .session
+                .source
+                .as_ref()
+                .ok_or_else(|| {
+                    Error::new(
+                        ErrorKind::SourceMismatch,
+                        "membership requires a reader source",
+                    )
+                })?
+                .counts()?
+                .uels;
             let mut count = 0u64;
             if let Some(reader) = &mut self.reader {
                 while let Some(record) = reader.advance()? {
                     if !record.label.as_slice().is_empty()
                         || record.id == 0
-                        || record.id > u64::from(self.session.source.counts()?.uels)
+                        || record.id > u64::from(maximum)
                     {
                         return Err(Error::new(
                             ErrorKind::InvalidSpill,
@@ -810,4 +844,9 @@ impl SpillCursor {
             && self.session.metrics.handle_limit == limits.maximum_open_files as u64
             && self.session.fan_in == limits.merge_fan_in
     }
+}
+
+#[cfg(test)]
+pub(crate) fn test_cleanup_failure() -> impl Drop {
+    tests::CleanupFailure::new()
 }

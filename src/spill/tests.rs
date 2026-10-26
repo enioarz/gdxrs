@@ -901,3 +901,16 @@ fn disk_selection_retains_source_until_last_owner_and_drop_cleans_scratch() {
     assert_eq!(budget.statistics().current_bytes, 0);
     parent.empty();
 }
+
+pub(super) struct CleanupFailure;
+impl CleanupFailure {
+    pub(super) fn new() -> Self {
+        FAULTS.with(|s| s.borrow_mut().deny_cleanup = true);
+        Self
+    }
+}
+impl Drop for CleanupFailure {
+    fn drop(&mut self) {
+        FAULTS.with(|s| s.borrow_mut().deny_cleanup = false);
+    }
+}

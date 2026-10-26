@@ -1,7 +1,14 @@
 //! Bounded v7 creation and raw/stored/zlib sections. Records/registration follow.
 mod encoder;
+mod metadata;
+mod store;
 use encoder::Encoder;
 pub use encoder::WriteCompression;
+use metadata::Metadata;
+pub use metadata::{
+    MetadataOptions, MetadataStatistics, SymbolReference, WriteDomain, WriteSymbol, WriterSymbolId,
+    WriterUelId,
+};
 #[cfg(test)]
 mod codec_tests;
 #[cfg(test)]
@@ -81,6 +88,9 @@ pub struct WriteStatistics {
     pub published: bool,
 }
 pub struct Writer {
+    owner: u64,
+    metadata: Option<Metadata>,
+    metadata_statistics: MetadataStatistics,
     encoder: Option<Encoder>,
     compression: WriteCompression,
     buffer: Option<Buffer<u8>>,
@@ -144,6 +154,7 @@ impl Writer {
                     Error::new(ErrorKind::BudgetTooSmall, "writer path layout overflow")
                 })?,
         )?;
+        let owner = next_owner()?;
         let buffer = Buffer::new(&budget, OUTPUT_BUFFER)?;
         let encoder = Encoder::new(&budget, options.compression)?;
         let parent = path
@@ -198,6 +209,9 @@ impl Writer {
             match open.open(&temporary) {
                 Ok(file) => {
                     let mut writer = Self {
+                        owner,
+                        metadata: None,
+                        metadata_statistics: MetadataStatistics::default(),
                         encoder: Some(encoder),
                         compression: options.compression,
                         buffer: Some(buffer),
@@ -244,22 +258,44 @@ impl Writer {
         &self.temporary
     }
     fn decorate(&self, mut error: Error) -> Error {
-        error.section = Some("writer output");
-        error.physical_offset = Some(self.physical);
+        if error.section.is_none() {
+            error.section = Some("writer output");
+        }
+        if error.physical_offset.is_none() {
+            error.physical_offset = Some(self.physical);
+        }
         error
     }
     fn cleanup(&mut self) -> io::Result<()> {
         self.file = None;
         self.buffer = None;
         self.encoder = None;
+        let mut secondary = None;
+        if let Some(m) = &mut self.metadata {
+            if let Err(e) = m.cleanup() {
+                secondary = Some(e);
+            }
+            self.metadata_statistics = m.statistics();
+        }
+        if secondary.is_none() {
+            self.metadata = None;
+        }
         if self.owned {
             match event(Event::Remove).and_then(|_| fs::remove_file(&self.temporary)) {
                 Ok(()) => self.owned = false,
                 Err(e) if e.kind() == io::ErrorKind::NotFound => self.owned = false,
-                Err(e) => return Err(e),
+                Err(e) => {
+                    if secondary.is_none() {
+                        secondary = Some(e);
+                    }
+                }
             }
         }
-        Ok(())
+        if let Some(e) = secondary {
+            Err(e)
+        } else {
+            Ok(())
+        }
     }
     fn fail(&mut self, error: Error) -> Error {
         self.statistics.status = WriteStatus::Failed;
@@ -398,33 +434,38 @@ impl Writer {
         self.encoded(|e, w| e.end(|b| w.bytes(b)))
     }
     fn finalize(&mut self) -> Result<()> {
-        let symbols = self.position;
-        self.section_string(b"_SYMB_")?;
-        self.section_i32(0)?;
-        self.section_string(b"_SYMB_")?;
-        self.section_end()?;
-        let texts = self.position;
-        self.section_string(b"_SETT_")?;
-        self.section_i32(1)?;
-        self.section_string(b"")?;
-        self.section_string(b"_SETT_")?;
-        self.section_end()?;
-        let uels = self.position;
-        self.section_string(b"_UEL_")?;
-        self.section_i32(0)?;
-        self.section_string(b"_UEL_")?;
-        self.section_end()?;
-        let acronyms = self.position;
-        self.section_string(b"_ACRO_")?;
-        self.section_i32(0)?;
-        self.section_string(b"_ACRO_")?;
-        self.section_end()?;
+        let offsets = if let Some(mut metadata) = self.metadata.take() {
+            let result = metadata.sections(self);
+            self.metadata_statistics = metadata.statistics();
+            self.metadata = Some(metadata);
+            result?
+        } else {
+            let symbols = self.position;
+            self.section_string(b"_SYMB_")?;
+            self.section_i32(0)?;
+            self.section_string(b"_SYMB_")?;
+            self.section_end()?;
+            let texts = self.position;
+            self.section_string(b"_SETT_")?;
+            self.section_i32(1)?;
+            self.section_string(b"")?;
+            self.section_string(b"_SETT_")?;
+            self.section_end()?;
+            let uels = self.position;
+            self.section_string(b"_UEL_")?;
+            self.section_i32(0)?;
+            self.section_string(b"_UEL_")?;
+            self.section_end()?;
+            let acronyms = self.position;
+            self.section_string(b"_ACRO_")?;
+            self.section_i32(0)?;
+            self.section_string(b"_ACRO_")?;
+            self.section_end()?;
+            [symbols, uels, texts, acronyms, symbols, 0]
+        };
         let mut patch = [0u8; 52];
         patch[..4].copy_from_slice(&19510624i32.to_le_bytes());
-        for (n, position) in [symbols, uels, texts, acronyms, symbols, 0]
-            .iter()
-            .enumerate()
-        {
+        for (n, position) in offsets.iter().enumerate() {
             let start = 4 + n * 8;
             patch[start..start + 8].copy_from_slice(&position.to_le_bytes());
         }
@@ -525,6 +566,12 @@ enum Event {
     Sync,
     Publish,
     Remove,
+    MetadataCreate,
+    MetadataRead,
+    MetadataWrite,
+    MetadataSeek,
+    MetadataSync,
+    MetadataRemove,
 }
 fn event(kind: Event) -> io::Result<()> {
     #[cfg(test)]
@@ -540,4 +587,10 @@ fn io_chunk(length: usize) -> usize {
     return tests::io_chunk(length);
     #[cfg(not(test))]
     length
+}
+
+fn next_owner() -> Result<u64> {
+    static NEXT: AtomicU64 = AtomicU64::new(1);
+    NEXT.try_update(Ordering::Relaxed, Ordering::Relaxed, |v| v.checked_add(1))
+        .map_err(|_| Error::new(ErrorKind::InvalidCount, "writer identity exhausted"))
 }

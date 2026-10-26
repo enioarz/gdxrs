@@ -19,7 +19,7 @@ pub(super) struct RunWriter {
 }
 impl RunWriter {
     pub fn new(session: &mut Session) -> Result<Self> {
-        let buffer = Buffer::new(&session.source.budget, IO_BYTES)?;
+        let buffer = Buffer::new(&session.budget, IO_BYTES)?;
         let id = session.next_id;
         let next = id
             .checked_add(1)
@@ -134,11 +134,11 @@ pub(super) struct RunReader {
     previous: Option<Record>,
     done: bool,
     metrics: Arc<Metrics>,
-    source: u64,
+    source: Option<u64>,
 }
 impl RunReader {
     pub fn open(session: &Session, id: u64) -> Result<Self> {
-        let buffer = Buffer::zeroed(&session.source.budget, IO_BYTES)?;
+        let buffer = Buffer::zeroed(&session.budget, IO_BYTES)?;
         let handle = session.metrics.handle()?;
         event(Event::Create).map_err(Error::io)?;
         let file = fs::File::open(session.path(id, false)).map_err(Error::io)?;
@@ -158,7 +158,7 @@ impl RunReader {
             previous: None,
             done: false,
             metrics: Arc::clone(&session.metrics),
-            source: session.source.id,
+            source: session.source.as_ref().map(|s| s.id),
         };
         if reader.array::<8>()? != *MAGIC {
             return Err(reader.error(ErrorKind::InvalidSpill, "invalid spill header"));
@@ -166,7 +166,13 @@ impl RunReader {
         Ok(reader)
     }
     fn error(&self, kind: ErrorKind, message: &'static str) -> Error {
-        Error::new(kind, message).at(self.source, "spill run", self.position, None)
+        {
+            let mut e = Error::new(kind, message);
+            e.source_id = self.source;
+            e.section = Some("spill run");
+            e.physical_offset = Some(self.position);
+            e
+        }
     }
     fn read(&mut self, mut bytes: &mut [u8]) -> Result<()> {
         while !bytes.is_empty() {
@@ -180,7 +186,13 @@ impl RunReader {
                         other => break other,
                     }
                 }
-                .map_err(|e| Error::io(e).at(self.source, "spill run", self.position, None))?;
+                .map_err(|e| {
+                    let mut e = Error::io(e);
+                    e.source_id = self.source;
+                    e.section = Some("spill run");
+                    e.physical_offset = Some(self.position);
+                    e
+                })?;
                 if got == 0 {
                     return Err(self.error(ErrorKind::UnexpectedEof, "truncated spill run"));
                 }

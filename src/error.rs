@@ -116,3 +116,9 @@ impl std::error::Error for Error {
             .map(|e| e as &(dyn std::error::Error + 'static))
     }
 }
+
+impl From<io::Error> for Error {
+    fn from(cause: io::Error) -> Self {
+        Self::io(cause)
+    }
+}

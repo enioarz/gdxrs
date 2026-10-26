@@ -126,3 +126,23 @@ This command uses the native development toolkit (currently unqualified on
 Windows); native Cargo/reader CI still executes all writer foundation and failure
 unit/integration tests on every platform. No production Python/C++ dependency is
 introduced. Full writer metadata/record interoperability and scale remain tasks 020–023.
+
+
+Task 020 extends `writer-check` with five independently expected metadata outputs
+(raw default/minimal/all; compressed default/all). They include exact original UEL
+IDs/raw bytes, descriptions/comments/text/acronyms, forward aliases, strict/relaxed
+domains, empty sets and scalar defaults. Each complete native and Rust dump must
+match the independent recipe. Existing native-written fixture regression remains
+in `reader-check`. Rust metadata unit/integration/fault suites run on all four
+native CI hosts without requiring the C++ oracle there.
+
+```sh
+cargo run --locked --example create_metadata -- NEW.gdx SCRATCH_PARENT zlib
+GDXRS_METADATA_SCALE_REQUESTS=100000 cargo test --locked --lib write::metadata::tests::bulk_first_registration_order_tiny_runs_and_streaming_mapping -- --exact --nocapture
+```
+
+The second command streams generated fixed byte arrays, validates every mapping
+and final UEL, and checks logical root/scratch/handle bounds. Its journal can exceed
+the root budget. This is a logical accounting/registration test, not task 023's
+OS-enforced writer RSS or throughput acceptance. Output/SCRATCH_PARENT must be
+trusted writable paths; the output name must not already exist.
