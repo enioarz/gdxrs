@@ -21,15 +21,17 @@ with Writer. No full input/output, label dictionary or record collection is used
 
 Small before/after probes identified fragmented record emission and repeated
 tiny journal I/O. A record now packs into a checked fixed 126-byte stack buffer
-(the maximum 1+20*4+5*9) and emits once after the same validation. One fixed
-32756-byte quota-charged journal page per Store buffers reads and ordinal patches;
+(the maximum 1+20*4+5*9) and emits once after the same validation. Each Store reuses its existing quota-charged 32 KiB append buffer as a
+32756-byte read/write page after flushing appends;
 its size is a multiple of 19, so ordinal frames do not straddle pages. Variable
 frames may straddle and retain offset-bound checksums. Each logical frame checks
 extent/modification metadata; detected changes invalidate a clean page and fail a
 dirty page. Appends and page flushes maintain the local snapshot. The trusted
 private namespace/immutable-external-source contract remains; timestamps are not
-cryptographic identity. Cache capacity is constant, fallible and included in the
-root. Existing corruption, allocation, fault, quota and cleanup tests stay enabled;
+cryptographic identity. Cache capacity is constant, uses the existing fallible buffer and is included in
+the root without raising the one-MiB creation/registration contract. An initial
+separate cache allocation exceeded an existing compressed one-MiB fixture; buffer
+reuse fixes that admission regression without changing its cap. Existing corruption, allocation, fault, quota and cleanup tests stay enabled;
 new tests cover shuffled ordinal updates, dirty page eviction, cross-page frames
 and external corruption of a cached page. No unsafe code or dependency is added.
 

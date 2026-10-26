@@ -25,7 +25,6 @@ pub(super) struct Store {
     file: Option<fs::File>,
     buffer: Buffer<u8>,
     pub length: u64,
-    cache: Buffer<u8>,
     cache_start: u64,
     cache_len: usize,
     cache_dirty: bool,
@@ -34,7 +33,6 @@ pub(super) struct Store {
 impl Store {
     pub fn create(path: &Path, budget: &Arc<Budget>) -> Result<Self> {
         let buffer = Buffer::new(budget, 32768)?;
-        let cache = Buffer::zeroed(budget, PAGE)?;
         let mut options = fs::OpenOptions::new();
         options.read(true).write(true).create_new(true);
         #[cfg(unix)]
@@ -48,7 +46,6 @@ impl Store {
             file: Some(file),
             buffer,
             length: 0,
-            cache,
             cache_start: 0,
             cache_len: 0,
             cache_dirty: false,
@@ -61,6 +58,9 @@ impl Store {
             .ok_or_else(|| Error::new(ErrorKind::InvalidWriteState, "metadata file closed"))
     }
     fn flush_append(&mut self) -> Result<()> {
+        if self.cache_len != 0 {
+            return Ok(());
+        }
         let file = self
             .file
             .as_mut()
@@ -109,6 +109,10 @@ impl Store {
         if self.cache_dirty {
             self.validate_snapshot()?;
             self.flush_cache()?;
+        }
+        if self.cache_len != 0 {
+            self.cache_len = 0;
+            self.buffer.data.clear();
         }
         if !(1..=9).contains(&tag) || payload.len() > FRAME {
             return Err(Error::new(
@@ -168,6 +172,7 @@ impl Store {
                 return Err(Self::invalid_snapshot());
             }
             self.cache_len = 0;
+            self.buffer.data.clear();
             self.stamp = Some(stamp);
         }
         Ok(())
@@ -184,7 +189,7 @@ impl Store {
         while done < self.cache_len {
             let length = io_chunk(self.cache_len - done);
             match event(Event::MetadataWrite)
-                .and_then(|_| file.write(&self.cache.data[done..done + length]))
+                .and_then(|_| file.write(&self.buffer.data[done..done + length]))
             {
                 Ok(0) => {
                     return Err(Error::io(io::Error::new(
@@ -222,18 +227,20 @@ impl Store {
                 self.flush_cache()?;
                 let start = at / (PAGE as u64) * (PAGE as u64);
                 let len = (self.length - start).min(PAGE as u64) as usize;
+                // Reuse the admitted append buffer after flushing; no new allocation.
+                self.buffer.data.resize(PAGE, 0);
                 event(Event::MetadataSeek).map_err(Error::io)?;
                 let file = self.file.as_mut().ok_or_else(Self::invalid_snapshot)?;
                 file.seek(SeekFrom::Start(start)).map_err(Error::io)?;
                 event(Event::MetadataRead).map_err(Error::io)?;
-                file.read_exact(&mut self.cache.data[..len])
+                file.read_exact(&mut self.buffer.data[..len])
                     .map_err(Error::io)?;
                 self.cache_start = start;
                 self.cache_len = len;
             }
             let start = (at - self.cache_start) as usize;
             let n = bytes.len().min(self.cache_len - start);
-            bytes[..n].copy_from_slice(&self.cache.data[start..start + n]);
+            bytes[..n].copy_from_slice(&self.buffer.data[start..start + n]);
             at += n as u64;
             bytes = &mut bytes[n..];
         }
@@ -311,7 +318,7 @@ impl Store {
         b[11..].copy_from_slice(&h.to_le_bytes());
         let offset = (at - self.cache_start) as usize;
         // PAGE is a multiple of 19: integer() brought this entire frame into cache.
-        self.cache
+        self.buffer
             .data
             .get_mut(offset..offset + 19)
             .ok_or_else(Self::invalid_snapshot)?

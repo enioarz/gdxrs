@@ -95,6 +95,9 @@ def check(run,profile):
     record_counts=[4096,16384] if profile=='smoke' else [13_000_000,52_000_000]
     metadata_counts=[4096,16384] if profile=='smoke' else [9_000_000,34_000_000]
     cases=[];record_growth=[];metadata_growth=[]
+    def progress():
+        (area/'progress.json').write_text(json.dumps(dict(revision=revision,source_hashes=hashes,benchmarks=benchmarks,cases=cases),indent=2)+'\n')
+    progress()
     for n in record_counts:
         source=area/f'input-{n}.gdx'
         recipe=json.loads(run([native,'generate',source,'records',n],capture=True,timeout=1800).stdout)
@@ -110,7 +113,7 @@ def check(run,profile):
             rust=measure([bins['scale_sink'],'all',output,n,scratch],area,f'readback-{mode}-{compression}-{n}')
             scale.validate_scan(rust,recipe,'all')
             case=dict(kind=mode,compression=compression,count=n,labels=recipe['labels'],logical_bytes=n*120,worker=trial,native_validation=verify,rust_validation=rust,input=source_identity,**hash_record(output))
-            cases.append(case)
+            cases.append(case);progress()
             if mode=='records' and compression=='raw':record_growth.append(case)
             output.unlink();scratch.rmdir()
         source.unlink()
@@ -123,7 +126,7 @@ def check(run,profile):
         rust=measure([bins['scale_sink'],'metadata',output,n,scratch],area,f'readback-metadata-{n}')
         if rust['result']['count']!=n or rust['result']['digest']!=native_verify['result']['digest']:raise ValueError('Rust metadata streaming digest mismatch')
         case=dict(kind='metadata',compression='raw',count=n,labels=n,logical_bytes=n*64,worker=trial,native_validation=native_verify,rust_validation=rust,**hash_record(output))
-        cases.append(case);metadata_growth.append(case);output.unlink();scratch.rmdir()
+        cases.append(case);metadata_growth.append(case);progress();output.unlink();scratch.rmdir()
     if profile=='scale':
         qualify_large(record_growth[-1],'records');qualify_large(metadata_growth[-1],'metadata')
         pipeline=next(c for c in cases if c['kind']=='pipeline' and c['count']==record_counts[-1]);qualify_large(pipeline,'records')
