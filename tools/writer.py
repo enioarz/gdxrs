@@ -89,7 +89,9 @@ def check(run):
         cases.append(dict(direction='Native writes → Rust reads',compression=compression,features=features,artifact=str(path.relative_to(ROOT)),sha256=oracle.file_digest(path),complete_stream_matches=True))
     codec = codec_check(run, area)
     metadata = metadata_check(run, area, executable)
-    return dict(scope='tasks 018–020 metadata/empty symbols and bounded section codec only',metadata=metadata,codec=codec,cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),native_read_isolation=isolation_policy(),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
+    import writer_records
+    records = writer_records.check(run,area,executable,decode_blocks)
+    return dict(scope='tasks 018–021 metadata, sorted records and bounded section codec',records=records,metadata=metadata,codec=codec,cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),native_read_isolation=isolation_policy(),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
 
 
 def decode_blocks(data):

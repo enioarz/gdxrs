@@ -1,6 +1,7 @@
-//! Bounded v7 creation and raw/stored/zlib sections. Records/registration follow.
+//! Bounded v7 metadata registration and sorted raw record creation.
 mod encoder;
 mod metadata;
+mod records;
 mod store;
 use encoder::Encoder;
 pub use encoder::WriteCompression;
@@ -9,6 +10,7 @@ pub use metadata::{
     MetadataOptions, MetadataStatistics, SymbolReference, WriteDomain, WriteSymbol, WriterSymbolId,
     WriterUelId,
 };
+pub use records::{KeyBounds, SymbolWriter};
 #[cfg(test)]
 mod codec_tests;
 #[cfg(test)]
@@ -89,6 +91,7 @@ pub struct WriteStatistics {
 }
 pub struct Writer {
     owner: u64,
+    symbol_active: bool,
     metadata: Option<Metadata>,
     metadata_statistics: MetadataStatistics,
     encoder: Option<Encoder>,
@@ -109,7 +112,7 @@ pub struct Writer {
     _control: Reservation,
 }
 impl Writer {
-    /// Create an exclusive transaction for an empty v7 file, with optional zlib framing.
+    /// Create an exclusive v7 output transaction, with optional zlib framing.
     ///
     /// ```no_run
     /// use gdxrs::{Writer, WriteOptions, WriteStatus};
@@ -210,6 +213,7 @@ impl Writer {
                 Ok(file) => {
                     let mut writer = Self {
                         owner,
+                        symbol_active: false,
                         metadata: None,
                         metadata_statistics: MetadataStatistics::default(),
                         encoder: Some(encoder),
@@ -434,6 +438,12 @@ impl Writer {
         self.encoded(|e, w| e.end(|b| w.bytes(b)))
     }
     fn finalize(&mut self) -> Result<()> {
+        if self.symbol_active {
+            return Err(Error::new(
+                ErrorKind::InvalidWriteState,
+                "symbol is unfinished",
+            ));
+        }
         let offsets = if let Some(mut metadata) = self.metadata.take() {
             let result = metadata.sections(self);
             self.metadata_statistics = metadata.statistics();

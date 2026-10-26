@@ -86,7 +86,7 @@ impl Store {
         peak: &mut u64,
         limit: u64,
     ) -> Result<()> {
-        if !(1..=8).contains(&tag) || payload.len() > FRAME {
+        if !(1..=9).contains(&tag) || payload.len() > FRAME {
             return Err(Error::new(
                 ErrorKind::InvalidSpill,
                 "invalid metadata frame",
@@ -160,7 +160,7 @@ impl Store {
         let mut header = [0u8; 3];
         self.read_at(*position, &mut header)?;
         let len = usize::from(u16::from_le_bytes([header[1], header[2]]));
-        if !(1..=8).contains(&header[0]) || len > FRAME {
+        if !(1..=9).contains(&header[0]) || len > FRAME {
             return Err(Error::new(
                 ErrorKind::InvalidSpill,
                 "corrupt metadata frame header",
