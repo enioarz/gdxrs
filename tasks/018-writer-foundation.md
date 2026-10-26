@@ -1,6 +1,6 @@
 # 018 — Writer contract and atomic empty-v7 foundation
 
-Milestone: M3. Prerequisites: 001–017 complete/merged. Status: in progress.
+Milestone: M3. Prerequisites: 001–017 complete/merged. Status: complete; [evidence](../docs/evidence/018.md).
 
 Specify M3's concrete ownership, root-memory, output/scratch, ordering, registration,
 metadata, encoding and failure contracts before implementation. Split remaining

@@ -77,7 +77,7 @@ M1 is merged in `5cc766d`; the user requested beginning M2. [Decision 0006](../d
 | [015](015-large-lookup-domain-enumeration.md) | Spill-backed large label requests and unique domains | Complete; [evidence](../docs/evidence/015.md) |
 | [016](016-m2-scale-acceptance.md) | Independently oversized inputs, OS memory cap and M2 acceptance | Complete; [evidence](../docs/evidence/016.md) |
 
-M2 is complete for the qualified read scope. The next milestone is **M3 — sorted writer**; define its bounded numbered specifications before starting implementation.
+M2 is complete for the qualified read scope. M3 sorted-writer work is tracked below.
 
 
 ## User-directed native platform follow-up
@@ -88,7 +88,7 @@ Before M3, the user requested macOS/Windows compatibility qualification.
 | --- | --- | --- |
 | [017](017-native-platform-compatibility.md) | Native macOS ARM64/Intel and Windows x64 reader/metadata/spill compatibility | Complete; [evidence](../docs/evidence/017.md) |
 
-The native platform follow-up is complete. M3 sorted-writer specifications are next.
+The native platform follow-up is complete; M3 has begun below.
 
 
 ## M3 — user-directed sorted writer
@@ -99,7 +99,7 @@ before starting its dependent; task 023 is the M3 release gate.
 
 | Task | Scope | Status |
 | --- | --- | --- |
-| [018](018-writer-foundation.md) | Writer contract, bounded empty-v7 creation and atomic publication | In progress |
+| [018](018-writer-foundation.md) | Writer contract, bounded empty-v7 creation and atomic publication | Complete; [evidence](../docs/evidence/018.md) |
 | [019](019-bounded-writer-codec.md) | Bounded byte/block encoder and stored/zlib compression | Pending |
 | [020](020-writer-metadata-spooling.md) | Original-ID raw registration and metadata spools | Pending |
 | [021](021-sorted-record-writer.md) | Checked sorted raw symbol/record encoding | Pending |
