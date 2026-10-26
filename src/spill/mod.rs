@@ -850,6 +850,10 @@ impl SpillCursor {
 pub(crate) fn test_cleanup_failure() -> impl Drop {
     tests::CleanupFailure::new()
 }
+#[cfg(test)]
+pub(crate) fn test_cleanup_failure_after(after: usize) -> impl Drop {
+    tests::IoFailure::cleanup(after)
+}
 
 #[cfg(test)]
 pub(crate) fn test_io_failure(read: bool) -> impl Drop {

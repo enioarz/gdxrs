@@ -128,16 +128,32 @@ impl UnsortedSymbolWriter<'_> {
         let observe = sorter.observer();
         let result = (|| {
             let mut cursor = sorter.finish()?;
-            let mut records = 0u32;
-            while let Some(entry) = cursor.next()? {
-                if entry.id == 0 || entry.id > u64::from(self.input) {
-                    return Err(invalid());
+            let replay = (|| {
+                let mut records = 0u32;
+                while let Some(entry) = cursor.next()? {
+                    if entry.id == 0 || entry.id > u64::from(self.input) {
+                        return Err(invalid());
+                    }
+                    let values = decode(entry.label, &mut self.keys, &inner)?;
+                    inner.row(&self.keys.data, &values[..inner.kind.fields()])?;
+                    records = records.checked_add(1).ok_or_else(invalid)?;
                 }
-                let values = decode(entry.label, &mut self.keys, &inner)?;
-                inner.row(&self.keys.data, &values[..inner.kind.fields()])?;
-                records = records.checked_add(1).ok_or_else(invalid)?;
-            }
-            cursor.close()?;
+                Ok(records)
+            })();
+            // Close explicitly even after replay fails: Drop cannot report cleanup.
+            let closed = cursor.close();
+            let records = match (replay, closed) {
+                (Err(mut error), cleanup) => {
+                    if let Err(cleanup) = cleanup
+                        && error.cleanup_error().is_none()
+                    {
+                        error = error.with_cleanup(io::Error::other(cleanup));
+                    }
+                    return Err(error);
+                }
+                (Ok(_), Err(error)) => return Err(error),
+                (Ok(records), Ok(_)) => records,
+            };
             let statistics = cursor.statistics();
             if !statistics.complete
                 || records != self.input

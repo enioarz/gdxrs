@@ -917,6 +917,10 @@ impl Drop for CleanupFailure {
 
 pub(super) struct IoFailure;
 impl IoFailure {
+    pub(super) fn cleanup(after: usize) -> Self {
+        fault(Event::Remove, after, true, io::ErrorKind::PermissionDenied);
+        Self
+    }
     pub(super) fn new(read: bool) -> Self {
         fault(
             if read { Event::Read } else { Event::Write },

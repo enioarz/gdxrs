@@ -249,6 +249,45 @@ fn abandoned_replay_limit_and_corrupt_runs_never_publish() {
     }
 }
 #[test]
+fn replay_failures_preserve_cursor_cleanup_errors_before_parent_cleanup() {
+    let _reset = Reset::new();
+    for malformed in [false, true] {
+        let p = Parent::new();
+        let (mut w, a, _, id) = setup(&p, WriteCompression::None);
+        let mut rows = w.begin_unsorted_symbol(id, None).unwrap();
+        if malformed {
+            // One malformed entry reaches decode without an intervening merge.
+            rows.sorter
+                .as_mut()
+                .unwrap()
+                .push(&[0, 0, 0, 1, 0, 0, 0, 1], 1)
+                .unwrap();
+            rows.input = 1;
+        } else {
+            rows.write(&[a, a], &[Value::ZERO]).unwrap();
+            rows.inner.as_mut().unwrap().writer.limit = 126;
+        }
+        // Allow the final run's partial-file removal, then deny cursor cleanup.
+        let cleanup = crate::spill::test_cleanup_failure_after(1);
+        let error = rows.finish().unwrap_err();
+        assert_eq!(
+            error.kind,
+            if malformed {
+                ErrorKind::InvalidSpill
+            } else {
+                ErrorKind::OutputLimitExceeded
+            }
+        );
+        assert!(error.cleanup_error().is_some());
+        assert!(!w.statistics().published);
+        // Parent cleanup succeeds independently of the denied cursor cleanup.
+        p.empty();
+        assert_eq!(w.finish().unwrap_err().kind, error.kind);
+        w.abort().unwrap();
+        drop(cleanup);
+    }
+}
+#[test]
 fn merge_io_and_cleanup_failures_keep_retryable_parent_ownership() {
     let _reset = Reset::new();
     for read in [false, true] {
