@@ -1,6 +1,6 @@
 # Numbered implementation tasks
 
-These specifications break **M0, M1 and M2** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
+These specifications break **M0–M3** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
 
 ## Execution order
 
@@ -51,7 +51,7 @@ Run from the repository root. Use Python's standard library for the development 
 
 ## Current implementation scope
 
-Tasks 001–011 are complete; M1 is merged at `5cc766d`. M1 provides the bounded serial GDX v7 reader. M2 begins with task 012; its out-of-core read gate passed in task 016 on Linux x86_64. Runtime evidence is separate from documentation checks. The crate has no writer yet.
+Tasks 001–011 are complete; M1 is merged at `5cc766d`. M1 provides the bounded serial GDX v7 reader. M2 begins with task 012; its out-of-core read gate passed in task 016 on Linux x86_64. Runtime evidence is separate from documentation checks. The crate now also has a qualified M3 sorted raw writer; see tasks 018–023 below.
 
 ## M1 — user-directed advancement (2026-10-24)
 
@@ -104,4 +104,12 @@ before starting its dependent; task 023 is the M3 release gate.
 | [020](020-writer-metadata-spooling.md) | Original-ID raw registration and metadata spools | Complete; [review fixes](../docs/evidence/020-review-fixes.md); merged in PR #14 at `8997385` |
 | [021](021-sorted-record-writer.md) | Checked sorted raw symbol/record encoding | Complete; [evidence](../docs/evidence/021.md) |
 | [022](022-writer-finalization-interop.md) | Complete metadata/finalization and both interoperability directions | Complete; [evidence](../docs/evidence/022.md) |
-| [023](023-m3-writer-acceptance.md) | OS-capped record/metadata/pipeline scale and M3 acceptance | In progress |
+| [023](023-m3-writer-acceptance.md) | OS-capped record/metadata/pipeline scale and M3 acceptance | Complete; [evidence](../docs/evidence/023.md) |
+
+
+M3's sorted-writer exit gate passes at `cc972bf`; see [M3 API status](../docs/m3-api.md).
+Linux OS/RSS qualification is separate from native Rust functionality on all four
+platforms. Bulk metadata registration remains slower than eager native registration;
+compressed timings use different compression levels. No M4 append/general-input
+adapter or full native C API parity is implied. Next milestone: M4, with separately
+specified tasks before implementation. PRs #16/#17 retain task boundaries for review.
