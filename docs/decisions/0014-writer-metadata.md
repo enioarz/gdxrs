@@ -2,7 +2,8 @@
 
 Task 020 follows completed task 019. Registration is optional: an untouched writer
 retains its empty-file behavior. `begin_metadata(&MetadataOptions)` creates an
-exclusive private scratch directory under an existing trusted parent. All buffers,
+exclusive private scratch directory under an existing trusted parent. The directory owner is retained by Writer before fallible journal initialization,
+so initialization errors preserve a secondary cleanup cause and abort can retry. All buffers,
 controls and bounded paths share the writer root. No dummy Reader is constructed.
 The spill sorter gains an internal explicit-budget constructor; existing reader
 sorts retain their source identity and membership validation.
@@ -30,7 +31,8 @@ names are unique. References accept a writer-bound symbol or a forward name.
 Alias chains serialize their resolved underlying set ID, matching native alias
 creation. Freeze resolves forward aliases/strict domains, checks 1-dimensional set/alias
 semantics and alias cycles with bounded disk traversal, then prohibits mutation.
-Relaxed domains preserve their byte names; strict and relaxed modes are explicit
+Strict-domain validation checks the alias chain but serializes the originally
+resolved reference ID, preserving alias identity. Relaxed domains preserve their byte names; strict and relaxed modes are explicit
 and cannot mix within a symbol. An empty domain list denotes implicit universe.
 
 Metadata is held in checksummed, offset-bound frames with explicit tags, lengths

@@ -68,6 +68,12 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let mut alias = WriteSymbol::new(b"All", SymbolType::Alias, 1);
     alias.alias_target = Some(SymbolReference::Universe);
     writer.register_symbol(&alias)?;
+    let alias_domain =
+        writer.register_symbol(&WriteSymbol::new(b"PAlias", SymbolType::Parameter, 1))?;
+    writer.set_domains(
+        alias_domain,
+        &[WriteDomain::Strict(SymbolReference::Name(b"alias"))],
+    )?;
     writer.add_set_text(b"note")?;
     writer.add_acronym(AcronymId::new(7)?, b"Acro", b"acronym")?;
     writer.freeze_metadata()?;

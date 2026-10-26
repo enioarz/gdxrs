@@ -321,10 +321,14 @@ impl Metadata {
             _paths: paths,
         };
         m.options.directory = m.directory.clone();
-        m.journal = Some(Store::create(&m.path(0), &m.budget)?);
-        m.owned[0] = true;
-        m.stats.peak_open_files = 1;
         Ok(m)
+    }
+    // Writer must retain the directory owner before this fallible allocation/open.
+    fn initialize_journal(&mut self) -> Result<()> {
+        self.journal = Some(Store::create(&self.path(0), &self.budget)?);
+        self.owned[0] = true;
+        self.stats.peak_open_files = 1;
+        Ok(())
     }
     fn path(&self, n: usize) -> PathBuf {
         self.directory.join(match n {
@@ -1054,7 +1058,13 @@ impl Metadata {
             if mode == Some(1) {
                 for axis in 0..s.dim {
                     let (_, r) = self.domain(id, axis)?;
-                    w.section_i32(self.set_target(&r)? as i32)?;
+                    // Validate the chain without replacing the referenced alias ID.
+                    let referenced = self.resolve_ref(&r)?;
+                    self.set_target(&Ref {
+                        id: referenced,
+                        name: Bytes::default(),
+                    })?;
+                    w.section_i32(referenced as i32)?;
                 }
             }
             let mut count = 0u32;
@@ -1187,7 +1197,7 @@ impl Writer {
             Ok(m) => {
                 self.metadata_statistics = m.statistics();
                 self.metadata = Some(m);
-                Ok(())
+                self.metadata_call(Metadata::initialize_journal)
             }
             Err(e) => Err(self.fail(e)),
         }

@@ -182,17 +182,17 @@ def codec_check(run, area):
 
 def metadata_expected(compression, audit):
     """Independent recipe for create_metadata, including native scalar defaults."""
-    lines=['GDXRS-ORACLE\t1',f'F\t7\t{compression}\t7\t7\t{RUST_PRODUCER}\t{audit}']
+    lines=['GDXRS-ORACLE\t1',f'F\t7\t{compression}\t8\t7\t{RUST_PRODUCER}\t{audit}']
     labels=[b'z',b'a',b'A',b'\x80label',b' space ',b'',b"single'"]
     for n,label in enumerate(labels,1): lines.append(f'U\t{n}\t{label.hex()}')
     lines += ['T\t0\t0\t','T\t1\t0\t'+b'note'.hex(),'A\t1\t7\t'+b'Acro'.hex()+'\t'+b'acronym'.hex()]
     zero='f:0000000000000000';one='f:3ff0000000000000'
-    symbols=[(b'*',1,0,7,0,b'Universe'),(b'Alias',1,4,0,2,b''),(b'I',1,0,0,0,b'domain set'),(b'Scalar',0,1,1,0,b'scalar'),(b'P',2,1,0,0,b''),(b'V',1,2,0,5,b''),(b'E',0,3,1,53,b''),(b'All',1,4,0,0,b'')]
+    symbols=[(b'*',1,0,7,0,b'Universe'),(b'Alias',1,4,0,2,b''),(b'I',1,0,0,0,b'domain set'),(b'Scalar',0,1,1,0,b'scalar'),(b'P',2,1,0,0,b''),(b'V',1,2,0,5,b''),(b'E',0,3,1,53,b''),(b'All',1,4,0,0,b''),(b'PAlias',1,1,0,0,b'')]
     for n,(name,dimension,kind,count,user,description) in enumerate(symbols):
         lines.append(f'S\t{n}\t{name.hex()}\t{dimension}\t{kind}\t{count}\t{user}\t{description.hex()}')
         if n:
-            mode=3 if n==4 else 2 if n==5 else 1
-            domains=['2:'+b'I'.hex(),'0:2a'] if n==4 else ['0:'+b'future'.hex()] if n==5 else ['0:2a']*dimension
+            mode=3 if n in [4,8] else 2 if n==5 else 1
+            domains=['1:'+b'Alias'.hex()] if n==8 else ['2:'+b'I'.hex(),'0:2a'] if n==4 else ['0:'+b'future'.hex()] if n==5 else ['0:2a']*dimension
             lines.append(f'D\t{n}\t{mode}'+''.join('\t'+d for d in domains))
             if n==2:
                 for c,text in enumerate([b'first',b'second'],1): lines.append(f'C\t{n}\t{c}\t{text.hex()}')

@@ -502,3 +502,107 @@ fn corrupt_framing_extent_and_late_ordinal_damage_prevent_publication() {
     );
     p.empty();
 }
+
+#[test]
+fn strict_domains_preserve_direct_forward_and_chained_alias_ids() {
+    let mut modes = vec![WriteCompression::None];
+    if cfg!(feature = "compression") {
+        modes.push(WriteCompression::Zlib);
+    }
+    for mode in modes {
+        let p = Parent::new();
+        let mut w = Writer::create(
+            p.destination(),
+            WriteOptions {
+                compression: mode,
+                ..options()
+            },
+        )
+        .unwrap();
+        w.begin_metadata(&limits(&p)).unwrap();
+        let i = w
+            .register_symbol(&WriteSymbol::new(b"I", SymbolType::Set, 1))
+            .unwrap();
+        let named = w
+            .register_symbol(&WriteSymbol::new(b"Named", SymbolType::Parameter, 1))
+            .unwrap();
+        w.set_domains(named, &[WriteDomain::Strict(SymbolReference::Name(b"K"))])
+            .unwrap();
+        let mut alias = WriteSymbol::new(b"J", SymbolType::Alias, 1);
+        alias.alias_target = Some(SymbolReference::Registered(i));
+        let j = w.register_symbol(&alias).unwrap();
+        alias.name = b"K";
+        alias.alias_target = Some(SymbolReference::Registered(j));
+        let k = w.register_symbol(&alias).unwrap();
+        alias.name = b"All";
+        alias.alias_target = Some(SymbolReference::Universe);
+        let all = w.register_symbol(&alias).unwrap();
+        for (name, reference) in [
+            (b"Direct".as_slice(), SymbolReference::Registered(j)),
+            (b"Chain", SymbolReference::Registered(k)),
+            (b"UniverseAlias", SymbolReference::Registered(all)),
+            (b"Universe", SymbolReference::Universe),
+        ] {
+            let p = w
+                .register_symbol(&WriteSymbol::new(name, SymbolType::Parameter, 1))
+                .unwrap();
+            w.set_domains(p, &[WriteDomain::Strict(reference)]).unwrap();
+        }
+        w.freeze_metadata().unwrap();
+        w.finish().unwrap();
+        let r = Reader::open(p.destination(), OpenOptions::default()).unwrap();
+        for (name, id, label) in [
+            (b"Named".as_slice(), k.get(), b"K".as_slice()),
+            (b"Direct", j.get(), b"J"),
+            (b"Chain", k.get(), b"K"),
+            (b"UniverseAlias", all.get(), b"All"),
+            (b"Universe", 0, b"*"),
+        ] {
+            let symbol = r.find_symbol(name).unwrap().unwrap();
+            let mut domains = r.domains(&symbol).unwrap();
+            let d = domains.next().unwrap().unwrap();
+            assert_eq!(d.strict_symbol.unwrap().get(), id, "{name:?}");
+            assert_eq!(d.name, label, "{name:?}");
+            assert!(domains.next().unwrap().is_none());
+        }
+    }
+}
+
+#[test]
+fn initialization_allocation_and_cleanup_failure_keep_retryable_owner() {
+    let _reset = Reset::new();
+    let p = Parent::new();
+    let mut w = Writer::create(p.destination(), options()).unwrap();
+    let root = Arc::clone(&w.budget);
+    crate::budget::inject_buffer_failure();
+    fault(
+        Event::MetadataRemove,
+        0,
+        true,
+        io::ErrorKind::PermissionDenied,
+    );
+    let error = w.begin_metadata(&limits(&p)).unwrap_err();
+    assert_eq!(error.kind, ErrorKind::AllocationFailed);
+    assert_eq!(
+        error.cleanup_error().map(io::Error::kind),
+        Some(io::ErrorKind::PermissionDenied)
+    );
+    assert_eq!(w.statistics().status, WriteStatus::Failed);
+    assert!(!w.statistics().published);
+    let directory = w.metadata.as_ref().unwrap().directory.clone();
+    assert!(directory.is_dir());
+    assert!(!p.destination().exists());
+    assert!(w.abort().is_err());
+    assert!(directory.is_dir());
+    let _reset = Reset::new();
+    let stats = w.abort().unwrap();
+    assert_eq!(stats.status, WriteStatus::Failed);
+    assert!(!directory.exists());
+    p.empty();
+    // A successful cleanup retry does not erase or replay the original failure.
+    let repeated = w.finish().unwrap_err();
+    assert_eq!(repeated.kind, ErrorKind::AllocationFailed);
+    assert!(repeated.cleanup_error().is_some());
+    drop(w);
+    assert_eq!(root.statistics().current_bytes, 0);
+}
