@@ -86,7 +86,7 @@ jobs:
           for name in ['native-tests', 'native-release', 'native-reader']:
               path = Path('.work') / (name + '.log')
               if path.exists():
-                  tail = path.read_text(encoding='utf-8', errors='replace')[-12000:]
+                  tail = path.read_text(encoding='utf-8', errors='replace')[-3500:]
                   tail = tail.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
                   print('::error title=Native reader validation::' + name + '%0A' + tail)
           PYFAIL
