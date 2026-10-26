@@ -293,6 +293,7 @@ impl Store {
     }
 }
 impl Store {
+    #[cfg(not(windows))]
     pub fn integer(&mut self, index: u32) -> Result<i64> {
         if index == 0 {
             return Err(Error::new(ErrorKind::InvalidSpill, "zero ordinal index"));
@@ -308,6 +309,36 @@ impl Store {
         b.copy_from_slice(f.payload());
         Ok(i64::from_le_bytes(b))
     }
+    #[cfg(windows)]
+    pub fn integer(&mut self, index: u32) -> Result<i64> {
+        if index == 0 {
+            return Err(Self::invalid_snapshot());
+        }
+        self.validate_snapshot()?;
+        let at = u64::from(index - 1) * 19;
+        if at.checked_add(19).is_none_or(|end| end > self.length) {
+            return Err(Self::invalid_snapshot());
+        }
+        // NTFS last-write time is insufficient to detect callback writes while
+        // another writable handle remains open. Verify the physical ordinal.
+        let mut bytes = [0; 19];
+        event(Event::MetadataSeek).map_err(Error::io)?;
+        let file = self.file()?;
+        file.seek(SeekFrom::Start(at)).map_err(Error::io)?;
+        event(Event::MetadataRead).map_err(Error::io)?;
+        file.read_exact(&mut bytes).map_err(Error::io)?;
+        if bytes[..3] != [8, 8, 0] {
+            return Err(Self::invalid_snapshot());
+        }
+        let mut digest = [0; 8];
+        digest.copy_from_slice(&bytes[11..]);
+        if u64::from_le_bytes(digest) != hash(hash(INITIAL, &at.to_le_bytes()), &bytes[..11]) {
+            return Err(Self::invalid_snapshot());
+        }
+        let mut value = [0; 8];
+        value.copy_from_slice(&bytes[3..11]);
+        Ok(i64::from_le_bytes(value))
+    }
     pub fn set_integer(&mut self, index: u32, value: i64) -> Result<()> {
         self.integer(index)?;
         let at = u64::from(index - 1) * 19;
@@ -316,15 +347,30 @@ impl Store {
         b[3..11].copy_from_slice(&value.to_le_bytes());
         let h = hash(hash(INITIAL, &at.to_le_bytes()), &b[..11]);
         b[11..].copy_from_slice(&h.to_le_bytes());
-        let offset = (at - self.cache_start) as usize;
-        // PAGE is a multiple of 19: integer() brought this entire frame into cache.
-        self.buffer
-            .data
-            .get_mut(offset..offset + 19)
-            .ok_or_else(Self::invalid_snapshot)?
-            .copy_from_slice(&b);
-        self.cache_dirty = true;
-        Ok(())
+        #[cfg(windows)]
+        {
+            event(Event::MetadataSeek).map_err(Error::io)?;
+            let file = self.file()?;
+            file.seek(SeekFrom::Start(at)).map_err(Error::io)?;
+            event(Event::MetadataWrite).map_err(Error::io)?;
+            file.write_all(&b).map_err(Error::io)?;
+            // Never retain an ordinal page across a user mapping callback.
+            self.cache_len = 0;
+            self.buffer.data.clear();
+            Ok(())
+        }
+        #[cfg(not(windows))]
+        {
+            let offset = (at - self.cache_start) as usize;
+            // PAGE is a multiple of 19: integer() brought this entire frame into cache.
+            self.buffer
+                .data
+                .get_mut(offset..offset + 19)
+                .ok_or_else(Self::invalid_snapshot)?
+                .copy_from_slice(&b);
+            self.cache_dirty = true;
+            Ok(())
+        }
     }
 }
 

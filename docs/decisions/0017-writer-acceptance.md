@@ -28,7 +28,12 @@ frames may straddle and retain offset-bound checksums. Each logical frame checks
 extent/modification metadata; detected changes invalidate a clean page and fail a
 dirty page. Appends and page flushes maintain the local snapshot. The trusted
 private namespace/immutable-external-source contract remains; timestamps are not
-cryptographic identity. Cache capacity is constant, uses the existing fallible buffer and is included in
+cryptographic identity. Native Windows testing reproduced an existing late-ordinal
+corruption regression: NTFS last-write timestamps can lag writes through a second
+handle, so cached ordinal data could hide that corruption. Windows ordinal reads
+therefore directly verify the physical 19-byte checksummed frame, and ordinal
+patches write through. The non-Windows cache path is unchanged; the existing
+regression and all native suites remain enabled. Windows performance is unmeasured. Cache capacity is constant, uses the existing fallible buffer and is included in
 the root without raising the one-MiB creation/registration contract. An initial
 separate cache allocation exceeded an existing compressed one-MiB fixture; buffer
 reuse fixes that admission regression without changing its cap. Existing corruption, allocation, fault, quota and cleanup tests stay enabled;
