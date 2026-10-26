@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <chrono>
 using U = std::uint64_t;
 constexpr U SEED=0x1640;
 constexpr U INITIAL=14695981039346656037ULL;
@@ -60,6 +61,9 @@ void generate(const std::string &path,const std::string &kind,U count){
 }
 void native_scan(const std::string &path,U count){gdx::TGXFileObj g;int error=0;
     if(!g.gdxOpenRead(path.c_str(),error))throw std::runtime_error("native open "+std::to_string(error));
+    U labels=std::max<U>(1024,(count+1023)/1024),label_digest=INITIAL;int symbols=0,uels=0;
+    if(!g.gdxSystemInfo(symbols,uels)||symbols!=1||U(uels)!=labels)throw std::runtime_error("native record metadata counts");
+    for(U n=1;n<=labels;++n){char text[GMS_SSSIZE]{};int mapped=0;if(!g.gdxUMUelGet(int(n),text,mapped)||std::string(text)!=label(n))throw std::runtime_error("native record UEL IDs");label_digest=step(label_digest,n);for(unsigned char c:label(n))label_digest=step(label_digest,c);}
     int rows=0;if(!g.gdxDataReadRawStart(1,rows)||U(rows)!=count)throw std::runtime_error("native count");
     int keys[20]{},changed=0;double values[5]{};Summary result;
     for(U n=0;n<count;++n){if(!g.gdxDataReadRaw(keys,values,changed))throw std::runtime_error("native premature EOF");
@@ -67,11 +71,33 @@ void native_scan(const std::string &path,U count){gdx::TGXFileObj g;int error=0;
         for(int f=0;f<5;++f){U actual=0;std::memcpy(&actual,&values[f],8);if(actual!=bits(n,f))throw std::runtime_error("native value mismatch");result.digest=step(result.digest,actual);}++result.count;
     }
     if(g.gdxDataReadRaw(keys,values,changed)||!g.gdxDataReadDone()||g.gdxClose())throw std::runtime_error("native finish");
-    std::cout<<'{';summary("all",result,false);std::cout<<"}\n";
+    std::cout<<"{\"label_digest\":\""<<std::hex<<std::setw(16)<<std::setfill('0')<<label_digest<<std::dec<<"\",";summary("all",result,false);std::cout<<"}\n";
 }
 void native_labels(const std::string &path,U count){gdx::TGXFileObj g;int error=0,symbols=0,uels=0;
     if(!g.gdxOpenRead(path.c_str(),error)||!g.gdxSystemInfo(symbols,uels)||symbols!=0||U(uels)!=count)throw std::runtime_error("native metadata open/count");
     U digest=INITIAL;for(U n=1;n<=count;++n){char text[GMS_SSSIZE]{};int mapped=0;if(!g.gdxUMUelGet(int(n),text,mapped)||std::string(text)!=label(n))throw std::runtime_error("native UEL recipe");digest=step(digest,n);for(unsigned char c:label(n))digest=step(digest,c);}
     if(g.gdxClose())throw std::runtime_error("native metadata close");std::cout<<"{\"count\":"<<count<<",\"digest\":\""<<std::hex<<std::setw(16)<<std::setfill('0')<<digest<<"\"}\n";
 }
-int main(int argc,char **argv){try{if(argc!=5)throw std::runtime_error("usage: generate|native PATH records|metadata COUNT");U n=std::stoull(argv[4]);if(std::string(argv[1])=="generate")generate(argv[2],argv[3],n);else if(std::string(argv[1])=="native")native_scan(argv[2],n);else if(std::string(argv[1])=="native-labels")native_labels(argv[2],n);else throw std::runtime_error("mode");return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}
+
+void native_write(const std::string &path,const std::string &kind,U count,bool compression){
+    using Clock=std::chrono::steady_clock;
+    auto seconds=[](auto start){return std::chrono::duration<double>(Clock::now()-start).count();};
+    gdx::TGXFileObj g;int error=0;
+    if(!g.gdxOpenWriteEx(path.c_str(),"gdxrs-native-writer-023",compression?1:0,error))throw std::runtime_error("native writer open");g.gdxAutoConvert(0);
+    U labels=kind=="metadata"?count:std::max<U>(1024,(count+1023)/1024);
+    auto start=Clock::now();
+    if(!g.gdxUELRegisterRawStart())throw std::runtime_error("native registration start");
+    U label_digest=INITIAL;
+    for(U n=1;n<=labels;++n){auto text=label(n);if(!g.gdxUELRegisterRaw(text.c_str()))throw std::runtime_error("native registration");label_digest=step(label_digest,n);for(unsigned char c:text)label_digest=step(label_digest,c);}
+    if(!g.gdxUELRegisterDone())throw std::runtime_error("native registration finish");
+    double registration=seconds(start);start=Clock::now();Summary result;
+    if(kind!="metadata"){
+        if(!g.gdxDataWriteRawStart("data","scale recipe",20,GMS_DT_VAR,5))throw std::runtime_error("native data start");
+        int keys[20]{};double values[5]{};
+        for(U n=0;n<count;++n){for(int d=0;d<20;++d)keys[d]=int(d==0?n/1024+1:(d==19?n%1024+1:1));for(int f=0;f<5;++f){U b=bits(n,f);std::memcpy(&values[f],&b,8);}if(!g.gdxDataWriteRaw(keys,values))throw std::runtime_error("native data row");result.row(n);}
+        if(!g.gdxDataWriteDone()||g.gdxDataErrorCount())throw std::runtime_error("native data finish");
+    }
+    double encoding=seconds(start);start=Clock::now();if(g.gdxClose())throw std::runtime_error("native writer close");double finalize=seconds(start);
+    std::cout<<"{\"registration_seconds\":"<<registration<<",\"encoding_seconds\":"<<encoding<<",\"finalization_seconds\":"<<finalize<<",\"labels\":"<<labels<<",\"label_digest\":\""<<std::hex<<std::setw(16)<<std::setfill('0')<<label_digest<<std::dec<<"\",";summary("all",result,false);std::cout<<"}\n";
+}
+int main(int argc,char **argv){try{if(argc==6 && std::string(argv[1])=="write"){native_write(argv[2],argv[3],std::stoull(argv[4]),std::string(argv[5])=="zlib");return 0;}if(argc!=5)throw std::runtime_error("usage: generate|native PATH records|metadata COUNT");U n=std::stoull(argv[4]);if(std::string(argv[1])=="generate")generate(argv[2],argv[3],n);else if(std::string(argv[1])=="native")native_scan(argv[2],n);else if(std::string(argv[1])=="native-labels")native_labels(argv[2],n);else throw std::runtime_error("mode");return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

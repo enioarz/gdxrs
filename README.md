@@ -159,5 +159,21 @@ disk index. Untouched symbols remain empty (scalars expose native defaults).
 Duplicate/out-of-order rows, invalid references, failed rows and abandoned symbol
 writers make publication fail. Set values are registered set-text IDs. The
 [record contract](docs/decisions/0015-sorted-record-writer.md) describes storage,
-ordering, bounds and value semantics. Full writer finalization qualification and
-OS-capped pipeline acceptance remain tasks 022–023.
+ordering, bounds and value semantics. Full metadata/finalization and Linux
+OS-capped pipeline acceptance are qualified in
+[tasks 022–023](docs/evidence/023.md). See the [M3 API inventory](docs/m3-api.md).
+
+The acceptance run writes 52 million rows (2.39 GB raw output), streams a reader
+into the writer under one shared 256 MiB root, and independently writes 34 million
+63-byte labels (2.17 GB output), all under an enforced 512 MiB Linux process cap.
+Native GDX and Rust validate complete ordered digests and original IDs. Native
+large-metadata reference validation uses a separate 16 GiB cap because native GDX
+owns that dictionary eagerly; Rust writers and validators retain the 512 MiB cap.
+
+Repeated representative raw encoding meets native throughput on the measured
+Linux host. Bulk registration remains about five times slower than eager native
+registration; incremental metadata scans may be quadratic. Compression timings
+compare level-1 Rust to native default level 6, with file sizes recorded separately.
+Native Linux/macOS/Windows functionality passes; OS/RSS/performance qualification
+is Linux-only. Full results, source revisions and limits are in the acceptance
+evidence. General unsorted/string/mapped record adapters and append remain M4.

@@ -1,6 +1,6 @@
 # 023 — M3 bounded writer acceptance
 
-Milestone: M3. Prerequisites: 018–022 complete. Status: pending.
+Milestone: M3. Prerequisites: 018–022 complete. Status: complete. [Evidence](../docs/evidence/023.md).
 
 Execute independently oversized records AND registration/metadata writing with
 streaming generators/sinks under the established initial 256 MiB shared library

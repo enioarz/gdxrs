@@ -176,8 +176,12 @@ impl SymbolWriter<'_> {
         }
         self.writer
             .metadata_call(|m| m.validate_record(&self.domains, keys, values, self.kind))?;
+        let mut packet = RowPacket {
+            bytes: [0; 126],
+            length: 0,
+        };
         if self.dim == 0 {
-            self.emit(&[1])?;
+            packet.bytes(&[1])?;
         } else {
             let changed = if self.count == 0 {
                 0
@@ -192,46 +196,25 @@ impl SymbolWriter<'_> {
                 && delta > 0
                 && delta + (self.dim as i64) < 255
             {
-                self.emit(&[(delta + self.dim as i64) as u8])?;
+                packet.bytes(&[(delta + self.dim as i64) as u8])?;
             } else {
-                self.emit(&[(changed + 1) as u8])?;
+                packet.bytes(&[(changed + 1) as u8])?;
                 for (d, key) in current.iter().enumerate().take(self.dim).skip(changed) {
                     let relative = *key - self.bounds[d].minimum as u32;
-                    self.emit(&relative.to_le_bytes()[..usize::from(self.widths[d])])?;
+                    packet.bytes(&relative.to_le_bytes()[..usize::from(self.widths[d])])?;
                 }
             }
         }
         for value in values {
-            self.value(*value)?;
+            packet.value(*value)?;
         }
+        self.emit(&packet.bytes[..packet.length])?;
         if self.kind == SymbolType::Set && self.dim == 1 {
             self.writer.metadata_call(|m| m.member(self.id, keys[0]))?;
         }
         self.previous = current;
         self.count += 1;
         Ok(())
-    }
-    fn value(&mut self, value: Value) -> Result<()> {
-        let bits = match value {
-            Value::Special(s) => {
-                return self.emit(&[match s {
-                    SpecialValue::Undefined => 0,
-                    SpecialValue::NotAvailable => 1,
-                    SpecialValue::PositiveInfinity => 2,
-                    SpecialValue::NegativeInfinity => 3,
-                    SpecialValue::Epsilon => 4,
-                }]);
-            }
-            Value::NumberBits(bits) => bits,
-            Value::Acronym { encoded_bits, .. } => encoded_bits,
-        };
-        let common = [0.0f64, 1.0, -1.0, 0.5, 2.0];
-        if let Some(index) = common.iter().position(|n| n.to_bits() == bits) {
-            self.emit(&[5 + index as u8])
-        } else {
-            self.emit(&[10])?;
-            self.emit(&bits.to_le_bytes())
-        }
     }
     /// Close the data section and retain checked catalog/domain information.
     pub fn finish(mut self) -> Result<u32> {
@@ -247,6 +230,46 @@ impl SymbolWriter<'_> {
             Ok(self.count)
         })();
         result.map_err(|e| self.writer.fail(e))
+    }
+}
+struct RowPacket {
+    bytes: [u8; 126],
+    length: usize,
+}
+impl RowPacket {
+    fn bytes(&mut self, value: &[u8]) -> Result<()> {
+        let end = self
+            .length
+            .checked_add(value.len())
+            .ok_or_else(|| Error::new(ErrorKind::InvalidCount, "record packet overflow"))?;
+        self.bytes
+            .get_mut(self.length..end)
+            .ok_or_else(|| Error::new(ErrorKind::InvalidCount, "record exceeds v7 packet bound"))?
+            .copy_from_slice(value);
+        self.length = end;
+        Ok(())
+    }
+    fn value(&mut self, value: Value) -> Result<()> {
+        let bits = match value {
+            Value::Special(s) => {
+                return self.bytes(&[match s {
+                    SpecialValue::Undefined => 0,
+                    SpecialValue::NotAvailable => 1,
+                    SpecialValue::PositiveInfinity => 2,
+                    SpecialValue::NegativeInfinity => 3,
+                    SpecialValue::Epsilon => 4,
+                }]);
+            }
+            Value::NumberBits(bits) => bits,
+            Value::Acronym { encoded_bits, .. } => encoded_bits,
+        };
+        let common = [0.0f64, 1.0, -1.0, 0.5, 2.0];
+        if let Some(index) = common.iter().position(|n| n.to_bits() == bits) {
+            self.bytes(&[5 + index as u8])
+        } else {
+            self.bytes(&[10])?;
+            self.bytes(&bits.to_le_bytes())
+        }
     }
 }
 impl Drop for SymbolWriter<'_> {
