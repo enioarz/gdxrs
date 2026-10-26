@@ -1,6 +1,6 @@
 # 019 — Bounded raw/stored/zlib output streams
 
-Milestone: M3. Prerequisite: 018 complete. Status: pending.
+Milestone: M3. Prerequisite: 018 complete. Status: in progress; [allocation/API decision](../docs/decisions/0013-bounded-writer-codec.md).
 
 Add section encoder byte/scalar/string primitives and independent <=32 KiB decoded
 blocks, with stored fallback when zlib is not shorter. Extend the existing audited
