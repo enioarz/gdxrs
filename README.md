@@ -257,3 +257,6 @@ typed values alongside explicit numeric projections, with quota-controlled
 acronym mappings/next IDs and resets. Floating-point identity loss requires
 `FloatConversion::AllowLoss`. Acronym metadata can be updated before freeze through
 a bounded journal rewrite. See [ownership, quotas and exclusions](docs/decisions/0022-value-acronym-policies.md).
+
+[Task 028 evidence](docs/evidence/028.md) records local and four-platform native checks.
+Task 029 is next; general-input scale/performance acceptance remains task 031.

@@ -51,7 +51,9 @@ configured next ID. Encountered identity mappings are recorded too so later
 assignments cannot alias their outputs. Every assignment validates finite encoding
 and inverse uniqueness before append. Colliding automatic IDs fail instead of
 silently assigning native's ambiguous duplicate target. The counter does not skip
-occupied IDs. Repeated occurrences reuse a mapping and do not advance the counter.
+occupied IDs. Repeated occurrences reuse a mapping and do not advance the counter. Allocation
+order is the order of explicit `project` calls; unprojected fields allocate
+nothing. The raw decoder does not perform policy work in the background.
 
 `AcronymReadPolicy::ToNotAvailable` explicitly discards numeric acronym identity
 in the projected half only, without allocating an automatic mapping or advancing
