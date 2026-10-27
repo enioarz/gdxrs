@@ -1,6 +1,6 @@
 # 028 — Explicit special-value and acronym policies
 
-Milestone: M4. Prerequisite: 027 complete. Status: pending.
+Milestone: M4. Prerequisite: 027 complete. Status: implementation complete; qualification in progress.
 
 Close the M4 special-projection/acronym inventory using explicit per-session
 policies, preserving the core typed file view. Cover custom read/write sentinel

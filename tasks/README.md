@@ -126,7 +126,7 @@ M3 tree. Complete one gate at a time; task 031 is the M4 exit gate.
 | [025](025-string-record-registration.md) | Streamed string records and first-registration dictionary/remap | 024 | Complete; [evidence](../docs/evidence/025.md) |
 | [026](026-mapped-id-adapters.md) | Bounded mapped registration/read/write | 025 | Complete; [evidence](../docs/evidence/026.md) |
 | [027](027-domain-error-streams.md) | Explicit domain validation and bounded error streams | 026 | Complete; [evidence](../docs/evidence/027.md) |
-| [028](028-value-acronym-policies.md) | Special-value/acronym policies and semantic parity | 027 | Pending |
+| [028](028-value-acronym-policies.md) | Special-value/acronym policies and semantic parity | 027 | Qualification in progress; [policy](../docs/decisions/0022-value-acronym-policies.md) |
 | [029](029-uel-metadata-operations.md) | Remaining modern UEL/metadata operations | 028 | Pending |
 | [030](030-atomic-append.md) | Atomic copy/rewrite append | 029 | Pending |
 | [031](031-m4-acceptance.md) | API inventory, general-input scale and M4 acceptance | 024–030 | Pending |

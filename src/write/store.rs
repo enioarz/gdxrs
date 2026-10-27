@@ -31,6 +31,27 @@ pub(super) struct Store {
     stamp: Option<std::time::SystemTime>,
 }
 impl Store {
+    pub fn reopen(&mut self, path: &Path) -> Result<()> {
+        if self.file.is_some() {
+            return Err(Self::invalid_snapshot());
+        }
+        event(Event::MetadataCreate).map_err(Error::io)?;
+        let file = fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(path)
+            .map_err(Error::io)?;
+        let metadata = file.metadata().map_err(Error::io)?;
+        if metadata.len() != self.length {
+            return Err(Self::invalid_snapshot());
+        }
+        self.stamp = Some(metadata.modified().map_err(Error::io)?);
+        self.buffer.data.clear();
+        self.cache_len = 0;
+        self.cache_dirty = false;
+        self.file = Some(file);
+        Ok(())
+    }
     pub fn close(&mut self) {
         self.file = None;
     }

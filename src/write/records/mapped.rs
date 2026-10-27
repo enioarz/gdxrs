@@ -29,6 +29,16 @@ impl Writer {
     }
 }
 impl MappedSymbolWriter<'_> {
+    pub fn write_f64(&mut self, keys: &[MappedUelId], values: &[f64]) -> Result<()> {
+        let inner = self
+            .inner
+            .inner
+            .as_mut()
+            .ok_or_else(|| Error::new(ErrorKind::InvalidWriteState, "mapped writer closed"))?;
+        let converted = inner.writer.convert_values(values);
+        let typed = converted.map_err(|e| self.inner.reject(e))?;
+        self.write(keys, &typed[..values.len()])
+    }
     pub fn write(&mut self, keys: &[MappedUelId], values: &[Value]) -> Result<()> {
         let result =
             (|| {
