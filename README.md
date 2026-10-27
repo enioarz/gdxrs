@@ -246,4 +246,5 @@ domain/duplicate rows through a bounded fallible callback. First valid input
 wins among duplicate keys. `Reader::scan_mapped_reporting` reports missing-map
 rows with original raw IDs. See the [domain/error API inventory](docs/domain-error-api.md)
 and [ownership, quotas and partial-result policy](docs/decisions/0021-domain-error-streams.md).
+[Task 027 evidence](docs/evidence/027.md) records local and four-platform native checks.
 General-input scale/performance acceptance remains task 031.

@@ -57,8 +57,10 @@ successfully acknowledged callbacks. A quota breach or callback error is termina
 preserves earlier partial counts and blocks publication. Previously delivered
 side effects cannot be rolled back or automatically replayed. Successful recovery
 requires the caller to explicitly finish the Writer transaction to publish.
-Secondary cursor cleanup errors are attached before parent cleanup; retryable
-parent ownership is retained. Drop remains best effort.
+Secondary cursor cleanup errors are attached before parent cleanup. If parent
+cleanup also fails, the first cleanup diagnostic and retryable parent ownership
+are retained. Every public deferred operation checks terminal state before
+accessing closed metadata, preserving the original error. Drop remains best effort.
 
 Mapped reads gain `scan_mapped_reporting`, an explicit prescan callback for each
 missing-map row, including all raw axes and each mapping that exists. Existing
