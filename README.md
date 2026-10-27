@@ -237,3 +237,13 @@ seven available handles for the index plus merge work. IDs near i32::MAX do not
 allocate dense arrays. Mapped throughput/OS-scale qualification remains task 031.
 See [mapped contract](docs/decisions/0020-mapped-ids.md) and
 [API inventory](docs/mapped-api.md) for limits and native semantic differences.
+
+
+Task 027 adds `Writer::begin_deferred_records` to stage registered raw, mapped
+or string keys before their domain sets are written. `finish()` rejects invalid
+rows terminally; `finish_reporting(ErrorLimits, callback)` explicitly recovers
+domain/duplicate rows through a bounded fallible callback. First valid input
+wins among duplicate keys. `Reader::scan_mapped_reporting` reports missing-map
+rows with original raw IDs. See the [domain/error API inventory](docs/domain-error-api.md)
+and [ownership, quotas and partial-result policy](docs/decisions/0021-domain-error-streams.md).
+General-input scale/performance acceptance remains task 031.

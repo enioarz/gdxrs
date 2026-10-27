@@ -3,6 +3,7 @@ use super::records::{DomainMembership, Domains, RecordSetup};
 use super::store::{Frame, Store};
 use super::*;
 use crate::model::Bytes;
+mod deferred;
 mod mapped;
 
 pub type MetadataOptions = SpillOptions;
@@ -237,7 +238,8 @@ fn symbol(f: &Frame) -> Result<Symbol> {
 pub(crate) struct Metadata {
     directory: PathBuf,
     journal: Option<Store>,
-    owned: [bool; 5],
+    owned: [bool; 6],
+    deferred_store: Option<Arc<std::sync::Mutex<Store>>>,
     string_store: Option<Arc<std::sync::Mutex<Store>>>,
     mapped_store: Option<Store>,
     map_entries: u32,
@@ -386,7 +388,8 @@ impl Metadata {
         let mut m = Self {
             directory,
             journal: None,
-            owned: [false; 5],
+            owned: [false; 6],
+            deferred_store: None,
             string_store: None,
             mapped_store: None,
             map_entries: 0,
@@ -427,7 +430,8 @@ impl Metadata {
             1 => "requests",
             2 => "ordinals",
             3 => "string-records",
-            _ => "mapped-uels",
+            4 => "mapped-uels",
+            _ => "deferred-records",
         })
     }
     fn j(&mut self) -> Result<&mut Store> {
@@ -460,11 +464,13 @@ impl Metadata {
             peak_temporary_bytes: self.peak + self.sort_peak,
             open_files: u64::from(self.journal.is_some())
                 + u64::from(self.string_store.is_some())
-                + u64::from(self.mapped_store.is_some()),
+                + u64::from(self.mapped_store.is_some())
+                + u64::from(self.deferred_store.is_some()),
             peak_open_files: self.stats.peak_open_files.max(if self.sort_handles > 0 {
                 3 + self.sort_handles
                     + u64::from(self.string_store.is_some())
                     + u64::from(self.owned[4])
+                    + u64::from(self.deferred_store.is_some())
             } else {
                 0
             }),
@@ -1161,7 +1167,13 @@ impl Metadata {
                 self.sort_used = 0;
             }
         }
-        for n in 0..5 {
+        if let Some(store) = self.deferred_store.take() {
+            match store.lock() {
+                Ok(mut s) => s.close(),
+                Err(p) => p.into_inner().close(),
+            }
+        }
+        for n in 0..6 {
             if self.owned[n] {
                 match event(Event::MetadataRemove).and_then(|_| fs::remove_file(self.path(n))) {
                     Ok(()) => self.owned[n] = false,
@@ -1232,7 +1244,12 @@ impl Metadata {
             for axis in 0..s.dim {
                 let (_, r) = self.domain(id, axis)?;
                 let target = self.set_target(&r)?;
-                if target != 0 {
+                if target != 0
+                    && !(target == id
+                        && self.resolve_ref(&r)? == id
+                        && s.kind == SymbolType::Set
+                        && s.dim == 1)
+                {
                     let (_, count, start) = self.record_info(target)?.ok_or_else(|| {
                         invalid("complete strict domain set before dependent symbol")
                     })?;
@@ -1251,13 +1268,12 @@ impl Metadata {
             members: self.j()?.length,
         })
     }
-    pub(super) fn validate_record(
+    pub(super) fn domain_violations(
         &mut self,
         domains: &Domains,
         keys: &[WriterUelId],
-        values: &[Value],
-        kind: SymbolType,
-    ) -> Result<()> {
+    ) -> Result<u32> {
+        let mut violations = 0u32;
         for (axis, key) in keys.iter().enumerate() {
             if key.owner != self.owner || key.get() > self.stats.uels {
                 return Err(Error::new(
@@ -1296,9 +1312,21 @@ impl Metadata {
                     }
                 }
                 if !found {
-                    return Err(invalid("key is outside strict domain"));
+                    violations |= 1 << axis;
                 }
             }
+        }
+        Ok(violations)
+    }
+    pub(super) fn validate_record(
+        &mut self,
+        domains: &Domains,
+        keys: &[WriterUelId],
+        values: &[Value],
+        kind: SymbolType,
+    ) -> Result<()> {
+        if self.domain_violations(domains, keys)? != 0 {
+            return Err(invalid("key is outside strict domain"));
         }
         for value in values {
             match *value {

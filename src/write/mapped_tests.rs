@@ -378,3 +378,145 @@ fn mapped_partial_error_preserves_secondary_cleanup_and_never_replays_rows() {
     Reset::new();
     m.abort().unwrap();
 }
+
+#[test]
+fn mapped_reporting_is_lossless_and_preserves_partial_mapping_and_typed_values() {
+    let p = Parent::new();
+    let r = source(&p);
+    let h = r.symbol(SymbolId::new(2).unwrap()).unwrap();
+    let mut m = r.mapped_uels(&limits(&p)).unwrap();
+    m.register([Ok((UelId::new(2).unwrap(), caller(0)))])
+        .unwrap();
+    let mut errors = vec![];
+    let mut c = r
+        .scan_mapped_reporting(
+            &h,
+            &mut m,
+            MappedReadOptions {
+                missing: MissingMapping::SkipRecord,
+                ..MappedReadOptions::default()
+            },
+            ErrorLimits::default(),
+            |e| {
+                errors.push((
+                    e.input_ordinal,
+                    e.kind,
+                    e.raw_keys.iter().map(|k| k.get()).collect::<Vec<_>>(),
+                    e.mapped_key(0).map(MappedUelId::get),
+                    e.mapped_key(1).map(MappedUelId::get),
+                    e.values[0],
+                ));
+                Ok(())
+            },
+        )
+        .unwrap();
+    assert!(c.next().unwrap().is_none());
+    assert_eq!(
+        (
+            c.statistics().decoded,
+            c.statistics().skipped,
+            c.statistics().errors.reported
+        ),
+        (3, 3, 3)
+    );
+    drop(c);
+    assert_eq!(
+        errors,
+        vec![
+            (
+                1,
+                DataErrorKind::MissingMapping { dimensions: 1 },
+                vec![1, 2],
+                None,
+                Some(0),
+                Value::NumberBits(1.25f64.to_bits())
+            ),
+            (
+                2,
+                DataErrorKind::MissingMapping { dimensions: 2 },
+                vec![2, 3],
+                Some(0),
+                None,
+                Value::Special(SpecialValue::Epsilon)
+            ),
+            (
+                3,
+                DataErrorKind::MissingMapping { dimensions: 3 },
+                vec![3, 1],
+                None,
+                None,
+                Value::Special(SpecialValue::Undefined)
+            ),
+        ]
+    );
+    assert_eq!(m.data_error_statistics().reported, 3);
+    m.close().unwrap();
+}
+#[test]
+fn mapped_reporting_partial_acknowledgments_quotas_and_callback_faults_are_terminal() {
+    for mode in 0..4 {
+        let _reset = Reset::new();
+        let p = Parent::new();
+        let r = source(&p);
+        let h = r.symbol(SymbolId::new(2).unwrap()).unwrap();
+        let mut m = r.mapped_uels(&limits(&p)).unwrap();
+        m.register([Ok((UelId::new(2).unwrap(), caller(0)))])
+            .unwrap();
+        let mut calls = 0;
+        let mut cleanup = None;
+        let err = r
+            .scan_mapped_reporting(
+                &h,
+                &mut m,
+                MappedReadOptions {
+                    missing: if mode == 3 {
+                        MissingMapping::Error
+                    } else {
+                        MissingMapping::SkipRecord
+                    },
+                    ..MappedReadOptions::default()
+                },
+                ErrorLimits {
+                    maximum_records: if mode == 0 { 1 } else { 10 },
+                    maximum_bytes: if mode == 1 { 1 } else { 10000 },
+                },
+                |_| {
+                    calls += 1;
+                    if mode == 2 && calls == 2 {
+                        cleanup = Some(crate::spill::test_cleanup_failure());
+                        fault(
+                            Event::MetadataRemove,
+                            0,
+                            true,
+                            io::ErrorKind::PermissionDenied,
+                        );
+                        return Err(Error::new(ErrorKind::InvalidOptions, "read sink failed"));
+                    }
+                    Ok(())
+                },
+            )
+            .err()
+            .unwrap();
+        assert_eq!(
+            err.kind,
+            if mode < 2 {
+                ErrorKind::DataErrorLimitExceeded
+            } else if mode == 2 {
+                ErrorKind::InvalidOptions
+            } else {
+                ErrorKind::InvalidReference
+            }
+        );
+        assert_eq!(
+            m.data_error_statistics().reported,
+            if mode == 1 { 0 } else { 1 }
+        );
+        if mode == 2 {
+            assert!(err.cleanup_error().is_some());
+            assert!(m.abort().is_err());
+        }
+        drop(cleanup);
+        drop(_reset);
+        m.abort().unwrap();
+    }
+}

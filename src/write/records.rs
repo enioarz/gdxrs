@@ -1,5 +1,7 @@
 //! Streaming sorted raw records; fixed state only.
 use super::*;
+mod deferred;
+pub use deferred::{DeferredRecordWriter, ValidationStatistics};
 mod mapped;
 mod strings;
 pub use mapped::MappedSymbolWriter;
@@ -63,6 +65,14 @@ impl Writer {
         id: WriterSymbolId,
         bounds: Option<&[KeyBounds]>,
     ) -> Result<SymbolWriter<'_>> {
+        self.begin_symbol_internal(id, bounds, true)
+    }
+    fn begin_symbol_internal(
+        &mut self,
+        id: WriterSymbolId,
+        bounds: Option<&[KeyBounds]>,
+        terminal: bool,
+    ) -> Result<SymbolWriter<'_>> {
         self.open()?;
         let prepared = (|| {
             if self.symbol_active {
@@ -83,7 +93,11 @@ impl Writer {
                 dimension: dim,
                 domains,
                 members,
-            } = self.metadata_call(|m| m.start_records(id))?;
+            } = self
+                .metadata
+                .as_mut()
+                .ok_or_else(|| Error::new(ErrorKind::InvalidWriteState, "metadata is closed"))?
+                .start_records(id)?;
             let dim = usize::from(dim);
             let mut selected = [KeyBounds {
                 minimum: 0,
@@ -127,6 +141,9 @@ impl Writer {
                 state, kind, dim, domains, members, selected, widths, position,
             ))
         })();
+        if let Some(m) = self.metadata.as_ref() {
+            self.metadata_statistics = m.statistics();
+        }
         match prepared {
             Ok((state, kind, dim, domains, members, bounds, widths, position)) => {
                 self.symbol_active = true;
@@ -146,7 +163,7 @@ impl Writer {
                     _state: state,
                 })
             }
-            Err(e) => Err(self.fail(e)),
+            Err(e) => Err(if terminal { self.fail(e) } else { e }),
         }
     }
 }

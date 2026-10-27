@@ -1,6 +1,6 @@
 # 027 — Domain validation and bounded data-error streams
 
-Milestone: M4. Prerequisite: 026 complete. Status: pending.
+Milestone: M4. Prerequisite: 026 complete. Status: implementation complete; validation in progress.
 
 Inventory pinned native domain checks/data-error APIs and define explicit Rust
 strict/error-recovery policies, input ordinals and duplicate behavior. Retain
