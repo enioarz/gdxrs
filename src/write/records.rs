@@ -168,6 +168,13 @@ impl Writer {
     }
 }
 impl SymbolWriter<'_> {
+    pub fn write_f64(&mut self, keys: &[WriterUelId], values: &[f64]) -> Result<()> {
+        let typed = self
+            .writer
+            .convert_values(values)
+            .map_err(|e| self.writer.fail(e))?;
+        self.write(keys, &typed[..values.len()])
+    }
     fn emit(&mut self, bytes: &[u8]) -> Result<()> {
         self.writer.encoded(|e, w| e.bytes(bytes, |b| w.bytes(b)))
     }

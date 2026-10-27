@@ -78,6 +78,27 @@ impl Writer {
     }
 }
 impl DeferredRecordWriter<'_> {
+    pub fn write_f64(&mut self, keys: &[WriterUelId], values: &[f64]) -> Result<()> {
+        let typed = self
+            .writer
+            .convert_values(values)
+            .map_err(|e| self.writer.fail(e))?;
+        self.write(keys, &typed[..values.len()])
+    }
+    pub fn write_mapped_f64(&mut self, keys: &[MappedUelId], values: &[f64]) -> Result<()> {
+        let typed = self
+            .writer
+            .convert_values(values)
+            .map_err(|e| self.writer.fail(e))?;
+        self.write_mapped(keys, &typed[..values.len()])
+    }
+    pub fn write_strings_f64(&mut self, labels: &[&[u8]], values: &[f64]) -> Result<()> {
+        let typed = self
+            .writer
+            .convert_values(values)
+            .map_err(|e| self.writer.fail(e))?;
+        self.write_strings(labels, &typed[..values.len()])
+    }
     pub fn statistics(&self) -> ValidationStatistics {
         self.writer.validation_statistics
     }

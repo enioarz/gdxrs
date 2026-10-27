@@ -5,6 +5,7 @@ use super::*;
 use crate::model::Bytes;
 mod deferred;
 mod mapped;
+mod values;
 
 pub type MetadataOptions = SpillOptions;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

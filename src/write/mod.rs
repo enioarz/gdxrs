@@ -23,6 +23,8 @@ mod finalization_tests;
 mod mapped_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod value_policy_tests;
 use crate::{
     budget::{Budget, Buffer, Reservation},
     *,
@@ -99,6 +101,7 @@ pub struct WriteStatistics {
 }
 pub struct Writer {
     owner: u64,
+    value_policy: WriteValuePolicy,
     symbol_active: bool,
     validation_statistics: ValidationStatistics,
     metadata: Option<Metadata>,
@@ -121,6 +124,27 @@ pub struct Writer {
     _control: Reservation,
 }
 impl Writer {
+    pub fn set_write_value_policy(&mut self, policy: WriteValuePolicy) -> Result<()> {
+        self.open()?;
+        self.value_policy = policy;
+        Ok(())
+    }
+    pub fn write_value_policy(&self) -> WriteValuePolicy {
+        self.value_policy
+    }
+    pub fn set_write_special_values(&mut self, bits: [u64; 5]) -> Result<()> {
+        self.open()?;
+        let map = SpecialValueMap::new(bits).map_err(|e| self.fail(e))?;
+        self.value_policy = WriteValuePolicy::new(map, self.value_policy.ieee_policy());
+        Ok(())
+    }
+    pub fn reset_write_value_policy(&mut self) -> Result<()> {
+        self.set_write_value_policy(WriteValuePolicy::default())
+    }
+    fn convert_values(&mut self, values: &[f64]) -> Result<[Value; 5]> {
+        self.open()?;
+        self.value_policy.values(values)
+    }
     /// Create an exclusive v7 output transaction, with optional zlib framing.
     ///
     /// ```no_run
@@ -222,6 +246,7 @@ impl Writer {
                 Ok(file) => {
                     let mut writer = Self {
                         owner,
+                        value_policy: WriteValuePolicy::default(),
                         symbol_active: false,
                         validation_statistics: ValidationStatistics::default(),
                         metadata: None,
@@ -607,6 +632,7 @@ enum Event {
     MetadataWrite,
     MetadataSeek,
     MetadataSync,
+    MetadataRename,
     MetadataRemove,
     #[cfg(feature = "compression")]
     Codec,

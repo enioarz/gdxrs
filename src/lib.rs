@@ -21,6 +21,8 @@ mod selection;
 mod source;
 mod spill;
 mod stream;
+mod value_policy;
+mod value_session;
 mod write;
 pub use budget::BudgetStatistics;
 pub use error::{Error, ErrorKind, Result};
@@ -38,6 +40,11 @@ pub use model::{
 };
 pub use reader::{FileInformation, Reader};
 pub use source::IoStatistics;
+pub use value_policy::{
+    AcronymMapping, AcronymReadPolicy, FloatConversion, IeeeWritePolicy, ProjectedValue,
+    ReadCollisions, SpecialValueMap, WriteValuePolicy,
+};
+pub use value_session::{AcronymInformation, ValueSession};
 
 pub use scan::{BatchView, RecordView, ScanCursor, ScanStatistics};
 pub use selection::{DimensionSelection, KeySelection, Selection, UelRange};

@@ -53,6 +53,16 @@ impl Writer {
     }
 }
 impl UnsortedSymbolWriter<'_> {
+    pub fn write_f64(&mut self, keys: &[WriterUelId], values: &[f64]) -> Result<()> {
+        let converted = self
+            .inner
+            .as_mut()
+            .ok_or_else(invalid)?
+            .writer
+            .convert_values(values);
+        let typed = converted.map_err(|e| self.reject(e))?;
+        self.write(keys, &typed[..values.len()])
+    }
     pub fn statistics(&self) -> SpillStatistics {
         self.sorter
             .as_ref()

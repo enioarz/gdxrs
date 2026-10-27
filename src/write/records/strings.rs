@@ -88,6 +88,13 @@ impl Writer {
     }
 }
 impl StringRecordWriter<'_> {
+    pub fn write_f64(&mut self, labels: &[&[u8]], values: &[f64]) -> Result<()> {
+        let typed = self
+            .writer
+            .convert_values(values)
+            .map_err(|e| self.writer.fail(e))?;
+        self.write(labels, &typed[..values.len()])
+    }
     fn append(&mut self, tag: u8, bytes: &[u8]) -> Result<()> {
         self.writer.open()?;
         let mut store = lock(&self.store)?;
