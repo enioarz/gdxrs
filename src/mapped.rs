@@ -47,6 +47,7 @@ pub struct MappedUels {
     reader: Reader,
     metadata: Metadata,
     initialized: bool,
+    data_errors: DataErrorStatistics,
     closed: bool,
     error: Option<Error>,
     _state: Reservation,
@@ -66,6 +67,7 @@ impl Reader {
             reader: self.clone(),
             metadata,
             initialized: false,
+            data_errors: DataErrorStatistics::default(),
             closed: false,
             error: None,
             _state: state,
@@ -79,6 +81,34 @@ impl Reader {
         map: &'a mut MappedUels,
         options: MappedReadOptions,
     ) -> Result<MappedCursor<'a>> {
+        self.scan_mapped_inner(symbol, map, options, None, &mut |_| Ok(()))
+    }
+    /// Report each missing-map row during the explicit prescan. The existing
+    /// Error/SkipRecord policy still decides whether scanning may continue.
+    pub fn scan_mapped_reporting<'a, F>(
+        &self,
+        symbol: &SymbolHandle,
+        map: &'a mut MappedUels,
+        options: MappedReadOptions,
+        limits: ErrorLimits,
+        mut callback: F,
+    ) -> Result<MappedCursor<'a>>
+    where
+        F: for<'b> FnMut(DataErrorRecord<'b>) -> Result<()>,
+    {
+        self.scan_mapped_inner(symbol, map, options, Some(limits), &mut callback)
+    }
+    fn scan_mapped_inner<'a, F>(
+        &self,
+        symbol: &SymbolHandle,
+        map: &'a mut MappedUels,
+        options: MappedReadOptions,
+        limits: Option<ErrorLimits>,
+        callback: &mut F,
+    ) -> Result<MappedCursor<'a>>
+    where
+        F: for<'b> FnMut(DataErrorRecord<'b>) -> Result<()>,
+    {
         map.ensure()?;
         self.check_handle(symbol)?;
         if options.batch_bytes == 0 || options.batch_bytes > self.source.options.maximum_batch_bytes
@@ -108,6 +138,7 @@ impl Reader {
         let mut sort = map.metadata.record_sorter()?;
         let observe = sort.observer();
         let mut statistics = MappedScanStatistics::default();
+        map.data_errors = DataErrorStatistics::default();
         let result = (|| {
             if options.limit == Some(0) {
                 return Ok(());
@@ -119,22 +150,60 @@ impl Reader {
                 for row in 0..batch.len() {
                     statistics.decoded = statistics.decoded.checked_add(1).ok_or_else(invalid)?;
                     let mut packet = [0u8; 225];
-                    let mut missing = false;
+                    let mut missing = 0u32;
+                    let mut raw_keys = [UelId::new(1)?; 20];
+                    let mut mapped_keys = [MappedUelId(0); 20];
                     for d in 0..dim {
                         let raw = batch
                             .key_column(d as u8)
                             .and_then(|c| c.get(row))
                             .copied()
                             .ok_or_else(invalid)?;
-                        let Some(mapped) = map.metadata.map_lookup(raw.get(), false)? else {
-                            missing = true;
-                            break;
-                        };
-                        packet[d * 4..d * 4 + 4].copy_from_slice(&mapped.to_be_bytes());
+                        raw_keys[d] = raw;
                         packet[dim * 4 + d * 4..dim * 4 + d * 4 + 4]
                             .copy_from_slice(&raw.get().to_be_bytes());
+                        match map.metadata.map_lookup(raw.get(), false)? {
+                            Some(mapped) => {
+                                mapped_keys[d] = MappedUelId(mapped);
+                                packet[d * 4..d * 4 + 4].copy_from_slice(&mapped.to_be_bytes());
+                            }
+                            None => missing |= 1 << d,
+                        }
                     }
-                    if missing {
+                    let mut values = [Value::ZERO; 5];
+                    for (f, value) in values.iter_mut().enumerate().take(fields) {
+                        *value = *batch
+                            .value_column(ValueField::ALL[f])
+                            .and_then(|v| v.get(row))
+                            .ok_or_else(invalid)?;
+                    }
+                    if missing != 0 {
+                        if let Some(limits) = limits {
+                            crate::data_error::report(
+                                DataErrorRecord {
+                                    session_id: self.source.id,
+                                    symbol: symbol.id(),
+                                    input_ordinal: statistics.decoded,
+                                    symbol_ordinal: u32::try_from(statistics.decoded)
+                                        .map_err(|_| invalid())?,
+                                    origin: DataOrigin::MappedRead,
+                                    kind: DataErrorKind::MissingMapping {
+                                        dimensions: missing,
+                                    },
+                                    raw_keys: &raw_keys[..dim],
+                                    values: &values[..fields],
+                                    mapped: &mapped_keys[..dim],
+                                    mapped_mask: ((1 << dim) - 1) ^ missing,
+                                    labels: None,
+                                },
+                                limits,
+                                &mut map.data_errors,
+                                callback,
+                            )?;
+                        } else {
+                            map.data_errors.errors =
+                                map.data_errors.errors.checked_add(1).ok_or_else(invalid)?;
+                        }
                         if options.missing == MissingMapping::Error {
                             return Err(Error::new(
                                 ErrorKind::InvalidReference,
@@ -144,13 +213,6 @@ impl Reader {
                         statistics.skipped =
                             statistics.skipped.checked_add(1).ok_or_else(invalid)?;
                         continue;
-                    }
-                    let mut values = [Value::ZERO; 5];
-                    for (f, value) in values.iter_mut().enumerate().take(fields) {
-                        *value = *batch
-                            .value_column(ValueField::ALL[f])
-                            .and_then(|v| v.get(row))
-                            .ok_or_else(invalid)?;
                     }
                     let n = write::pack_values(&values[..fields], &mut packet[dim * 8..])?;
                     statistics.accepted = statistics
@@ -180,6 +242,7 @@ impl Reader {
                 return Err(map.fail(e));
             }
         };
+        statistics.errors = map.data_errors;
         let one = UelId::new(1)?;
         Ok(MappedCursor {
             map,
@@ -275,6 +338,9 @@ impl MappedUels {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+    pub fn data_error_statistics(&self) -> DataErrorStatistics {
+        self.data_errors
+    }
     pub fn statistics(&self) -> MetadataStatistics {
         self.metadata.statistics()
     }
@@ -289,6 +355,7 @@ impl MappedUels {
 }
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct MappedScanStatistics {
+    pub errors: DataErrorStatistics,
     pub decoded: u64,
     pub accepted: u64,
     pub skipped: u64,

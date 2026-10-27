@@ -21,3 +21,11 @@ semantics, quota/handle/occurrence limits, native probes and performance scope.
 Error streams, broader policies/UEL operations, append and M4 acceptance remain
 tasks 027–031. No changes to raw API identity or to the original API plan's
 historical dispositions are implied.
+
+
+Task 027 adds `Reader::scan_mapped_reporting` with a fallible borrowed callback
+and explicit record/byte quotas. It reports every missing-map row and all missing
+axes before the selected Error/SkipRecord policy. Original raw IDs, typed values,
+input ordinals and mappings that do exist are preserved. Partial acknowledged
+counts remain available through `MappedUels::data_error_statistics()` after a
+failed prescan. See [domain/error policy](decisions/0021-domain-error-streams.md).

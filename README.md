@@ -1,6 +1,6 @@
 # gdxrs
 
-An independent Rust reader for modern GDX v7 files, designed around bounded memory and streaming reads. M0 and M1 are merged. M2 provides exact raw-ID selections, small exact-label lookup, bounded label pages, quota-controlled scratch sorting, large requests and unique-domain enumeration. Record-heavy and independently metadata-heavy scale qualification has passed on Linux x86_64. M3 adds bounded metadata/empty-symbol writing; nonempty records, indexes, parallel decoding and Polars integration follow later.
+An independent Rust reader for modern GDX v7 files, designed around bounded memory and streaming reads. M0 and M1 are merged. M2 provides exact raw-ID selections, small exact-label lookup, bounded label pages, quota-controlled scratch sorting, large requests and unique-domain enumeration. Record-heavy and independently metadata-heavy scale qualification has passed on Linux x86_64. M3 provides bounded metadata and sorted record writing. M4 adds unsorted, string, mapped and deferred-domain input with bounded error reporting. Indexes, parallel decoding and Polars integration remain planned.
 
 ```rust,no_run
 use gdxrs::{OpenOptions, Reader};
@@ -237,3 +237,14 @@ seven available handles for the index plus merge work. IDs near i32::MAX do not
 allocate dense arrays. Mapped throughput/OS-scale qualification remains task 031.
 See [mapped contract](docs/decisions/0020-mapped-ids.md) and
 [API inventory](docs/mapped-api.md) for limits and native semantic differences.
+
+
+Task 027 adds `Writer::begin_deferred_records` to stage registered raw, mapped
+or string keys before their domain sets are written. `finish()` rejects invalid
+rows terminally; `finish_reporting(ErrorLimits, callback)` explicitly recovers
+domain/duplicate rows through a bounded fallible callback. First valid input
+wins among duplicate keys. `Reader::scan_mapped_reporting` reports missing-map
+rows with original raw IDs. See the [domain/error API inventory](docs/domain-error-api.md)
+and [ownership, quotas and partial-result policy](docs/decisions/0021-domain-error-streams.md).
+[Task 027 evidence](docs/evidence/027.md) records local and four-platform native checks.
+General-input scale/performance acceptance remains task 031.

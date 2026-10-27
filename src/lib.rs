@@ -3,11 +3,15 @@
 #![forbid(unsafe_code)]
 
 mod budget;
+mod data_error;
 mod error;
 mod format;
 mod labels;
 mod large;
 mod mapped;
+pub use data_error::{
+    DataErrorKind, DataErrorRecord, DataErrorStatistics, DataOrigin, ErrorLimits,
+};
 mod metadata;
 mod model;
 mod reader;
@@ -50,8 +54,8 @@ pub use large::{
 };
 
 pub use write::{
-    KeyBounds, MappedSymbolWriter, MetadataOptions, MetadataStatistics, StringRecordWriter,
-    StringWriteStatistics, SymbolReference, SymbolWriter, UnsortedSymbolWriter,
-    UnsortedWriteStatistics, WriteCompression, WriteDomain, WriteOptions, WriteStatistics,
-    WriteStatus, WriteSymbol, Writer, WriterSymbolId, WriterUelId,
+    DeferredRecordWriter, KeyBounds, MappedSymbolWriter, MetadataOptions, MetadataStatistics,
+    StringRecordWriter, StringWriteStatistics, SymbolReference, SymbolWriter, UnsortedSymbolWriter,
+    UnsortedWriteStatistics, ValidationStatistics, WriteCompression, WriteDomain, WriteOptions,
+    WriteStatistics, WriteStatus, WriteSymbol, Writer, WriterSymbolId, WriterUelId,
 };

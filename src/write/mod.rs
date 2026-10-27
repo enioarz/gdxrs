@@ -11,8 +11,8 @@ pub use metadata::{
     WriterUelId,
 };
 pub use records::{
-    KeyBounds, MappedSymbolWriter, StringRecordWriter, StringWriteStatistics, SymbolWriter,
-    UnsortedSymbolWriter, UnsortedWriteStatistics,
+    DeferredRecordWriter, KeyBounds, MappedSymbolWriter, StringRecordWriter, StringWriteStatistics,
+    SymbolWriter, UnsortedSymbolWriter, UnsortedWriteStatistics, ValidationStatistics,
 };
 pub(crate) use records::{pack_values, unpack_values};
 #[cfg(test)]
@@ -100,6 +100,7 @@ pub struct WriteStatistics {
 pub struct Writer {
     owner: u64,
     symbol_active: bool,
+    validation_statistics: ValidationStatistics,
     metadata: Option<Metadata>,
     metadata_statistics: MetadataStatistics,
     encoder: Option<Encoder>,
@@ -222,6 +223,7 @@ impl Writer {
                     let mut writer = Self {
                         owner,
                         symbol_active: false,
+                        validation_statistics: ValidationStatistics::default(),
                         metadata: None,
                         metadata_statistics: MetadataStatistics::default(),
                         encoder: Some(encoder),
@@ -312,7 +314,9 @@ impl Writer {
     fn fail(&mut self, error: Error) -> Error {
         self.statistics.status = WriteStatus::Failed;
         let mut error = self.decorate(error);
-        if let Err(cleanup) = self.cleanup() {
+        if let Err(cleanup) = self.cleanup()
+            && error.cleanup_error().is_none()
+        {
             error = error.with_cleanup(cleanup);
         }
         self.error = Some(error.clone());

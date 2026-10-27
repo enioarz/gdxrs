@@ -34,6 +34,7 @@ pub enum ErrorKind {
     InvalidSpill,
     InvalidWriteState,
     OutputLimitExceeded,
+    DataErrorLimitExceeded,
 }
 
 #[derive(Clone, Debug)]
