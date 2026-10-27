@@ -314,7 +314,9 @@ impl Writer {
     fn fail(&mut self, error: Error) -> Error {
         self.statistics.status = WriteStatus::Failed;
         let mut error = self.decorate(error);
-        if let Err(cleanup) = self.cleanup() {
+        if let Err(cleanup) = self.cleanup()
+            && error.cleanup_error().is_none()
+        {
             error = error.with_cleanup(cleanup);
         }
         self.error = Some(error.clone());

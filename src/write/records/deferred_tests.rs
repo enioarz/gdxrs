@@ -543,3 +543,36 @@ fn output_failure_during_symbol_initialization_closes_sorter_before_parent_clean
     drop(cleanup);
     w.abort().unwrap();
 }
+
+#[test]
+fn parent_cleanup_does_not_replace_the_first_cursor_cleanup_diagnostic() {
+    let reset = Reset::new();
+    let p = Parent::new();
+    let (mut w, par, _, k) = setup(&p);
+    let mut rows = w.begin_deferred_records().unwrap();
+    rows.begin_symbol(par).unwrap();
+    rows.write(&[k[0], k[0]], &[Value::ZERO]).unwrap();
+    let mut cursor_cleanup = None;
+    let error = rows
+        .finish_reporting(ErrorLimits::default(), |_| {
+            cursor_cleanup = Some(crate::spill::test_cleanup_failure());
+            fault(
+                Event::MetadataRemove,
+                0,
+                true,
+                io::ErrorKind::PermissionDenied,
+            );
+            Err(Error::new(ErrorKind::InvalidOptions, "sink failed"))
+        })
+        .unwrap_err();
+    assert_eq!(error.kind, ErrorKind::InvalidOptions);
+    let secondary = error.cleanup_error().unwrap().to_string();
+    assert!(secondary.contains("cleanup denied"), "{secondary}");
+    assert!(!secondary.contains("injected writer fault"), "{secondary}");
+    assert!(w.abort().is_err());
+    assert!(!p.destination().exists());
+    drop(cursor_cleanup);
+    drop(reset);
+    w.abort().unwrap();
+    p.empty();
+}
