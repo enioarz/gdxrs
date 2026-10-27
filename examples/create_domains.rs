@@ -21,7 +21,15 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args_os().skip(1);
     let output = args.next().ok_or("output")?;
     let scratch = args.next().ok_or("scratch")?;
-    let zlib = args.next().is_some();
+    let (mut zlib, mut forward) = (false, false);
+    for mode in args {
+        match mode.to_str() {
+            Some("zlib") => zlib = true,
+            Some("forward") => forward = true,
+            _ => return Err("invalid mode".into()),
+        }
+    }
+
     let mut w = Writer::create(
         output,
         WriteOptions {
@@ -39,20 +47,39 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     o.merge_fan_in = 2;
     o.run_bytes = 512;
     w.begin_metadata(&o)?;
+    let early = if forward {
+        Some(w.register_symbol(&WriteSymbol::new(b"P", SymbolType::Parameter, 2))?)
+    } else {
+        None
+    };
+    if let Some(p) = early {
+        w.set_domains(
+            p,
+            &[
+                WriteDomain::Strict(SymbolReference::Name(b"J")),
+                WriteDomain::Strict(SymbolReference::Name(b"I")),
+            ],
+        )?;
+    }
     let i = w.register_symbol(&WriteSymbol::new(b"I", SymbolType::Set, 1))?;
     w.set_domains(i, &[WriteDomain::Strict(SymbolReference::Registered(i))])?;
     let mut alias = WriteSymbol::new(b"J", SymbolType::Alias, 1);
     alias.alias_target = Some(SymbolReference::Registered(i));
     alias.description = b"Aliased with I";
     let j = w.register_symbol(&alias)?;
-    let p = w.register_symbol(&WriteSymbol::new(b"P", SymbolType::Parameter, 2))?;
-    w.set_domains(
-        p,
-        &[
-            WriteDomain::Strict(SymbolReference::Registered(j)),
-            WriteDomain::Strict(SymbolReference::Registered(i)),
-        ],
-    )?;
+    let p = match early {
+        Some(p) => p,
+        None => w.register_symbol(&WriteSymbol::new(b"P", SymbolType::Parameter, 2))?,
+    };
+    if early.is_none() {
+        w.set_domains(
+            p,
+            &[
+                WriteDomain::Strict(SymbolReference::Registered(j)),
+                WriteDomain::Strict(SymbolReference::Registered(i)),
+            ],
+        )?;
+    }
     let r = w.register_symbol(&WriteSymbol::new(b"R", SymbolType::Parameter, 1))?;
     w.set_domains(r, &[WriteDomain::Relaxed(b"Unregistered")])?;
     let u = w.register_symbol(&WriteSymbol::new(b"U", SymbolType::Parameter, 1))?;

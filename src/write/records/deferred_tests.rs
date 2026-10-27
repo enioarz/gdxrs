@@ -525,3 +525,21 @@ fn growing_dependent_input_spills_and_reports_without_an_error_collection() {
     assert!(w.metadata_statistics().peak_open_files <= 8);
     w.finish().unwrap();
 }
+
+#[test]
+fn output_failure_during_symbol_initialization_closes_sorter_before_parent_cleanup() {
+    let p = Parent::new();
+    let (mut w, _, set, k) = setup(&p);
+    let mut rows = w.begin_deferred_records().unwrap();
+    rows.begin_symbol(set).unwrap();
+    rows.write(&[k[0]], &[Value::ZERO]).unwrap();
+    rows.writer.limit = 126;
+    let cleanup = crate::spill::test_cleanup_failure();
+    let error = rows.finish().unwrap_err();
+    assert_eq!(error.kind, ErrorKind::OutputLimitExceeded);
+    assert!(error.cleanup_error().is_some());
+    assert_eq!(w.finish().unwrap_err().kind, error.kind);
+    p.empty();
+    drop(cleanup);
+    w.abort().unwrap();
+}
