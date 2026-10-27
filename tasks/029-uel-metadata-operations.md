@@ -1,6 +1,6 @@
 # 029 — Modern UEL and metadata operations
 
-Milestone: M4. Prerequisite: 028 complete. Status: pending.
+Milestone: M4. Prerequisite: 028 complete. Status: implementation complete; qualification in progress.
 
 Close remaining M4 UEL/metadata inventory (including rename, mapped lookup,
 set-text node numbers and mutable metadata operations) with native expectations

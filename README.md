@@ -260,3 +260,10 @@ a bounded journal rewrite. See [ownership, quotas and exclusions](docs/decisions
 
 [Task 028 evidence](docs/evidence/028.md) records local and four-platform native checks.
 Task 029 is next; general-input scale/performance acceptance remains task 031.
+
+
+Task 029 adds [modern UEL/metadata operations](docs/uel-metadata-api.md): ID-preserving
+renames, direct sparse mapped-label queries, signed session-only set-text nodes,
+late comments and relaxed display domains alongside strict IDs. Read metadata
+views remain explicit; source files stay immutable. Fallible UEL/domain callbacks
+and maximum-length queries use bounded storage. See [phase, quota and cleanup rules](docs/decisions/0023-uel-metadata-operations.md).

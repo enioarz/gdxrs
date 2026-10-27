@@ -29,3 +29,11 @@ axes before the selected Error/SkipRecord policy. Original raw IDs, typed values
 input ordinals and mappings that do exist are preserved. Partial acknowledged
 counts remain available through `MappedUels::data_error_statistics()` after a
 failed prescan. See [domain/error policy](decisions/0021-domain-error-streams.md).
+
+
+Task 029 adds direct `uel_information`, `find_uel`, `mapped_uel` and `information`
+queries using the existing sparse index, plus source-checked `uel_in_session` for
+renamed labels. `visit_domain` explicitly scans/sorts one axis and calls back in
+mapped order with original IDs; missing observed mappings fail and callbacks are
+fallible. See [UEL/metadata disposition](uel-metadata-api.md) and
+[phase/ownership rules](decisions/0023-uel-metadata-operations.md).

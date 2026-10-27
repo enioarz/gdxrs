@@ -48,6 +48,7 @@ pub struct MappedUels {
     metadata: Metadata,
     initialized: bool,
     data_errors: DataErrorStatistics,
+    domain_visit: MetadataVisitStatistics,
     closed: bool,
     error: Option<Error>,
     _state: Reservation,
@@ -68,6 +69,7 @@ impl Reader {
             metadata,
             initialized: false,
             data_errors: DataErrorStatistics::default(),
+            domain_visit: MetadataVisitStatistics::default(),
             closed: false,
             error: None,
             _state: state,
@@ -330,6 +332,167 @@ impl MappedUels {
             .metadata
             .map_lookup(mapped.get(), true)
             .and_then(|v| v.map(UelId::new).transpose());
+        result.map_err(|e| self.fail(e))
+    }
+    pub fn uel_in_session(
+        &mut self,
+        session: &mut MetadataSession,
+        id: UelId,
+    ) -> Result<UelInformation> {
+        self.ensure()?;
+        let result = (|| {
+            session.check_reader(&self.reader)?;
+            let mut info = session.uel_information(id)?;
+            info.mapped = self.mapped(id)?;
+            Ok(info)
+        })();
+        result.map_err(|e| self.fail(e))
+    }
+    /// Explicit prescan/sort; callback order is caller-ID order, original IDs
+    /// remain intact. All observed UELs must already have mappings.
+    pub fn visit_domain<F>(
+        &mut self,
+        symbol: &SymbolHandle,
+        dimension: u8,
+        mut callback: F,
+    ) -> Result<MetadataVisitStatistics>
+    where
+        F: FnMut(UelId, MappedUelId) -> Result<()>,
+    {
+        self.ensure()?;
+        self.domain_visit = MetadataVisitStatistics::default();
+        let validated = (|| {
+            self.reader.check_handle(symbol)?;
+            if dimension >= symbol.metadata()?.dimension {
+                return Err(Error::new(
+                    ErrorKind::InvalidDimension,
+                    "domain axis outside symbol",
+                ));
+            }
+            Ok(())
+        })();
+        validated.map_err(|e| self.fail(e))?;
+        let mut sort = self.metadata.record_sorter().map_err(|e| self.fail(e))?;
+        let observe = sort.observer();
+        let filled: Result<()> = (|| {
+            let mut options = self.reader.scan_options();
+            options.key_projection = KeyProjection::Mask(1 << dimension);
+            options.value_projection = ValueProjection::Mask(0);
+            options.batch_bytes = 4096;
+            let mut scan = self.reader.scan(symbol, options)?;
+            while let Some(batch) = scan.next_batch()? {
+                for raw in batch.key_column(dimension).ok_or_else(invalid)? {
+                    let mapped = self.metadata.map_lookup(raw.get(), false)?.ok_or_else(|| {
+                        Error::new(
+                            ErrorKind::InvalidReference,
+                            "domain UEL has no caller mapping",
+                        )
+                    })?;
+                    sort.push(&mapped.to_be_bytes(), u64::from(raw.get()))?;
+                }
+            }
+            Ok(())
+        })();
+        if let Err(mut error) = filled {
+            let closed = sort.cancel();
+            if let Err(cleanup) = &closed
+                && error.cleanup_error().is_none()
+            {
+                error = error.with_cleanup(std::io::Error::other(cleanup.clone()));
+            }
+            drop(sort);
+            self.metadata.map_sort_closed(observe(), closed.is_ok());
+            return Err(self.fail(error));
+        }
+        let mut cursor = match sort.finish() {
+            Ok(cursor) => cursor,
+            Err(error) => {
+                self.metadata.map_sort_closed(observe(), false);
+                return Err(self.fail(error));
+            }
+        };
+        let replay: Result<()> = (|| {
+            let mut previous = None;
+            while let Some(entry) = cursor.next()? {
+                let mapped = MappedUelId::new(i64::from(u32::from_be_bytes(
+                    entry.label.try_into().map_err(|_| invalid())?,
+                )))?;
+                let raw = UelId::new(u32::try_from(entry.id).map_err(|_| invalid())?)?;
+                if self.metadata.map_lookup(raw.get(), false)? != Some(mapped.get()) {
+                    return Err(invalid());
+                }
+                if previous == Some((raw, mapped)) {
+                    continue;
+                }
+                callback(raw, mapped)?;
+                self.domain_visit.visited = self
+                    .domain_visit
+                    .visited
+                    .checked_add(1)
+                    .ok_or_else(invalid)?;
+                previous = Some((raw, mapped));
+            }
+            if !cursor.statistics().complete {
+                return Err(invalid());
+            }
+            Ok(())
+        })();
+        let closed = cursor.close();
+        let statistics = cursor.statistics();
+        self.metadata.map_sort_closed(statistics, closed.is_ok());
+        match (replay, closed) {
+            (Err(mut error), cleanup) => {
+                if let Err(cleanup) = cleanup
+                    && error.cleanup_error().is_none()
+                {
+                    error = error.with_cleanup(std::io::Error::other(cleanup));
+                }
+                Err(self.fail(error))
+            }
+            (Ok(()), Err(error)) => Err(self.fail(error)),
+            (Ok(()), Ok(_)) => {
+                self.domain_visit.complete = true;
+                Ok(self.domain_visit)
+            }
+        }
+    }
+    pub fn domain_visit_statistics(&self) -> MetadataVisitStatistics {
+        self.domain_visit
+    }
+    pub fn uel_information(&mut self, id: UelId) -> Result<UelInformation> {
+        self.ensure()?;
+        let result = (|| {
+            let mut info = self.reader.uel_information(id)?;
+            info.mapped = self
+                .metadata
+                .map_lookup(id.get(), false)?
+                .map(|m| MappedUelId::new(i64::from(m)))
+                .transpose()?;
+            Ok(info)
+        })();
+        result.map_err(|e| self.fail(e))
+    }
+    pub fn mapped_uel(&mut self, id: MappedUelId) -> Result<Option<UelInformation>> {
+        self.ensure()?;
+        let raw = self
+            .metadata
+            .map_lookup(id.get(), true)
+            .map_err(|e| self.fail(e))?;
+        raw.map(|raw| UelId::new(raw).and_then(|raw| self.uel_information(raw)))
+            .transpose()
+    }
+    pub fn find_uel(&mut self, label: &[u8]) -> Result<Option<UelInformation>> {
+        self.ensure()?;
+        let id = self.reader.find_uel(label).map_err(|e| self.fail(e))?;
+        id.map(|id| self.uel_information(id)).transpose()
+    }
+    pub fn information(&mut self) -> Result<UelMappingInformation> {
+        self.ensure()?;
+        let result = self
+            .reader
+            .source
+            .counts()
+            .and_then(|c| self.metadata.map_information(c.uels));
         result.map_err(|e| self.fail(e))
     }
     pub fn len(&self) -> u32 {

@@ -13,6 +13,11 @@ pub use data_error::{
     DataErrorKind, DataErrorRecord, DataErrorStatistics, DataOrigin, ErrorLimits,
 };
 mod metadata;
+mod metadata_operations;
+pub use metadata_operations::{
+    MetadataSession, MetadataVisitStatistics, SetTextInformation, UelInformation,
+    UelMappingInformation,
+};
 mod model;
 mod reader;
 mod records;
