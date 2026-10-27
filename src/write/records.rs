@@ -55,6 +55,7 @@ pub struct SymbolWriter<'a> {
     position: u64,
     members: u64,
     finished: bool,
+    has_text: bool,
     _state: Reservation,
 }
 impl Writer {
@@ -160,6 +161,7 @@ impl Writer {
                     count: 0,
                     previous: [0; 20],
                     finished: false,
+                    has_text: false,
                     _state: state,
                 })
             }
@@ -264,6 +266,12 @@ impl SymbolWriter<'_> {
                 .ok_or_else(|| Error::new(ErrorKind::InvalidWriteState, "metadata is closed"))?
                 .member(self.id, keys[0])?;
         }
+        if self.kind == SymbolType::Set
+            && let Value::NumberBits(bits) = values[0]
+            && f64::from_bits(bits) != 0.0
+        {
+            self.has_text = true;
+        }
         self.previous = current;
         self.count += 1;
         Ok(())
@@ -275,7 +283,11 @@ impl SymbolWriter<'_> {
             self.emit(&[255])?;
             self.writer.section_end()?;
             self.writer.metadata_call(|m| {
-                m.complete_records(self.id, self.position, self.count, self.members)
+                m.complete_records(self.id, self.position, self.count, self.members)?;
+                if self.has_text {
+                    m.mark_has_text(self.id)?;
+                }
+                Ok(())
             })?;
             self.writer.symbol_active = false;
             self.finished = true;

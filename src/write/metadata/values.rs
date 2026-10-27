@@ -77,38 +77,13 @@ impl Metadata {
         replacement.u32(id.get())?;
         replacement.string(n)?;
         replacement.string(t)?;
-        let mut output = Store::create(&self.path(1), &self.budget)?;
-        self.owned[1] = true;
-        self.stats.peak_open_files = self
-            .stats
-            .peak_open_files
-            .max(self.statistics().open_files + 1);
-        let original_bytes = self.j()?.length;
-        let mut at = 0;
-        while let Some(f) = self.j()?.next(&mut at)? {
-            let payload = if f.tag == 5 && Parse::new(f.payload()).u32()? == id.get() {
-                replacement.payload()
+        self.rewrite(|f| {
+            if f.tag == 5 && Parse::new(f.payload()).u32()? == id.get() {
+                Ok(super::edit::Edit::replace(replacement.clone()))
             } else {
-                f.payload()
-            };
-            output.append(
-                f.tag,
-                payload,
-                &mut self.used,
-                &mut self.peak,
-                self.options.maximum_temporary_bytes,
-            )?;
-        }
-        output.sync()?;
-        output.close();
-        self.journal = None;
-        event(Event::MetadataRename).map_err(Error::io)?;
-        fs::rename(self.path(1), self.path(0)).map_err(Error::io)?;
-        self.owned[1] = false;
-        self.used = self.used.checked_sub(original_bytes).ok_or_else(corrupt)?;
-        output.reopen(&self.path(0))?;
-        self.journal = Some(output);
-        Ok(())
+                Ok(super::edit::Edit::keep())
+            }
+        })
     }
 }
 impl Writer {

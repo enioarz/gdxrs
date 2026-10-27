@@ -4,7 +4,9 @@ use super::store::{Frame, Store};
 use super::*;
 use crate::model::Bytes;
 mod deferred;
+mod edit;
 mod mapped;
+mod operations;
 mod values;
 
 pub type MetadataOptions = SpillOptions;
@@ -118,9 +120,10 @@ fn label(bytes: &[u8]) -> Result<()> {
     }
     Ok(())
 }
-pub(super) fn validate_string_label(bytes: &[u8]) -> Result<()> {
+pub(crate) fn validate_string_label(bytes: &[u8]) -> Result<()> {
     label(bytes)
 }
+#[derive(Clone)]
 struct Packet {
     b: [u8; 1024],
     n: usize,
@@ -253,6 +256,7 @@ pub(crate) struct Metadata {
     owner: u64,
     stats: MetadataStatistics,
     domains: u32,
+    display_overrides: bool,
     comments: u32,
     sort_directory: Option<PathBuf>,
     sort_used: u64,
@@ -406,6 +410,7 @@ impl Metadata {
                 ..MetadataStatistics::default()
             },
             domains: 0,
+            display_overrides: false,
             comments: 0,
             sort_directory: None,
             sort_used: 0,
@@ -673,7 +678,6 @@ impl Metadata {
         })
     }
     pub fn comment(&mut self, s: WriterSymbolId, bytes: &[u8]) -> Result<()> {
-        self.mutable()?;
         let id = self.check(s)?;
         text(bytes)?;
         let next = next_id(self.comments)?;
@@ -913,6 +917,29 @@ impl Metadata {
                         if self.domain(id, axis)?.0 != mode {
                             return Err(corrupt());
                         }
+                    }
+                }
+                10 => {
+                    if id >= self.stats.set_texts || p.u32()? == 0 {
+                        return Err(corrupt());
+                    }
+                    p.done()?;
+                }
+                11 => {
+                    let symbol = self.lookup(id)?;
+                    let axis = p.u8()?;
+                    let index = p.u32()?;
+                    let label = p.string()?;
+                    p.done()?;
+                    if axis >= symbol.dim || index > self.domains {
+                        return Err(corrupt());
+                    }
+                    if index == 0 {
+                        if label.as_slice() != b"*" {
+                            return Err(corrupt());
+                        }
+                    } else {
+                        name(label.as_slice())?;
                     }
                 }
                 _ => return Err(corrupt()),
@@ -1457,7 +1484,12 @@ impl Metadata {
             w.section_i32(user)?;
             w.section_i32(record_count as i32)?;
             w.section_i32(0)?;
-            Self::emit(w, &[0])?;
+            Self::emit(
+                w,
+                &[u8::from(
+                    s.kind == SymbolType::Set && record_count != 0 && self.has_text_id(id)?,
+                )],
+            )?;
             w.section_string(s.description.as_slice())?;
             Self::emit(
                 w,
@@ -1533,7 +1565,7 @@ impl Metadata {
         w.section_end()?;
         let mut has_relaxed = false;
         for id in 1..=self.stats.symbols {
-            if self.mode(id)? == Some(2) {
+            if self.display_domain(id, 0)?.is_some() {
                 has_relaxed = true;
                 break;
             }
@@ -1545,17 +1577,11 @@ impl Metadata {
             let mut emitted = 0;
             let mut at = 0;
             while let Some(f) = self.j()?.next(&mut at)? {
-                if f.tag == 6 {
-                    let mut p = Parse::new(f.payload());
-                    p.u32()?;
-                    p.u8()?;
-                    let mode = p.u8()?;
-                    let id = p.u32()?;
-                    let label = p.string()?;
-                    if mode == 2 && id == emitted + 1 {
-                        w.section_string(label.as_slice())?;
-                        emitted = id;
-                    }
+                if let Some((id, label)) = Self::relaxed_name_frame(&f)?
+                    && id == emitted + 1
+                {
+                    w.section_string(label.as_slice())?;
+                    emitted = id;
                 }
             }
             if emitted != self.domains {
@@ -1563,11 +1589,13 @@ impl Metadata {
             }
             w.section_string(b"_DOMS_")?;
             for id in 1..=self.stats.symbols {
-                if self.mode(id)? == Some(2) {
+                if self.display_domain(id, 0)?.is_some() {
                     let s = self.lookup(id)?;
                     w.section_i32(id as i32)?;
                     for axis in 0..s.dim {
-                        w.section_i32(self.domain(id, axis)?.1.id as i32)?;
+                        w.section_i32(
+                            self.display_domain(id, axis)?.ok_or_else(corrupt)?.0 as i32,
+                        )?;
                     }
                 }
             }

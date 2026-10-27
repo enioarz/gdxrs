@@ -6,6 +6,7 @@ mod store;
 use encoder::Encoder;
 pub use encoder::WriteCompression;
 pub(crate) use metadata::Metadata;
+pub(crate) use metadata::validate_string_label as validate_uel_label;
 pub use metadata::{
     MetadataOptions, MetadataStatistics, SymbolReference, WriteDomain, WriteSymbol, WriterSymbolId,
     WriterUelId,
@@ -21,6 +22,8 @@ mod codec_tests;
 mod finalization_tests;
 #[cfg(test)]
 mod mapped_tests;
+#[cfg(test)]
+mod metadata_operations_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
