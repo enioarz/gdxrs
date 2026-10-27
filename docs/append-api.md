@@ -52,3 +52,5 @@ not an append retry or rollback. Any failed import/writing stream is terminal.
 See [transaction, ownership, source integrity and resource policy](decisions/0024-atomic-append.md)
 for costs and limits. Each append rewrites the file; metadata scans may be quadratic.
 No performance/RSS claim follows. Task 031 remains the M4 acceptance gate.
+
+[Task 030 evidence](evidence/030.md) records fresh local and four-platform qualification.

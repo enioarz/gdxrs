@@ -269,11 +269,12 @@ views remain explicit; source files stay immutable. Fallible UEL/domain callback
 and maximum-length queries use bounded storage. See [phase, quota and cleanup rules](docs/decisions/0023-uel-metadata-operations.md).
 
 [Task 029 evidence](docs/evidence/029.md) records local and four-platform native checks.
-Task 030 (atomic append) is next; M4 scale/performance acceptance remains task 031.
+General-input scale/performance acceptance remains task 031.
 
 
 Task 030 adds [atomic new-symbol append](docs/append-api.md): an explicit bounded
 rewrite under one reader/writer root, with CreateNew or ReplaceSource publication.
 Prior UEL/symbol IDs, metadata and physical records remain intact; source replacement
 requires exclusive pathname ownership. See the [transaction policy](docs/decisions/0024-atomic-append.md).
-Qualification is in progress; task 031 remains the M4 acceptance gate.
+[Task 030 evidence](docs/evidence/030.md) records the fresh local and four-platform
+qualification. Task 031 is next and remains the M4 acceptance gate.

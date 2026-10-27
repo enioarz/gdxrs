@@ -96,7 +96,8 @@ existing source is excluded; one new output is written and no second output copy
 or backup is made. Admission is deliberately conservative and may reject a job
 whose eventual actual size would fit. The handle ceiling admits two base handles
 (source + output) plus the whole metadata/sort configured maximum_open_files.
-No independent uncharged sorter is introduced. Initialization checks these sums
+As in existing writer/spill quotas, byte counters track logical file extents, not
+filesystem block-allocation overhead. No independent uncharged sorter is introduced. Initialization checks these sums
 before journal allocation/import. All existing scratch shares and retained-cleanup
 ownership rules apply. Controls/path conversions, decoder/encoder buffers and
 batches share the same root; no original dictionary/catalog/record table is collected.
