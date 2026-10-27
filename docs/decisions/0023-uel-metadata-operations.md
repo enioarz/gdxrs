@@ -100,6 +100,10 @@ supports selected/raw-domain extraction. Callback statistics acknowledge only
 successful calls; failure is terminal, preserves partial counts and never
 implicitly replays output. Cursors close explicitly before parent cleanup,
 including callback errors; secondary cleanup and retry ownership survive.
+Domain prescans use the reader's configured batch cap, up to 4096 bytes. Replay
+checks source integrity before each entry, after acknowledging each successful
+callback and before completion. A callback that changes the source is still
+acknowledged, but terminates the visit with `SourceChanged` and `complete: false`.
 
 Max-length helpers stream catalogs or explicitly scan all symbol records with
 fixed 20-axis state. Session variants use view labels. They never run implicitly

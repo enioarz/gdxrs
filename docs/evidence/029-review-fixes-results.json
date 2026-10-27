@@ -1,0 +1,3126 @@
+{
+  "schema": 1,
+  "task": "029 review fixes",
+  "reviewed_revision": "b0f7a97f32d34226cf6b9869b9aca2ecac8bb371",
+  "implementation_revision": "db274d13c411bea3c5f405048189512cfd607e80",
+  "reports": [
+    {
+      "schema": 1,
+      "command": "reader-check",
+      "run_id": "12c228e1b94641cea609f0781e9dc00b",
+      "revision": "db274d13c411bea3c5f405048189512cfd607e80",
+      "cwd": "/workspace/gdxrs",
+      "started_utc": "2026-10-27T14:04:39.979106+00:00",
+      "status": "passed",
+      "result": {
+        "bootstrap": {
+          "versions": {
+            "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+            "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+            "rustc_verbose": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1"
+          },
+          "runtime_dependencies": 2,
+          "runtime_tests_executed": 0,
+          "dependency_audit": "docs/decisions/0013-bounded-writer-codec.md"
+        },
+        "suites": [
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              154,
+              40,
+              5,
+              6
+            ]
+          },
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked",
+              "--no-default-features"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              146,
+              39,
+              5,
+              6
+            ]
+          },
+          {
+            "command": [
+              "cargo",
+              "test",
+              "--locked",
+              "--all-features"
+            ],
+            "unit_integration_doctest_groups_passed": [
+              154,
+              40,
+              5,
+              6
+            ]
+          }
+        ],
+        "differential_fixtures": 10,
+        "public_records_compared": 141358,
+        "no_compression_dependencies": 0,
+        "exact_id_slicing": "executed in Rust suites (task 012)",
+        "small_exact_labels_and_pages": "executed in Rust suites (task 013)",
+        "bounded_spill_primitives": "executed in Rust suites (task 014)",
+        "large_lookup_and_unique_domains": "executed in Rust suites (task 015)",
+        "empty_writer_foundation": "executed in Rust suites (task 018); native interop is writer-check",
+        "m2_scale_qualification": "requires separate m2-scale-check --profile scale gate"
+      },
+      "platform": {
+        "system": "Linux",
+        "machine": "x86_64",
+        "release": "6.18.55"
+      },
+      "elapsed_seconds": 51.753381780989,
+      "exit_code": 0
+    },
+    {
+      "schema": 1,
+      "command": "writer-check",
+      "run_id": "5d12aff886414e7f9a6c31051f0d67c4",
+      "revision": "db274d13c411bea3c5f405048189512cfd607e80",
+      "cwd": "/workspace/gdxrs",
+      "started_utc": "2026-10-27T14:04:46.793777+00:00",
+      "status": "passed",
+      "result": {
+        "metadata_operations": {
+          "cases": [
+            {
+              "features": [],
+              "compression": 0,
+              "statistics": {
+                "peak_root": 527656,
+                "peak_handles": 7,
+                "peak_temporary": 2107
+              },
+              "sha256": "873f89dd29e49d50c6f940609c540820b1835fb491bb1fb4276740b2e917b2ab",
+              "contexts": [
+                {
+                  "source": "native",
+                  "view": false,
+                  "sha256": "7a424015e33605a86a0b39ced2b562520f1eb1d65214e70797696e68a811f5a9",
+                  "statistics": {
+                    "peak_root": 494696,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "native",
+                  "view": true,
+                  "sha256": "b34361f143b32c92411b73e4f535f2e0298cccf2f4c26d4ced36615de07ef3fe",
+                  "statistics": {
+                    "peak_root": 527464,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "rust",
+                  "view": false,
+                  "sha256": "7a424015e33605a86a0b39ced2b562520f1eb1d65214e70797696e68a811f5a9",
+                  "statistics": {
+                    "peak_root": 494696,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "rust",
+                  "view": true,
+                  "sha256": "b34361f143b32c92411b73e4f535f2e0298cccf2f4c26d4ced36615de07ef3fe",
+                  "statistics": {
+                    "peak_root": 527464,
+                    "peak_handles": 7
+                  }
+                }
+              ],
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 0,
+              "statistics": {
+                "peak_root": 527656,
+                "peak_handles": 7,
+                "peak_temporary": 2107
+              },
+              "sha256": "873f89dd29e49d50c6f940609c540820b1835fb491bb1fb4276740b2e917b2ab",
+              "contexts": [
+                {
+                  "source": "native",
+                  "view": false,
+                  "sha256": "7a424015e33605a86a0b39ced2b562520f1eb1d65214e70797696e68a811f5a9",
+                  "statistics": {
+                    "peak_root": 494696,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "native",
+                  "view": true,
+                  "sha256": "b34361f143b32c92411b73e4f535f2e0298cccf2f4c26d4ced36615de07ef3fe",
+                  "statistics": {
+                    "peak_root": 527464,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "rust",
+                  "view": false,
+                  "sha256": "7a424015e33605a86a0b39ced2b562520f1eb1d65214e70797696e68a811f5a9",
+                  "statistics": {
+                    "peak_root": 494696,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "rust",
+                  "view": true,
+                  "sha256": "b34361f143b32c92411b73e4f535f2e0298cccf2f4c26d4ced36615de07ef3fe",
+                  "statistics": {
+                    "peak_root": 527464,
+                    "peak_handles": 7
+                  }
+                }
+              ],
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--no-default-features"
+              ],
+              "compression": 0,
+              "statistics": {
+                "peak_root": 527656,
+                "peak_handles": 7,
+                "peak_temporary": 2107
+              },
+              "sha256": "873f89dd29e49d50c6f940609c540820b1835fb491bb1fb4276740b2e917b2ab",
+              "contexts": [
+                {
+                  "source": "native",
+                  "view": false,
+                  "sha256": "7a424015e33605a86a0b39ced2b562520f1eb1d65214e70797696e68a811f5a9",
+                  "statistics": {
+                    "peak_root": 494696,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "native",
+                  "view": true,
+                  "sha256": "b34361f143b32c92411b73e4f535f2e0298cccf2f4c26d4ced36615de07ef3fe",
+                  "statistics": {
+                    "peak_root": 527464,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "rust",
+                  "view": false,
+                  "sha256": "7a424015e33605a86a0b39ced2b562520f1eb1d65214e70797696e68a811f5a9",
+                  "statistics": {
+                    "peak_root": 494696,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "rust",
+                  "view": true,
+                  "sha256": "b34361f143b32c92411b73e4f535f2e0298cccf2f4c26d4ced36615de07ef3fe",
+                  "statistics": {
+                    "peak_root": 527464,
+                    "peak_handles": 7
+                  }
+                }
+              ],
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [],
+              "compression": 1,
+              "statistics": {
+                "peak_root": 986587,
+                "peak_handles": 7,
+                "peak_temporary": 2107
+              },
+              "sha256": "6abca8b7ce18af99f31d684ff97ee9da8d1a8d46bfc2486648a00bad8d6a7a5c",
+              "contexts": [
+                {
+                  "source": "native",
+                  "view": false,
+                  "sha256": "7a424015e33605a86a0b39ced2b562520f1eb1d65214e70797696e68a811f5a9",
+                  "statistics": {
+                    "peak_root": 554247,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "native",
+                  "view": true,
+                  "sha256": "b34361f143b32c92411b73e4f535f2e0298cccf2f4c26d4ced36615de07ef3fe",
+                  "statistics": {
+                    "peak_root": 587015,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "rust",
+                  "view": false,
+                  "sha256": "7a424015e33605a86a0b39ced2b562520f1eb1d65214e70797696e68a811f5a9",
+                  "statistics": {
+                    "peak_root": 554247,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "rust",
+                  "view": true,
+                  "sha256": "b34361f143b32c92411b73e4f535f2e0298cccf2f4c26d4ced36615de07ef3fe",
+                  "statistics": {
+                    "peak_root": 587015,
+                    "peak_handles": 7
+                  }
+                }
+              ],
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 1,
+              "statistics": {
+                "peak_root": 986587,
+                "peak_handles": 7,
+                "peak_temporary": 2107
+              },
+              "sha256": "6abca8b7ce18af99f31d684ff97ee9da8d1a8d46bfc2486648a00bad8d6a7a5c",
+              "contexts": [
+                {
+                  "source": "native",
+                  "view": false,
+                  "sha256": "7a424015e33605a86a0b39ced2b562520f1eb1d65214e70797696e68a811f5a9",
+                  "statistics": {
+                    "peak_root": 554247,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "native",
+                  "view": true,
+                  "sha256": "b34361f143b32c92411b73e4f535f2e0298cccf2f4c26d4ced36615de07ef3fe",
+                  "statistics": {
+                    "peak_root": 587015,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "rust",
+                  "view": false,
+                  "sha256": "7a424015e33605a86a0b39ced2b562520f1eb1d65214e70797696e68a811f5a9",
+                  "statistics": {
+                    "peak_root": 554247,
+                    "peak_handles": 7
+                  }
+                },
+                {
+                  "source": "rust",
+                  "view": true,
+                  "sha256": "b34361f143b32c92411b73e4f535f2e0298cccf2f4c26d4ced36615de07ef3fe",
+                  "statistics": {
+                    "peak_root": 587015,
+                    "peak_handles": 7
+                  }
+                }
+              ],
+              "both_directions_complete_match": true
+            }
+          ],
+          "native_probes": [
+            {
+              "compression": 0,
+              "output": "rename_missing_rejected\t1\nrename_duplicate_rejected\t1\nrename_invalid_rejected\t1\nnative_uel_case_folded\t1\nsymbol_case_folded\t1\ninvalid_uel_rejected\t1\ninvalid_text_node_rejected\t1\nzero_node_slot_supported\t1\nnonzero_node_immutable\t1\nsparse_node_preserved\t1\n"
+            },
+            {
+              "compression": 1,
+              "output": "rename_missing_rejected\t1\nrename_duplicate_rejected\t1\nrename_invalid_rejected\t1\nnative_uel_case_folded\t1\nsymbol_case_folded\t1\ninvalid_uel_rejected\t1\ninvalid_text_node_rejected\t1\nzero_node_slot_supported\t1\nnonzero_node_immutable\t1\nsparse_node_preserved\t1\n"
+            }
+          ],
+          "driver": {
+            "source_fingerprint": "513d3e96d518bb0888d562f41959cc55e44c1c54cc287198ccdd553ca24ecb2d",
+            "executable_sha256": "bc505eeea6b4541b1253c5aedfe57f49090d07b452547bb492eddb4847321830",
+            "frozen_oracle": "79b9f3574597cf60339ecc12f0da24633f10c68e28ea208e78c0d5ee38fc249b"
+          },
+          "native_isolation": {
+            "platform": "linux",
+            "memory_limit": "256 MiB address space or tighter inherited limit",
+            "cpu_seconds_max": 2,
+            "output_bytes_max": 1048576,
+            "core_bytes_max": 0,
+            "wall_timeout_seconds": 5
+          },
+          "scope": "ID-stable post-record renames, mapped label views, signed ephemeral set-text nodes, strict and relaxed domains together, late comments, set-text flags, lengths and mapped-order domain callbacks; exact source bytes retained"
+        },
+        "values": {
+          "cases": [
+            {
+              "features": [],
+              "compression": 0,
+              "bitwise_sentinels": false,
+              "statistics": {
+                "peak_root": 263280,
+                "peak_handles": 2,
+                "peak_temporary": 171
+              },
+              "sha256": "d232ff51ef02c0b18bebb4817c0f27804f372178a0159eb1875e50982f068aa9",
+              "projections": [
+                {
+                  "source": "native",
+                  "mode": "identity",
+                  "sha256": "babbd34cfc5890c3a750037e55ccef4f3ce2acc11daff6a1e64efe0cf2d8ed31",
+                  "statistics": {
+                    "peak_root": 286408,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "read",
+                  "sha256": "2e63abc549feb5fc3c04ee77c6855155b3d066ef114742cbad38e6ff0b86e59d",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "loss",
+                  "sha256": "91c42453b2f41c48943d0068d33702352b6c8338f74f6c51e82caf9eaa9e09e1",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "reset",
+                  "sha256": "cf171d20b245707981449ba004124352ef08017da7c2b27e05c0bda25e7cd342",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "identity",
+                  "sha256": "babbd34cfc5890c3a750037e55ccef4f3ce2acc11daff6a1e64efe0cf2d8ed31",
+                  "statistics": {
+                    "peak_root": 286408,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "read",
+                  "sha256": "2e63abc549feb5fc3c04ee77c6855155b3d066ef114742cbad38e6ff0b86e59d",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "loss",
+                  "sha256": "91c42453b2f41c48943d0068d33702352b6c8338f74f6c51e82caf9eaa9e09e1",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "reset",
+                  "sha256": "cf171d20b245707981449ba004124352ef08017da7c2b27e05c0bda25e7cd342",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                }
+              ],
+              "native_collision_sha256": "f920d41b9b02f418fe1553230b0d2b3c5c4eb2c0b72e3eb4f91a2c53bb5ef09e",
+              "rust_collision_rejects": true,
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 0,
+              "bitwise_sentinels": false,
+              "statistics": {
+                "peak_root": 263280,
+                "peak_handles": 2,
+                "peak_temporary": 171
+              },
+              "sha256": "d232ff51ef02c0b18bebb4817c0f27804f372178a0159eb1875e50982f068aa9",
+              "projections": [
+                {
+                  "source": "native",
+                  "mode": "identity",
+                  "sha256": "babbd34cfc5890c3a750037e55ccef4f3ce2acc11daff6a1e64efe0cf2d8ed31",
+                  "statistics": {
+                    "peak_root": 286408,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "read",
+                  "sha256": "2e63abc549feb5fc3c04ee77c6855155b3d066ef114742cbad38e6ff0b86e59d",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "loss",
+                  "sha256": "91c42453b2f41c48943d0068d33702352b6c8338f74f6c51e82caf9eaa9e09e1",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "reset",
+                  "sha256": "cf171d20b245707981449ba004124352ef08017da7c2b27e05c0bda25e7cd342",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "identity",
+                  "sha256": "babbd34cfc5890c3a750037e55ccef4f3ce2acc11daff6a1e64efe0cf2d8ed31",
+                  "statistics": {
+                    "peak_root": 286408,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "read",
+                  "sha256": "2e63abc549feb5fc3c04ee77c6855155b3d066ef114742cbad38e6ff0b86e59d",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "loss",
+                  "sha256": "91c42453b2f41c48943d0068d33702352b6c8338f74f6c51e82caf9eaa9e09e1",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "reset",
+                  "sha256": "cf171d20b245707981449ba004124352ef08017da7c2b27e05c0bda25e7cd342",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                }
+              ],
+              "native_collision_sha256": "f920d41b9b02f418fe1553230b0d2b3c5c4eb2c0b72e3eb4f91a2c53bb5ef09e",
+              "rust_collision_rejects": true,
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--no-default-features"
+              ],
+              "compression": 0,
+              "bitwise_sentinels": false,
+              "statistics": {
+                "peak_root": 263280,
+                "peak_handles": 2,
+                "peak_temporary": 171
+              },
+              "sha256": "d232ff51ef02c0b18bebb4817c0f27804f372178a0159eb1875e50982f068aa9",
+              "projections": [
+                {
+                  "source": "native",
+                  "mode": "identity",
+                  "sha256": "babbd34cfc5890c3a750037e55ccef4f3ce2acc11daff6a1e64efe0cf2d8ed31",
+                  "statistics": {
+                    "peak_root": 265360,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "read",
+                  "sha256": "2e63abc549feb5fc3c04ee77c6855155b3d066ef114742cbad38e6ff0b86e59d",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "loss",
+                  "sha256": "91c42453b2f41c48943d0068d33702352b6c8338f74f6c51e82caf9eaa9e09e1",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "reset",
+                  "sha256": "cf171d20b245707981449ba004124352ef08017da7c2b27e05c0bda25e7cd342",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "identity",
+                  "sha256": "babbd34cfc5890c3a750037e55ccef4f3ce2acc11daff6a1e64efe0cf2d8ed31",
+                  "statistics": {
+                    "peak_root": 265360,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "read",
+                  "sha256": "2e63abc549feb5fc3c04ee77c6855155b3d066ef114742cbad38e6ff0b86e59d",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "loss",
+                  "sha256": "91c42453b2f41c48943d0068d33702352b6c8338f74f6c51e82caf9eaa9e09e1",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "reset",
+                  "sha256": "cf171d20b245707981449ba004124352ef08017da7c2b27e05c0bda25e7cd342",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                }
+              ],
+              "native_collision_sha256": "f920d41b9b02f418fe1553230b0d2b3c5c4eb2c0b72e3eb4f91a2c53bb5ef09e",
+              "rust_collision_rejects": true,
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [],
+              "compression": 1,
+              "bitwise_sentinels": false,
+              "statistics": {
+                "peak_root": 722211,
+                "peak_handles": 2,
+                "peak_temporary": 171
+              },
+              "sha256": "121114c181429a934675cfe880dfa78048b3050a04f29a825226428330ec4bdd",
+              "projections": [
+                {
+                  "source": "native",
+                  "mode": "identity",
+                  "sha256": "babbd34cfc5890c3a750037e55ccef4f3ce2acc11daff6a1e64efe0cf2d8ed31",
+                  "statistics": {
+                    "peak_root": 351943,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "read",
+                  "sha256": "2e63abc549feb5fc3c04ee77c6855155b3d066ef114742cbad38e6ff0b86e59d",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "loss",
+                  "sha256": "91c42453b2f41c48943d0068d33702352b6c8338f74f6c51e82caf9eaa9e09e1",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "reset",
+                  "sha256": "cf171d20b245707981449ba004124352ef08017da7c2b27e05c0bda25e7cd342",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "identity",
+                  "sha256": "babbd34cfc5890c3a750037e55ccef4f3ce2acc11daff6a1e64efe0cf2d8ed31",
+                  "statistics": {
+                    "peak_root": 351943,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "read",
+                  "sha256": "2e63abc549feb5fc3c04ee77c6855155b3d066ef114742cbad38e6ff0b86e59d",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "loss",
+                  "sha256": "91c42453b2f41c48943d0068d33702352b6c8338f74f6c51e82caf9eaa9e09e1",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "reset",
+                  "sha256": "cf171d20b245707981449ba004124352ef08017da7c2b27e05c0bda25e7cd342",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                }
+              ],
+              "native_collision_sha256": "f920d41b9b02f418fe1553230b0d2b3c5c4eb2c0b72e3eb4f91a2c53bb5ef09e",
+              "rust_collision_rejects": true,
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 1,
+              "bitwise_sentinels": false,
+              "statistics": {
+                "peak_root": 722211,
+                "peak_handles": 2,
+                "peak_temporary": 171
+              },
+              "sha256": "121114c181429a934675cfe880dfa78048b3050a04f29a825226428330ec4bdd",
+              "projections": [
+                {
+                  "source": "native",
+                  "mode": "identity",
+                  "sha256": "babbd34cfc5890c3a750037e55ccef4f3ce2acc11daff6a1e64efe0cf2d8ed31",
+                  "statistics": {
+                    "peak_root": 351943,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "read",
+                  "sha256": "2e63abc549feb5fc3c04ee77c6855155b3d066ef114742cbad38e6ff0b86e59d",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "loss",
+                  "sha256": "91c42453b2f41c48943d0068d33702352b6c8338f74f6c51e82caf9eaa9e09e1",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "reset",
+                  "sha256": "cf171d20b245707981449ba004124352ef08017da7c2b27e05c0bda25e7cd342",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "identity",
+                  "sha256": "babbd34cfc5890c3a750037e55ccef4f3ce2acc11daff6a1e64efe0cf2d8ed31",
+                  "statistics": {
+                    "peak_root": 351943,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "read",
+                  "sha256": "2e63abc549feb5fc3c04ee77c6855155b3d066ef114742cbad38e6ff0b86e59d",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "loss",
+                  "sha256": "91c42453b2f41c48943d0068d33702352b6c8338f74f6c51e82caf9eaa9e09e1",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "reset",
+                  "sha256": "cf171d20b245707981449ba004124352ef08017da7c2b27e05c0bda25e7cd342",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                }
+              ],
+              "native_collision_sha256": "f920d41b9b02f418fe1553230b0d2b3c5c4eb2c0b72e3eb4f91a2c53bb5ef09e",
+              "rust_collision_rejects": true,
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [],
+              "compression": 0,
+              "bitwise_sentinels": true,
+              "statistics": {
+                "peak_root": 263280,
+                "peak_handles": 2,
+                "peak_temporary": 171
+              },
+              "sha256": "7ed7950e2589ee6695dd8ef74cda5b29ebdf89d947f54aa70bbbe56f16680062",
+              "projections": [
+                {
+                  "source": "native",
+                  "mode": "identity",
+                  "sha256": "14b4d3ac017a823a4d1a2e234198d9eb84bd281be85661832488f252477138a8",
+                  "statistics": {
+                    "peak_root": 286408,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "read",
+                  "sha256": "0b616eca55123d28e9cf02c684dc5dab8f016130007baf2e2515bcf89161d369",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "loss",
+                  "sha256": "2b2edd0c0232464f0d3867d9c436fb25798a3c75b2e026e3c9e29d9fae471ba0",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "reset",
+                  "sha256": "d3a9a3b9789738cea59a110e25e2ea6fe975fb3990ba3a2d0a4280fefb754b06",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "identity",
+                  "sha256": "14b4d3ac017a823a4d1a2e234198d9eb84bd281be85661832488f252477138a8",
+                  "statistics": {
+                    "peak_root": 286408,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "read",
+                  "sha256": "0b616eca55123d28e9cf02c684dc5dab8f016130007baf2e2515bcf89161d369",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "loss",
+                  "sha256": "2b2edd0c0232464f0d3867d9c436fb25798a3c75b2e026e3c9e29d9fae471ba0",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "reset",
+                  "sha256": "d3a9a3b9789738cea59a110e25e2ea6fe975fb3990ba3a2d0a4280fefb754b06",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                }
+              ],
+              "native_collision_sha256": "2cab55270707fa54c8cd254d1017f5f125dc9feb4975b7483bf0a099444e5b5b",
+              "rust_collision_rejects": true,
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 0,
+              "bitwise_sentinels": true,
+              "statistics": {
+                "peak_root": 263280,
+                "peak_handles": 2,
+                "peak_temporary": 171
+              },
+              "sha256": "7ed7950e2589ee6695dd8ef74cda5b29ebdf89d947f54aa70bbbe56f16680062",
+              "projections": [
+                {
+                  "source": "native",
+                  "mode": "identity",
+                  "sha256": "14b4d3ac017a823a4d1a2e234198d9eb84bd281be85661832488f252477138a8",
+                  "statistics": {
+                    "peak_root": 286408,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "read",
+                  "sha256": "0b616eca55123d28e9cf02c684dc5dab8f016130007baf2e2515bcf89161d369",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "loss",
+                  "sha256": "2b2edd0c0232464f0d3867d9c436fb25798a3c75b2e026e3c9e29d9fae471ba0",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "reset",
+                  "sha256": "d3a9a3b9789738cea59a110e25e2ea6fe975fb3990ba3a2d0a4280fefb754b06",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "identity",
+                  "sha256": "14b4d3ac017a823a4d1a2e234198d9eb84bd281be85661832488f252477138a8",
+                  "statistics": {
+                    "peak_root": 286408,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "read",
+                  "sha256": "0b616eca55123d28e9cf02c684dc5dab8f016130007baf2e2515bcf89161d369",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "loss",
+                  "sha256": "2b2edd0c0232464f0d3867d9c436fb25798a3c75b2e026e3c9e29d9fae471ba0",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "reset",
+                  "sha256": "d3a9a3b9789738cea59a110e25e2ea6fe975fb3990ba3a2d0a4280fefb754b06",
+                  "statistics": {
+                    "peak_root": 319176,
+                    "peak_handles": 1
+                  }
+                }
+              ],
+              "native_collision_sha256": "2cab55270707fa54c8cd254d1017f5f125dc9feb4975b7483bf0a099444e5b5b",
+              "rust_collision_rejects": true,
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--no-default-features"
+              ],
+              "compression": 0,
+              "bitwise_sentinels": true,
+              "statistics": {
+                "peak_root": 263280,
+                "peak_handles": 2,
+                "peak_temporary": 171
+              },
+              "sha256": "7ed7950e2589ee6695dd8ef74cda5b29ebdf89d947f54aa70bbbe56f16680062",
+              "projections": [
+                {
+                  "source": "native",
+                  "mode": "identity",
+                  "sha256": "14b4d3ac017a823a4d1a2e234198d9eb84bd281be85661832488f252477138a8",
+                  "statistics": {
+                    "peak_root": 265360,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "read",
+                  "sha256": "0b616eca55123d28e9cf02c684dc5dab8f016130007baf2e2515bcf89161d369",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "loss",
+                  "sha256": "2b2edd0c0232464f0d3867d9c436fb25798a3c75b2e026e3c9e29d9fae471ba0",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "reset",
+                  "sha256": "d3a9a3b9789738cea59a110e25e2ea6fe975fb3990ba3a2d0a4280fefb754b06",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "identity",
+                  "sha256": "14b4d3ac017a823a4d1a2e234198d9eb84bd281be85661832488f252477138a8",
+                  "statistics": {
+                    "peak_root": 265360,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "read",
+                  "sha256": "0b616eca55123d28e9cf02c684dc5dab8f016130007baf2e2515bcf89161d369",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "loss",
+                  "sha256": "2b2edd0c0232464f0d3867d9c436fb25798a3c75b2e026e3c9e29d9fae471ba0",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "reset",
+                  "sha256": "d3a9a3b9789738cea59a110e25e2ea6fe975fb3990ba3a2d0a4280fefb754b06",
+                  "statistics": {
+                    "peak_root": 298128,
+                    "peak_handles": 1
+                  }
+                }
+              ],
+              "native_collision_sha256": "2cab55270707fa54c8cd254d1017f5f125dc9feb4975b7483bf0a099444e5b5b",
+              "rust_collision_rejects": true,
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [],
+              "compression": 1,
+              "bitwise_sentinels": true,
+              "statistics": {
+                "peak_root": 722211,
+                "peak_handles": 2,
+                "peak_temporary": 171
+              },
+              "sha256": "68be6dc05967aaf5ab141e2d9ae8ba33e8cb5c04cf53fe1d293abc4597cfdea0",
+              "projections": [
+                {
+                  "source": "native",
+                  "mode": "identity",
+                  "sha256": "14b4d3ac017a823a4d1a2e234198d9eb84bd281be85661832488f252477138a8",
+                  "statistics": {
+                    "peak_root": 351943,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "read",
+                  "sha256": "0b616eca55123d28e9cf02c684dc5dab8f016130007baf2e2515bcf89161d369",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "loss",
+                  "sha256": "2b2edd0c0232464f0d3867d9c436fb25798a3c75b2e026e3c9e29d9fae471ba0",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "reset",
+                  "sha256": "d3a9a3b9789738cea59a110e25e2ea6fe975fb3990ba3a2d0a4280fefb754b06",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "identity",
+                  "sha256": "14b4d3ac017a823a4d1a2e234198d9eb84bd281be85661832488f252477138a8",
+                  "statistics": {
+                    "peak_root": 351943,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "read",
+                  "sha256": "0b616eca55123d28e9cf02c684dc5dab8f016130007baf2e2515bcf89161d369",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "loss",
+                  "sha256": "2b2edd0c0232464f0d3867d9c436fb25798a3c75b2e026e3c9e29d9fae471ba0",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "reset",
+                  "sha256": "d3a9a3b9789738cea59a110e25e2ea6fe975fb3990ba3a2d0a4280fefb754b06",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                }
+              ],
+              "native_collision_sha256": "2cab55270707fa54c8cd254d1017f5f125dc9feb4975b7483bf0a099444e5b5b",
+              "rust_collision_rejects": true,
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 1,
+              "bitwise_sentinels": true,
+              "statistics": {
+                "peak_root": 722211,
+                "peak_handles": 2,
+                "peak_temporary": 171
+              },
+              "sha256": "68be6dc05967aaf5ab141e2d9ae8ba33e8cb5c04cf53fe1d293abc4597cfdea0",
+              "projections": [
+                {
+                  "source": "native",
+                  "mode": "identity",
+                  "sha256": "14b4d3ac017a823a4d1a2e234198d9eb84bd281be85661832488f252477138a8",
+                  "statistics": {
+                    "peak_root": 351943,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "read",
+                  "sha256": "0b616eca55123d28e9cf02c684dc5dab8f016130007baf2e2515bcf89161d369",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "loss",
+                  "sha256": "2b2edd0c0232464f0d3867d9c436fb25798a3c75b2e026e3c9e29d9fae471ba0",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "native",
+                  "mode": "reset",
+                  "sha256": "d3a9a3b9789738cea59a110e25e2ea6fe975fb3990ba3a2d0a4280fefb754b06",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "identity",
+                  "sha256": "14b4d3ac017a823a4d1a2e234198d9eb84bd281be85661832488f252477138a8",
+                  "statistics": {
+                    "peak_root": 351943,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "read",
+                  "sha256": "0b616eca55123d28e9cf02c684dc5dab8f016130007baf2e2515bcf89161d369",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "loss",
+                  "sha256": "2b2edd0c0232464f0d3867d9c436fb25798a3c75b2e026e3c9e29d9fae471ba0",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                },
+                {
+                  "source": "rust",
+                  "mode": "reset",
+                  "sha256": "d3a9a3b9789738cea59a110e25e2ea6fe975fb3990ba3a2d0a4280fefb754b06",
+                  "statistics": {
+                    "peak_root": 384711,
+                    "peak_handles": 1
+                  }
+                }
+              ],
+              "native_collision_sha256": "2cab55270707fa54c8cd254d1017f5f125dc9feb4975b7483bf0a099444e5b5b",
+              "rust_collision_rejects": true,
+              "both_directions_complete_match": true
+            }
+          ],
+          "driver": {
+            "source_fingerprint": "5140d3edadf7c06a9653b522eadd64a7b0cbad67fb8d9cb034f63c18a614477d",
+            "executable_sha256": "73b9b9a5935ad9e9d811062a90d7a2404b7e124195ba4b5d9ba2d5e951e03f03",
+            "frozen_oracle": "79b9f3574597cf60339ecc12f0da24633f10c68e28ea208e78c0d5ee38fc249b"
+          },
+          "native_probes": "write_duplicate_rejected\t1\nread_duplicate_allowed\t1\nreset\t1\nacronym_overflow_is_infinity\t1\n",
+          "native_isolation": {
+            "platform": "linux",
+            "memory_limit": "256 MiB address space or tighter inherited limit",
+            "cpu_seconds_max": 2,
+            "output_bytes_max": 1048576,
+            "core_bytes_max": 0,
+            "wall_timeout_seconds": 5
+          },
+          "scope": "exact custom sentinel bits, explicit IEEE normalization, original typed view, read/internal NA precedence, explicit/auto/identity acronym projections, reset, strict collision and finite-encoding bounds"
+        },
+        "domains": {
+          "cases": [
+            {
+              "compression": 0,
+              "forward_registration": false,
+              "features": [],
+              "statistics": {
+                "input": 10,
+                "accepted": 4,
+                "reported": 6,
+                "peak_root": 495168,
+                "peak_handles": 7
+              },
+              "file_sha256": "c25d0b739c73e8d00ba237b77394478996ff6309bfad5219481f9ea6a960029c",
+              "errors_sha256": "cfec7f72b30e5a3d29be091417e96f25bd4a5379d2377efcc2e6793de996e2cf",
+              "both_directions_complete_match": true
+            },
+            {
+              "compression": 0,
+              "forward_registration": false,
+              "features": [
+                "--all-features"
+              ],
+              "statistics": {
+                "input": 10,
+                "accepted": 4,
+                "reported": 6,
+                "peak_root": 495168,
+                "peak_handles": 7
+              },
+              "file_sha256": "c25d0b739c73e8d00ba237b77394478996ff6309bfad5219481f9ea6a960029c",
+              "errors_sha256": "cfec7f72b30e5a3d29be091417e96f25bd4a5379d2377efcc2e6793de996e2cf",
+              "both_directions_complete_match": true
+            },
+            {
+              "compression": 0,
+              "forward_registration": false,
+              "features": [
+                "--no-default-features"
+              ],
+              "statistics": {
+                "input": 10,
+                "accepted": 4,
+                "reported": 6,
+                "peak_root": 495168,
+                "peak_handles": 7
+              },
+              "file_sha256": "c25d0b739c73e8d00ba237b77394478996ff6309bfad5219481f9ea6a960029c",
+              "errors_sha256": "cfec7f72b30e5a3d29be091417e96f25bd4a5379d2377efcc2e6793de996e2cf",
+              "both_directions_complete_match": true
+            },
+            {
+              "compression": 0,
+              "forward_registration": true,
+              "features": [],
+              "statistics": {
+                "input": 10,
+                "accepted": 4,
+                "reported": 6,
+                "peak_root": 495168,
+                "peak_handles": 7
+              },
+              "file_sha256": "28627c8b3e713f721c8bf6bad3557b67b5e7af81bad6361018fa94ca14edeeae",
+              "errors_sha256": "cfec7f72b30e5a3d29be091417e96f25bd4a5379d2377efcc2e6793de996e2cf",
+              "both_directions_complete_match": true
+            },
+            {
+              "compression": 0,
+              "forward_registration": true,
+              "features": [
+                "--all-features"
+              ],
+              "statistics": {
+                "input": 10,
+                "accepted": 4,
+                "reported": 6,
+                "peak_root": 495168,
+                "peak_handles": 7
+              },
+              "file_sha256": "28627c8b3e713f721c8bf6bad3557b67b5e7af81bad6361018fa94ca14edeeae",
+              "errors_sha256": "cfec7f72b30e5a3d29be091417e96f25bd4a5379d2377efcc2e6793de996e2cf",
+              "both_directions_complete_match": true
+            },
+            {
+              "compression": 0,
+              "forward_registration": true,
+              "features": [
+                "--no-default-features"
+              ],
+              "statistics": {
+                "input": 10,
+                "accepted": 4,
+                "reported": 6,
+                "peak_root": 495168,
+                "peak_handles": 7
+              },
+              "file_sha256": "28627c8b3e713f721c8bf6bad3557b67b5e7af81bad6361018fa94ca14edeeae",
+              "errors_sha256": "cfec7f72b30e5a3d29be091417e96f25bd4a5379d2377efcc2e6793de996e2cf",
+              "both_directions_complete_match": true
+            },
+            {
+              "compression": 1,
+              "forward_registration": false,
+              "features": [],
+              "statistics": {
+                "input": 10,
+                "accepted": 4,
+                "reported": 6,
+                "peak_root": 954099,
+                "peak_handles": 7
+              },
+              "file_sha256": "88e6104bdfdcf44d4b6af643ac013613b6a4ef1d358c0a1ce8d0a543ab77d83a",
+              "errors_sha256": "cfec7f72b30e5a3d29be091417e96f25bd4a5379d2377efcc2e6793de996e2cf",
+              "both_directions_complete_match": true
+            },
+            {
+              "compression": 1,
+              "forward_registration": false,
+              "features": [
+                "--all-features"
+              ],
+              "statistics": {
+                "input": 10,
+                "accepted": 4,
+                "reported": 6,
+                "peak_root": 954099,
+                "peak_handles": 7
+              },
+              "file_sha256": "88e6104bdfdcf44d4b6af643ac013613b6a4ef1d358c0a1ce8d0a543ab77d83a",
+              "errors_sha256": "cfec7f72b30e5a3d29be091417e96f25bd4a5379d2377efcc2e6793de996e2cf",
+              "both_directions_complete_match": true
+            },
+            {
+              "compression": 1,
+              "forward_registration": true,
+              "features": [],
+              "statistics": {
+                "input": 10,
+                "accepted": 4,
+                "reported": 6,
+                "peak_root": 954099,
+                "peak_handles": 7
+              },
+              "file_sha256": "058d1a2093a9af3fa21e93cf2d8bbd94e8f5742567704c830f42d223d2fc55cc",
+              "errors_sha256": "cfec7f72b30e5a3d29be091417e96f25bd4a5379d2377efcc2e6793de996e2cf",
+              "both_directions_complete_match": true
+            },
+            {
+              "compression": 1,
+              "forward_registration": true,
+              "features": [
+                "--all-features"
+              ],
+              "statistics": {
+                "input": 10,
+                "accepted": 4,
+                "reported": 6,
+                "peak_root": 954099,
+                "peak_handles": 7
+              },
+              "file_sha256": "058d1a2093a9af3fa21e93cf2d8bbd94e8f5742567704c830f42d223d2fc55cc",
+              "errors_sha256": "cfec7f72b30e5a3d29be091417e96f25bd4a5379d2377efcc2e6793de996e2cf",
+              "both_directions_complete_match": true
+            }
+          ],
+          "native_probes": [
+            {
+              "compression": 0,
+              "cutoff": 100,
+              "error_sha256": "e1143de9cb0fc78645402e59f48023776281b6f0c641b40e6ac3dd5a5dc9cad5",
+              "file_sha256": "a64cb9e61c3327c48c1c68c357bc923314408bc18dd6b9ac1d5def4adb7551e1",
+              "rust_reads": 3
+            },
+            {
+              "compression": 0,
+              "cutoff": 2,
+              "error_sha256": "286e7ebdb342b2225d3d7ab11ac561f90ea9e9494d7d11da1dbce5a8615aedc8",
+              "file_sha256": "a64cb9e61c3327c48c1c68c357bc923314408bc18dd6b9ac1d5def4adb7551e1",
+              "rust_reads": 3
+            },
+            {
+              "compression": 1,
+              "cutoff": 100,
+              "error_sha256": "e1143de9cb0fc78645402e59f48023776281b6f0c641b40e6ac3dd5a5dc9cad5",
+              "file_sha256": "497441d352a8753764bfe185d1808a6d2ec9c71c84452490d476baa25e8bb1e5",
+              "rust_reads": 2
+            },
+            {
+              "compression": 1,
+              "cutoff": 2,
+              "error_sha256": "286e7ebdb342b2225d3d7ab11ac561f90ea9e9494d7d11da1dbce5a8615aedc8",
+              "file_sha256": "497441d352a8753764bfe185d1808a6d2ec9c71c84452490d476baa25e8bb1e5",
+              "rust_reads": 2
+            }
+          ],
+          "driver": {
+            "source_fingerprint": "60108841f5fdf9d6d822b61fa3d8b09c42bd5862d64034c3d13b00f56673d2a1",
+            "executable_sha256": "913af0e798c5aa0905aa3174e5a469a6765bf58833f23f16a4d52b4d480b1944",
+            "frozen_oracle": "79b9f3574597cf60339ecc12f0da24633f10c68e28ea208e78c0d5ee38fc249b"
+          },
+          "native_isolation": {
+            "platform": "linux",
+            "memory_limit": "256 MiB address space or tighter inherited limit",
+            "cpu_seconds_max": 2,
+            "output_bytes_max": 1048576,
+            "core_bytes_max": 0,
+            "wall_timeout_seconds": 5
+          },
+          "scope": "strict alias/self/universe and relaxed domains; duplicates; native signed/absolute errors and cutoff/coalescing; Rust preserves every rejected row"
+        },
+        "mapped": {
+          "cases": [
+            {
+              "features": [],
+              "compression": 0,
+              "large": false,
+              "statistics": {
+                "peak_root": 527608,
+                "peak_scratch": 1096,
+                "peak_handles": 7
+              },
+              "sha256": "35a6826618e4e7c8c81ff124ff3e5af2696099416ef969a95b756fae8b7c0a71",
+              "mapped_streams": [
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "623fea47ae9307f4cd49719303b382d3462c7bfd00e8b299682fe84522c0258d"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "9bad987830cb4761399d99fdddc53ccd8c43e299929a76479123e55def5cb05a"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "f77fb04dbf01ec05d61fa5d77af4b0646cdf0ac7f83e0c7bcf346fce40e8739e"
+                },
+                {
+                  "peak_root": 403208,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "f25b8d48603820254dc35baf0ba3cbf50fdd51fe4dc08978353344f3e719bfec"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "623fea47ae9307f4cd49719303b382d3462c7bfd00e8b299682fe84522c0258d"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "9bad987830cb4761399d99fdddc53ccd8c43e299929a76479123e55def5cb05a"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "f77fb04dbf01ec05d61fa5d77af4b0646cdf0ac7f83e0c7bcf346fce40e8739e"
+                },
+                {
+                  "peak_root": 403208,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "f25b8d48603820254dc35baf0ba3cbf50fdd51fe4dc08978353344f3e719bfec"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                }
+              ],
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 0,
+              "large": false,
+              "statistics": {
+                "peak_root": 527608,
+                "peak_scratch": 1096,
+                "peak_handles": 7
+              },
+              "sha256": "35a6826618e4e7c8c81ff124ff3e5af2696099416ef969a95b756fae8b7c0a71",
+              "mapped_streams": [
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "623fea47ae9307f4cd49719303b382d3462c7bfd00e8b299682fe84522c0258d"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "9bad987830cb4761399d99fdddc53ccd8c43e299929a76479123e55def5cb05a"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "f77fb04dbf01ec05d61fa5d77af4b0646cdf0ac7f83e0c7bcf346fce40e8739e"
+                },
+                {
+                  "peak_root": 403208,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "f25b8d48603820254dc35baf0ba3cbf50fdd51fe4dc08978353344f3e719bfec"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "623fea47ae9307f4cd49719303b382d3462c7bfd00e8b299682fe84522c0258d"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "9bad987830cb4761399d99fdddc53ccd8c43e299929a76479123e55def5cb05a"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "f77fb04dbf01ec05d61fa5d77af4b0646cdf0ac7f83e0c7bcf346fce40e8739e"
+                },
+                {
+                  "peak_root": 403208,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "f25b8d48603820254dc35baf0ba3cbf50fdd51fe4dc08978353344f3e719bfec"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                }
+              ],
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--no-default-features"
+              ],
+              "compression": 0,
+              "large": false,
+              "statistics": {
+                "peak_root": 527608,
+                "peak_scratch": 1096,
+                "peak_handles": 7
+              },
+              "sha256": "35a6826618e4e7c8c81ff124ff3e5af2696099416ef969a95b756fae8b7c0a71",
+              "mapped_streams": [
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "623fea47ae9307f4cd49719303b382d3462c7bfd00e8b299682fe84522c0258d"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "9bad987830cb4761399d99fdddc53ccd8c43e299929a76479123e55def5cb05a"
+                },
+                {
+                  "peak_root": 382112,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 382112,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 381152,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "f77fb04dbf01ec05d61fa5d77af4b0646cdf0ac7f83e0c7bcf346fce40e8739e"
+                },
+                {
+                  "peak_root": 382160,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "f25b8d48603820254dc35baf0ba3cbf50fdd51fe4dc08978353344f3e719bfec"
+                },
+                {
+                  "peak_root": 382112,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 382112,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 381152,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "623fea47ae9307f4cd49719303b382d3462c7bfd00e8b299682fe84522c0258d"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "9bad987830cb4761399d99fdddc53ccd8c43e299929a76479123e55def5cb05a"
+                },
+                {
+                  "peak_root": 382112,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 382112,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 381152,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 412280,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "f77fb04dbf01ec05d61fa5d77af4b0646cdf0ac7f83e0c7bcf346fce40e8739e"
+                },
+                {
+                  "peak_root": 382160,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "f25b8d48603820254dc35baf0ba3cbf50fdd51fe4dc08978353344f3e719bfec"
+                },
+                {
+                  "peak_root": 382112,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 382112,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 381152,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                }
+              ],
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [],
+              "compression": 1,
+              "large": false,
+              "statistics": {
+                "peak_root": 986539,
+                "peak_scratch": 1096,
+                "peak_handles": 7
+              },
+              "sha256": "fccb25bcd36964c57caca1abd507d7903274a209e38be40d601cb9fd066a0b1c",
+              "mapped_streams": [
+                {
+                  "peak_root": 468755,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "623fea47ae9307f4cd49719303b382d3462c7bfd00e8b299682fe84522c0258d"
+                },
+                {
+                  "peak_root": 468743,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "9bad987830cb4761399d99fdddc53ccd8c43e299929a76479123e55def5cb05a"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 468755,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "f77fb04dbf01ec05d61fa5d77af4b0646cdf0ac7f83e0c7bcf346fce40e8739e"
+                },
+                {
+                  "peak_root": 468743,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "f25b8d48603820254dc35baf0ba3cbf50fdd51fe4dc08978353344f3e719bfec"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 468755,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "623fea47ae9307f4cd49719303b382d3462c7bfd00e8b299682fe84522c0258d"
+                },
+                {
+                  "peak_root": 468743,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "9bad987830cb4761399d99fdddc53ccd8c43e299929a76479123e55def5cb05a"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 467735,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 468755,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "f77fb04dbf01ec05d61fa5d77af4b0646cdf0ac7f83e0c7bcf346fce40e8739e"
+                },
+                {
+                  "peak_root": 468743,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "f25b8d48603820254dc35baf0ba3cbf50fdd51fe4dc08978353344f3e719bfec"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 467735,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                }
+              ],
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 1,
+              "large": false,
+              "statistics": {
+                "peak_root": 986539,
+                "peak_scratch": 1096,
+                "peak_handles": 7
+              },
+              "sha256": "fccb25bcd36964c57caca1abd507d7903274a209e38be40d601cb9fd066a0b1c",
+              "mapped_streams": [
+                {
+                  "peak_root": 468755,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "623fea47ae9307f4cd49719303b382d3462c7bfd00e8b299682fe84522c0258d"
+                },
+                {
+                  "peak_root": 468743,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "9bad987830cb4761399d99fdddc53ccd8c43e299929a76479123e55def5cb05a"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 468755,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "f77fb04dbf01ec05d61fa5d77af4b0646cdf0ac7f83e0c7bcf346fce40e8739e"
+                },
+                {
+                  "peak_root": 468743,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "f25b8d48603820254dc35baf0ba3cbf50fdd51fe4dc08978353344f3e719bfec"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 403160,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 402200,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "native",
+                  "skip_missing": true,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 468755,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "623fea47ae9307f4cd49719303b382d3462c7bfd00e8b299682fe84522c0258d"
+                },
+                {
+                  "peak_root": 468743,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "9bad987830cb4761399d99fdddc53ccd8c43e299929a76479123e55def5cb05a"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 467735,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                },
+                {
+                  "peak_root": 468755,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "f77fb04dbf01ec05d61fa5d77af4b0646cdf0ac7f83e0c7bcf346fce40e8739e"
+                },
+                {
+                  "peak_root": 468743,
+                  "peak_handles": 7,
+                  "symbol": 3,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "f25b8d48603820254dc35baf0ba3cbf50fdd51fe4dc08978353344f3e719bfec"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 4,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "8d1890d81076a2782e71f150fbf6c8b6a7935a0b0e829a6954bddf837335da08"
+                },
+                {
+                  "peak_root": 468695,
+                  "peak_handles": 7,
+                  "symbol": 5,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "e32fd0f65bafc0773f185d22824ab4f618ff1942cde5d437a5efe361ec54a477"
+                },
+                {
+                  "peak_root": 467735,
+                  "peak_handles": 7,
+                  "symbol": 6,
+                  "source": "rust",
+                  "skip_missing": true,
+                  "sha256": "65e304a396d9baf76e72928afcd3c526f0f0d6a02c2cb47f327b3aea8a951829"
+                }
+              ],
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [],
+              "compression": 0,
+              "large": true,
+              "statistics": {
+                "peak_root": 527608,
+                "peak_scratch": 324490,
+                "peak_handles": 7
+              },
+              "sha256": "f482cac510b3f21915908b690ba3359059f9275290e3e10b3125d425e6e8ad2f",
+              "mapped_streams": [
+                {
+                  "peak_root": 452092,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "0f6bb988ad1c1986a3c4207c3fff40ac90d3c6534127a07b6408810b545beb9d"
+                },
+                {
+                  "peak_root": 452092,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "0f6bb988ad1c1986a3c4207c3fff40ac90d3c6534127a07b6408810b545beb9d"
+                }
+              ],
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [],
+              "compression": 1,
+              "large": true,
+              "statistics": {
+                "peak_root": 986539,
+                "peak_scratch": 324490,
+                "peak_handles": 7
+              },
+              "sha256": "d8eb0e88af7482e838a43b6151a7884726d709e5c059bbbee890cdaeb3f76d37",
+              "mapped_streams": [
+                {
+                  "peak_root": 517627,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "native",
+                  "skip_missing": false,
+                  "sha256": "0f6bb988ad1c1986a3c4207c3fff40ac90d3c6534127a07b6408810b545beb9d"
+                },
+                {
+                  "peak_root": 517627,
+                  "peak_handles": 7,
+                  "symbol": 1,
+                  "source": "rust",
+                  "skip_missing": false,
+                  "sha256": "0f6bb988ad1c1986a3c4207c3fff40ac90d3c6534127a07b6408810b545beb9d"
+                }
+              ],
+              "both_directions_complete_match": true
+            }
+          ],
+          "mapped_driver": {
+            "source_fingerprint": "263e6d42b7e0a1d2338f65445f961eb3f9e3b7ad2c40f1b9ece81e825f1deb66",
+            "executable_sha256": "24f6a8439f7552670e2398956e5c2f184b00276adea457e3c2a03eb74760c6bb",
+            "frozen_oracle": "79b9f3574597cf60339ecc12f0da24633f10c68e28ea208e78c0d5ee38fc249b"
+          },
+          "negative_probe": {
+            "returncode": -6,
+            "stderr_tail": "double free or corruption (out)\n",
+            "isolation": {
+              "platform": "linux",
+              "memory_limit": "256 MiB address space or tighter inherited limit",
+              "cpu_seconds_max": 2,
+              "output_bytes_max": 1048576,
+              "core_bytes_max": 0,
+              "wall_timeout_seconds": 5
+            },
+            "rust_rejects_before_registration": true
+          },
+          "native_probe": "REJECT\tM\t-100013\t0\n",
+          "native_probe_raw_sha256": "acd7be910bf9875c979e2ff877f25da8bd3898b598b93f3eed1be41139781807",
+          "native_isolation": {
+            "platform": "linux",
+            "memory_limit": "256 MiB address space or tighter inherited limit",
+            "cpu_seconds_max": 2,
+            "output_bytes_max": 1048576,
+            "core_bytes_max": 0,
+            "wall_timeout_seconds": 5
+          },
+          "scope": "immutable sparse bijections, original raw IDs, mapped order, strict/skip missing policy; native ambiguous collisions explicitly rejected in Rust"
+        },
+        "strings": {
+          "cases": [
+            {
+              "features": [],
+              "compression": 0,
+              "large": false,
+              "statistics": {
+                "records": 8,
+                "uels": 6,
+                "requests": 28,
+                "merge_passes": 8,
+                "peak_root": 548408,
+                "peak_scratch": 4216,
+                "peak_handles": 7,
+                "seconds": 0.061265736
+              },
+              "sha256": "488e0573e312a6ca7a998dda263b9b32c0fa61b5f97a95763e95bec4b86bc85b",
+              "recipe_sha256": "bbcbe19a1f251ca08bf2e2ad3cd19a860a2d726c081b023a0920f5486edb7f57",
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 0,
+              "large": false,
+              "statistics": {
+                "records": 8,
+                "uels": 6,
+                "requests": 28,
+                "merge_passes": 8,
+                "peak_root": 548408,
+                "peak_scratch": 4216,
+                "peak_handles": 7,
+                "seconds": 0.052911578
+              },
+              "sha256": "488e0573e312a6ca7a998dda263b9b32c0fa61b5f97a95763e95bec4b86bc85b",
+              "recipe_sha256": "bbcbe19a1f251ca08bf2e2ad3cd19a860a2d726c081b023a0920f5486edb7f57",
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--no-default-features"
+              ],
+              "compression": 0,
+              "large": false,
+              "statistics": {
+                "records": 8,
+                "uels": 6,
+                "requests": 28,
+                "merge_passes": 8,
+                "peak_root": 548408,
+                "peak_scratch": 4216,
+                "peak_handles": 7,
+                "seconds": 0.039412735
+              },
+              "sha256": "488e0573e312a6ca7a998dda263b9b32c0fa61b5f97a95763e95bec4b86bc85b",
+              "recipe_sha256": "bbcbe19a1f251ca08bf2e2ad3cd19a860a2d726c081b023a0920f5486edb7f57",
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [],
+              "compression": 1,
+              "large": false,
+              "statistics": {
+                "records": 8,
+                "uels": 6,
+                "requests": 28,
+                "merge_passes": 8,
+                "peak_root": 1007339,
+                "peak_scratch": 4216,
+                "peak_handles": 7,
+                "seconds": 0.038245378
+              },
+              "sha256": "288cfcf8fbf02c7f502b21e1bd0bc01274a34aaab83403e3014225042b78864e",
+              "recipe_sha256": "bbcbe19a1f251ca08bf2e2ad3cd19a860a2d726c081b023a0920f5486edb7f57",
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 1,
+              "large": false,
+              "statistics": {
+                "records": 8,
+                "uels": 6,
+                "requests": 28,
+                "merge_passes": 8,
+                "peak_root": 1007339,
+                "peak_scratch": 4216,
+                "peak_handles": 7,
+                "seconds": 0.035589158
+              },
+              "sha256": "288cfcf8fbf02c7f502b21e1bd0bc01274a34aaab83403e3014225042b78864e",
+              "recipe_sha256": "bbcbe19a1f251ca08bf2e2ad3cd19a860a2d726c081b023a0920f5486edb7f57",
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [],
+              "compression": 0,
+              "large": true,
+              "statistics": {
+                "records": 8192,
+                "uels": 8192,
+                "requests": 8192,
+                "merge_passes": 16,
+                "peak_root": 548408,
+                "peak_scratch": 3571873,
+                "peak_handles": 7,
+                "seconds": 0.552212452
+              },
+              "sha256": "5fae7019ceba66cc0ab8f36f82beb3057ab03ff53ded7447cfadbcd2e156bc5e",
+              "recipe_sha256": "a772c10118bdf726ba282d96e2da077d9b4957c3c02884d5761a2b6f92042f50",
+              "both_directions_complete_match": true
+            },
+            {
+              "features": [],
+              "compression": 1,
+              "large": true,
+              "statistics": {
+                "records": 8192,
+                "uels": 8192,
+                "requests": 8192,
+                "merge_passes": 16,
+                "peak_root": 1007339,
+                "peak_scratch": 3571873,
+                "peak_handles": 7,
+                "seconds": 0.401270151
+              },
+              "sha256": "569c27ea216230dd3ddb7e4a6be423df1adafea4bedfca2a4d81953e56af6646",
+              "recipe_sha256": "a772c10118bdf726ba282d96e2da077d9b4957c3c02884d5761a2b6f92042f50",
+              "both_directions_complete_match": true
+            }
+          ],
+          "native_isolation": {
+            "platform": "linux",
+            "memory_limit": "256 MiB address space or tighter inherited limit",
+            "cpu_seconds_max": 2,
+            "output_bytes_max": 1048576,
+            "core_bytes_max": 0,
+            "wall_timeout_seconds": 5
+          },
+          "scope": "two-pass exact-byte labels and original IDs; fixed semantics plus 8192 generated 63-byte labels; no M4 OS-scale claim"
+        },
+        "full": {
+          "unsorted_cases": [
+            {
+              "features": [],
+              "compression": 0,
+              "bytes": 1600,
+              "sha256": "530799da76f14dcf4e4b968b01062b014df8f73b3bb601f158a0e1627da4e696",
+              "forced_external_merge": true,
+              "complete_native_and_rust_stream_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 0,
+              "bytes": 1600,
+              "sha256": "530799da76f14dcf4e4b968b01062b014df8f73b3bb601f158a0e1627da4e696",
+              "forced_external_merge": true,
+              "complete_native_and_rust_stream_match": true
+            },
+            {
+              "features": [
+                "--no-default-features"
+              ],
+              "compression": 0,
+              "bytes": 1600,
+              "sha256": "530799da76f14dcf4e4b968b01062b014df8f73b3bb601f158a0e1627da4e696",
+              "forced_external_merge": true,
+              "complete_native_and_rust_stream_match": true
+            },
+            {
+              "features": [],
+              "compression": 1,
+              "bytes": 716,
+              "sha256": "06505ac557dcff98d8860c0297dca0d2c4e67d0b97037c1896315e0bc1b6852a",
+              "forced_external_merge": true,
+              "complete_native_and_rust_stream_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 1,
+              "bytes": 716,
+              "sha256": "06505ac557dcff98d8860c0297dca0d2c4e67d0b97037c1896315e0bc1b6852a",
+              "forced_external_merge": true,
+              "complete_native_and_rust_stream_match": true
+            }
+          ],
+          "cases": [
+            {
+              "features": [],
+              "compression": 0,
+              "bytes": 1600,
+              "sha256": "530799da76f14dcf4e4b968b01062b014df8f73b3bb601f158a0e1627da4e696",
+              "native_sha256": "997b7c61e22d8216abc7759e2fe49d597388233e7f7391cbb6c2571529de501a",
+              "both_directions_complete_stream_match": true,
+              "canonical_offsets_and_section_markers_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 0,
+              "bytes": 1600,
+              "sha256": "530799da76f14dcf4e4b968b01062b014df8f73b3bb601f158a0e1627da4e696",
+              "native_sha256": "997b7c61e22d8216abc7759e2fe49d597388233e7f7391cbb6c2571529de501a",
+              "both_directions_complete_stream_match": true,
+              "canonical_offsets_and_section_markers_match": true
+            },
+            {
+              "features": [
+                "--no-default-features"
+              ],
+              "compression": 0,
+              "bytes": 1600,
+              "sha256": "530799da76f14dcf4e4b968b01062b014df8f73b3bb601f158a0e1627da4e696",
+              "native_sha256": "997b7c61e22d8216abc7759e2fe49d597388233e7f7391cbb6c2571529de501a",
+              "both_directions_complete_stream_match": true,
+              "canonical_offsets_and_section_markers_match": true
+            },
+            {
+              "features": [],
+              "compression": 1,
+              "bytes": 716,
+              "sha256": "06505ac557dcff98d8860c0297dca0d2c4e67d0b97037c1896315e0bc1b6852a",
+              "native_sha256": "8488e10b5281ab4ea76e52b7a07b4b72642aaa0ef8bee7b2ebbb8eb6ecadbf15",
+              "both_directions_complete_stream_match": true,
+              "canonical_offsets_and_section_markers_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 1,
+              "bytes": 716,
+              "sha256": "06505ac557dcff98d8860c0297dca0d2c4e67d0b97037c1896315e0bc1b6852a",
+              "native_sha256": "8488e10b5281ab4ea76e52b7a07b4b72642aaa0ef8bee7b2ebbb8eb6ecadbf15",
+              "both_directions_complete_stream_match": true,
+              "canonical_offsets_and_section_markers_match": true
+            }
+          ],
+          "scope": "complete supported metadata and records; 9 symbols, 4 UELs, 20 public rows per case",
+          "recipe_sha256": "1c0bb4acb51a9f15b0a0e6c016edf34c0257ac4e37613b84d35fdd98df350756",
+          "native_isolation": {
+            "platform": "linux",
+            "memory_limit": "256 MiB address space or tighter inherited limit",
+            "cpu_seconds_max": 2,
+            "output_bytes_max": 1048576,
+            "core_bytes_max": 0,
+            "wall_timeout_seconds": 5
+          }
+        },
+        "scope": "tasks 018\u2013022 metadata, sorted records and bounded section codec",
+        "records": {
+          "cases": [
+            {
+              "features": [],
+              "compression": 0,
+              "bytes": 76565,
+              "sha256": "5b454aef409aaad3873295c6b556a3bd320bcb9bdb31d75080e4e5e1191bbbad",
+              "symbols": 45,
+              "complete_native_and_rust_stream_matches": true,
+              "independent_key_bytes_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 0,
+              "bytes": 76565,
+              "sha256": "5b454aef409aaad3873295c6b556a3bd320bcb9bdb31d75080e4e5e1191bbbad",
+              "symbols": 45,
+              "complete_native_and_rust_stream_matches": true,
+              "independent_key_bytes_match": true
+            },
+            {
+              "features": [
+                "--no-default-features"
+              ],
+              "compression": 0,
+              "bytes": 76565,
+              "sha256": "5b454aef409aaad3873295c6b556a3bd320bcb9bdb31d75080e4e5e1191bbbad",
+              "symbols": 45,
+              "complete_native_and_rust_stream_matches": true,
+              "independent_key_bytes_match": true
+            },
+            {
+              "features": [],
+              "compression": 1,
+              "bytes": 3841,
+              "sha256": "086ff3eaf6663566917ab2329a9b1b65676ae96d775fd3ec32aaa526a2332d42",
+              "symbols": 45,
+              "complete_native_and_rust_stream_matches": true,
+              "independent_key_bytes_match": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 1,
+              "bytes": 3841,
+              "sha256": "086ff3eaf6663566917ab2329a9b1b65676ae96d775fd3ec32aaa526a2332d42",
+              "symbols": 45,
+              "complete_native_and_rust_stream_matches": true,
+              "independent_key_bytes_match": true
+            }
+          ],
+          "native_isolation": {
+            "platform": "linux",
+            "memory_limit": "256 MiB address space or tighter inherited limit",
+            "cpu_seconds_max": 2,
+            "output_bytes_max": 1048576,
+            "core_bytes_max": 0,
+            "wall_timeout_seconds": 5
+          },
+          "scope": "task 021 sorted raw records; 700 UELs and 45 symbols per case"
+        },
+        "metadata": {
+          "scope": "task 020 registered metadata and empty symbols only",
+          "cases": [
+            {
+              "features": [],
+              "compression": 0,
+              "bytes": 748,
+              "sha256": "acb1fbdb2736f4346ac4ce5dababc6f9d31e67b2bc3c356450aea83f4092eb14",
+              "complete_native_and_rust_stream_matches": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 0,
+              "bytes": 748,
+              "sha256": "acb1fbdb2736f4346ac4ce5dababc6f9d31e67b2bc3c356450aea83f4092eb14",
+              "complete_native_and_rust_stream_matches": true
+            },
+            {
+              "features": [
+                "--no-default-features"
+              ],
+              "compression": 0,
+              "bytes": 748,
+              "sha256": "acb1fbdb2736f4346ac4ce5dababc6f9d31e67b2bc3c356450aea83f4092eb14",
+              "complete_native_and_rust_stream_matches": true
+            },
+            {
+              "features": [],
+              "compression": 1,
+              "bytes": 581,
+              "sha256": "0ee8803f1b4ed2334c1146b6393c90765a30d1f437a5099c72ba8f349f06259b",
+              "complete_native_and_rust_stream_matches": true
+            },
+            {
+              "features": [
+                "--all-features"
+              ],
+              "compression": 1,
+              "bytes": 581,
+              "sha256": "0ee8803f1b4ed2334c1146b6393c90765a30d1f437a5099c72ba8f349f06259b",
+              "complete_native_and_rust_stream_matches": true
+            }
+          ]
+        },
+        "codec": {
+          "cases": [
+            {
+              "name": "empty",
+              "decoded_bytes": 0,
+              "rust_blocks": [],
+              "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "rust_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "native_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            {
+              "name": "one",
+              "decoded_bytes": 1,
+              "rust_blocks": [
+                {
+                  "tag": 0,
+                  "encoded": 1,
+                  "decoded": 1
+                }
+              ],
+              "raw_sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+              "rust_sha256": "616fd1f970e568fd8e59f7afb1cbe7e5b32fd7122f020b2cc20dccdc93636299",
+              "native_sha256": "616fd1f970e568fd8e59f7afb1cbe7e5b32fd7122f020b2cc20dccdc93636299"
+            },
+            {
+              "name": "small",
+              "decoded_bytes": 3,
+              "rust_blocks": [
+                {
+                  "tag": 0,
+                  "encoded": 3,
+                  "decoded": 3
+                }
+              ],
+              "raw_sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+              "rust_sha256": "fe13b428c0835fb72bd2d87037dd38b3662d560fc0ead6e0a847e887483e9efc",
+              "native_sha256": "fe13b428c0835fb72bd2d87037dd38b3662d560fc0ead6e0a847e887483e9efc"
+            },
+            {
+              "name": "full",
+              "decoded_bytes": 32768,
+              "rust_blocks": [
+                {
+                  "tag": 1,
+                  "encoded": 172,
+                  "decoded": 32768
+                }
+              ],
+              "raw_sha256": "427965f49a857174e308658227325dbd23ff4eccbe399d5ad4817dda3ec79f87",
+              "rust_sha256": "1a3262b29706c3c09e1c489ed32ce2c88b83eed80aa385dda572be88fbad7732",
+              "native_sha256": "9050bd798b27f48bdf39dbf096846e6a445f7a2b40125fe3d28a38de91b56793"
+            },
+            {
+              "name": "final",
+              "decoded_bytes": 32769,
+              "rust_blocks": [
+                {
+                  "tag": 1,
+                  "encoded": 172,
+                  "decoded": 32768
+                },
+                {
+                  "tag": 0,
+                  "encoded": 1,
+                  "decoded": 1
+                }
+              ],
+              "raw_sha256": "cd72c76486c91c4032a0b357522fe03413380d37ad7d8661bd98feb5209f1bf6",
+              "rust_sha256": "37bdaa166eb0d709e2bb145e21987c808137f22398c868f70e4b2eaa3cd49259",
+              "native_sha256": "9a0f4a7d071825c6e6f2e39b47e09faa888bdbdf9539f73bccbb144bec2a81ad"
+            },
+            {
+              "name": "repeat",
+              "decoded_bytes": 65537,
+              "rust_blocks": [
+                {
+                  "tag": 1,
+                  "encoded": 172,
+                  "decoded": 32768
+                },
+                {
+                  "tag": 1,
+                  "encoded": 172,
+                  "decoded": 32768
+                },
+                {
+                  "tag": 0,
+                  "encoded": 1,
+                  "decoded": 1
+                }
+              ],
+              "raw_sha256": "1abe08ebecf1c18cab71f6fe28aaddf20268f85bad78bb9a72f88ca47c874662",
+              "rust_sha256": "fff057c4c744b24cbcb4e488ef3bc678236d280da09772174957eb21629b40f6",
+              "native_sha256": "fdf907c218b14bc11a76b6e5517c703537a5181e029dbb26beeab37fc2b39503"
+            },
+            {
+              "name": "noise",
+              "decoded_bytes": 32768,
+              "rust_blocks": [
+                {
+                  "tag": 0,
+                  "encoded": 32768,
+                  "decoded": 32768
+                }
+              ],
+              "raw_sha256": "5855385382aef19b0c73daee724d50674980141b845cfda2a3d4490f3eeb8ca9",
+              "rust_sha256": "9480e3964ee0155ad03f48177e0db51460a083133d689924c37b3343092ca259",
+              "native_sha256": "9480e3964ee0155ad03f48177e0db51460a083133d689924c37b3343092ca259"
+            },
+            {
+              "name": "boundary",
+              "decoded_bytes": 65543,
+              "rust_blocks": [
+                {
+                  "tag": 1,
+                  "encoded": 176,
+                  "decoded": 32768
+                },
+                {
+                  "tag": 1,
+                  "encoded": 184,
+                  "decoded": 32768
+                },
+                {
+                  "tag": 0,
+                  "encoded": 7,
+                  "decoded": 7
+                }
+              ],
+              "raw_sha256": "65082654eee1f52b5f17fab5be5ab6789cd16fc6a86be12ea975fd85b554fafb",
+              "rust_sha256": "93bdb73c9a3caba9e8f603e30df1cdc3ba439f7106dfcf02765ff7521f46f974",
+              "native_sha256": "774c207cec2088ab79e7f06a6e765e975dfd580fe554f9f68206484f4a5ddf10"
+            }
+          ],
+          "helper_build_identity": "7cb06b8e28daae4b97b6c6d54454c66c99bd7649cc141673e34cefeca27b6819",
+          "helper_sha256": "1b3802aa58db09f4b87543e40991dd060f6800cc3b1a8168bd90cd5bd8f3577d",
+          "oracle_identity": "b28f8cb0e43762deb6c3b346b532fecf56e0dffd4051df62fa41ec0b44c06718",
+          "native_isolation": {
+            "platform": "linux",
+            "memory_limit": "256 MiB address space or tighter inherited limit",
+            "cpu_seconds_max": 2,
+            "output_bytes_max": 1048576,
+            "core_bytes_max": 0,
+            "wall_timeout_seconds": 5
+          },
+          "rust_native_read_features": [
+            "default",
+            "all"
+          ],
+          "visible_state_bytes": 65712,
+          "private_state_reservation_bytes": 327680
+        },
+        "cases": [
+          {
+            "direction": "Rust writes \u2192 native reads",
+            "features": [],
+            "artifact": ".work/writer/7d3a642057864464b9ec8c32ad7e80d4/rust-empty-0.gdx",
+            "bytes": 197,
+            "sha256": "cb0df5e7d6aa7e82798a32a9731aaf0aa559b26172a7c45dd0e49e2edfb0f4f1",
+            "native_complete_stream_matches": true,
+            "rust_complete_stream_matches": true
+          },
+          {
+            "direction": "Rust writes \u2192 native reads",
+            "features": [
+              "--no-default-features"
+            ],
+            "artifact": ".work/writer/7d3a642057864464b9ec8c32ad7e80d4/rust-empty-1.gdx",
+            "bytes": 197,
+            "sha256": "cb0df5e7d6aa7e82798a32a9731aaf0aa559b26172a7c45dd0e49e2edfb0f4f1",
+            "native_complete_stream_matches": true,
+            "rust_complete_stream_matches": true
+          },
+          {
+            "direction": "Rust writes \u2192 native reads",
+            "features": [
+              "--all-features"
+            ],
+            "artifact": ".work/writer/7d3a642057864464b9ec8c32ad7e80d4/rust-empty-2.gdx",
+            "bytes": 197,
+            "sha256": "cb0df5e7d6aa7e82798a32a9731aaf0aa559b26172a7c45dd0e49e2edfb0f4f1",
+            "native_complete_stream_matches": true,
+            "rust_complete_stream_matches": true
+          },
+          {
+            "direction": "Rust writes \u2192 native reads",
+            "compression": 1,
+            "features": [],
+            "artifact": ".work/writer/7d3a642057864464b9ec8c32ad7e80d4/rust-zlib-empty-3.gdx",
+            "bytes": 209,
+            "sha256": "2c86a127251762267746b37119dca7a0418959d1ba7eceb4d6c5b3cfa6e29a42",
+            "native_complete_stream_matches": true,
+            "rust_complete_stream_matches": true
+          },
+          {
+            "direction": "Rust writes \u2192 native reads",
+            "compression": 1,
+            "features": [
+              "--all-features"
+            ],
+            "artifact": ".work/writer/7d3a642057864464b9ec8c32ad7e80d4/rust-zlib-empty-4.gdx",
+            "bytes": 209,
+            "sha256": "2c86a127251762267746b37119dca7a0418959d1ba7eceb4d6c5b3cfa6e29a42",
+            "native_complete_stream_matches": true,
+            "rust_complete_stream_matches": true
+          },
+          {
+            "direction": "Native writes \u2192 Rust reads",
+            "compression": 0,
+            "features": [
+              [],
+              [
+                "--all-features"
+              ],
+              [
+                "--no-default-features"
+              ]
+            ],
+            "artifact": ".work/writer/7d3a642057864464b9ec8c32ad7e80d4/native-empty-0.gdx",
+            "sha256": "9759fe8e0e61e1cf95760d2a483c8d4f3123844c47cc2335f5102430b81853d2",
+            "complete_stream_matches": true
+          },
+          {
+            "direction": "Native writes \u2192 Rust reads",
+            "compression": 1,
+            "features": [
+              [],
+              [
+                "--all-features"
+              ]
+            ],
+            "artifact": ".work/writer/7d3a642057864464b9ec8c32ad7e80d4/native-empty-1.gdx",
+            "sha256": "02f386e6e906bfcaff3eb812c9cec1c7d67918033c6f5c167b5c0031a7583ea0",
+            "complete_stream_matches": true
+          }
+        ],
+        "root": ".work/writer/7d3a642057864464b9ec8c32ad7e80d4",
+        "native_executable_sha256": "79b9f3574597cf60339ecc12f0da24633f10c68e28ea208e78c0d5ee38fc249b",
+        "native_read_isolation": {
+          "platform": "linux",
+          "memory_limit": "256 MiB address space or tighter inherited limit",
+          "cpu_seconds_max": 2,
+          "output_bytes_max": 1048576,
+          "core_bytes_max": 0,
+          "wall_timeout_seconds": 5
+        },
+        "pinned_sources": {
+          "schema": 1,
+          "gdx": {
+            "url": "https://github.com/GAMS-dev/gdx.git",
+            "commit": "9e2a8c8932412010cd7d2f94727d1740143bf3da",
+            "license": "MIT"
+          },
+          "zlib": {
+            "url": "https://github.com/madler/zlib.git",
+            "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
+            "license": "Zlib"
+          },
+          "unused_submodules": {
+            "src/apigenerator": "a2db931c5066d7e2253c68609b8d17a5be2016a4"
+          },
+          "build_options": [
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DNO_TESTS=ON",
+            "-DNO_EXAMPLES=ON",
+            "-DNO_TOOLS=ON",
+            "-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=TRUE",
+            "-DGDX_THREAD_SAFE=OFF"
+          ]
+        }
+      },
+      "platform": {
+        "system": "Linux",
+        "machine": "x86_64",
+        "release": "6.18.55"
+      },
+      "elapsed_seconds": 55.677352497004904,
+      "exit_code": 0
+    }
+  ],
+  "source_sha256": {
+    "src/mapped.rs": "7e9b360d28707cd9c462a6798781e7a9da24ceb7558c95823cc4216b463b7a82",
+    "src/write/metadata_operations_tests.rs": "d473faff1e09c58707a6d9704b2534efc808ad3978c1dea3685221039d1cbe7d"
+  },
+  "native_ci": {
+    "run_id": 40517730390,
+    "url": "https://github.com/enioarz/gdxrs/actions/runs/40517730390",
+    "head_sha": "db274d13c411bea3c5f405048189512cfd607e80",
+    "last_observed_status": "queued",
+    "result": "unverified; subsequent authenticated API requests returned HTTP 401"
+  },
+  "review": "Implementer self-review; resolves the two user-reported P2 findings. Not independent signoff."
+}
