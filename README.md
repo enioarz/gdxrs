@@ -1,6 +1,6 @@
 # gdxrs
 
-An independent Rust reader for modern GDX v7 files, designed around bounded memory and streaming reads. M0 and M1 are merged. M2 provides exact raw-ID selections, small exact-label lookup, bounded label pages, quota-controlled scratch sorting, large requests and unique-domain enumeration. Record-heavy and independently metadata-heavy scale qualification has passed on Linux x86_64. M3 adds bounded metadata/empty-symbol writing; nonempty records, indexes, parallel decoding and Polars integration follow later.
+An independent Rust reader for modern GDX v7 files, designed around bounded memory and streaming reads. M0 and M1 are merged. M2 provides exact raw-ID selections, small exact-label lookup, bounded label pages, quota-controlled scratch sorting, large requests and unique-domain enumeration. Record-heavy and independently metadata-heavy scale qualification has passed on Linux x86_64. M3 provides bounded metadata and sorted record writing. M4 adds unsorted, string, mapped and deferred-domain input with bounded error reporting. Indexes, parallel decoding and Polars integration remain planned.
 
 ```rust,no_run
 use gdxrs::{OpenOptions, Reader};
