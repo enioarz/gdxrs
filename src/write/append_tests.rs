@@ -801,3 +801,49 @@ fn append_new_symbols_support_unsorted_string_mapped_and_deferred_adapters() {
         assert_eq!(count, 2);
     }
 }
+
+#[test]
+fn append_inflight_read_failure_stays_primary_and_retains_cleanup_diagnostics() {
+    for changed_source in [false, true] {
+        let reset = Reset::new();
+        let p = Parent::new();
+        source(&p, WriteCompression::None);
+        let mut w = pending(
+            &p,
+            &p.destination(),
+            WriteCompression::None,
+            AppendPolicy::ReplaceSource,
+        );
+        tests::deny_cleanup();
+        if changed_source {
+            tests::mutate_source(Event::AppendRead, 2, &p.destination());
+        } else {
+            fault(Event::AppendRead, 1, true, io::ErrorKind::PermissionDenied);
+        }
+        let e = w.begin_append(&limits(&p)).unwrap_err();
+        assert_eq!(
+            e.kind,
+            if changed_source {
+                ErrorKind::SourceChanged
+            } else {
+                ErrorKind::Io
+            }
+        );
+        assert!(e.cleanup_error().is_some());
+        let sticky = w.finish().unwrap_err();
+        assert_eq!(sticky.kind, e.kind);
+        assert!(sticky.cleanup_error().is_some());
+        assert_eq!(w.begin_append(&limits(&p)).unwrap_err().kind, e.kind);
+        assert!(!w.statistics().published);
+        assert!(w.temporary_path().exists());
+        assert!(w.abort().is_err());
+        drop(reset);
+        w.abort().unwrap();
+        assert_eq!(
+            fs::read_dir(p.destination().parent().unwrap())
+                .unwrap()
+                .count(),
+            1
+        );
+    }
+}

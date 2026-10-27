@@ -292,50 +292,57 @@ impl Writer {
                 .ok_or_else(|| invalid("metadata missing"))?
                 .string_symbol(id.get())?;
             let mut rows = self.begin_symbol(token, None)?;
-            let mut count = 0u64;
-            loop {
-                event(Event::AppendRead).map_err(Error::io)?;
-                let Some(batch) = scan.next_batch()? else {
-                    break;
-                };
-                for index in 0..batch.len() {
-                    // Reader synthesizes scalar defaults; the physical empty
-                    // representation and count must remain empty in the output.
-                    if record.dimension == 0 && record.count == 0 {
-                        continue;
+            let copied: Result<u64> = (|| {
+                let mut count = 0u64;
+                loop {
+                    event(Event::AppendRead).map_err(Error::io)?;
+                    let Some(batch) = scan.next_batch()? else {
+                        break;
+                    };
+                    for index in 0..batch.len() {
+                        // Reader synthesizes scalar defaults; the physical empty
+                        // representation and count must remain empty in the output.
+                        if record.dimension == 0 && record.count == 0 {
+                            continue;
+                        }
+                        let row = batch
+                            .row(index)
+                            .ok_or_else(|| invalid("missing inherited row"))?;
+                        let mut keys = [WriterUelId::for_append(token, UelId::new(1)?); 20];
+                        for (d, key) in keys
+                            .iter_mut()
+                            .enumerate()
+                            .take(usize::from(record.dimension))
+                        {
+                            let raw = row
+                                .key(d as u8)
+                                .ok_or_else(|| invalid("missing inherited key"))?;
+                            *key = WriterUelId::for_append(token, raw);
+                        }
+                        let mut values = [Value::ZERO; 5];
+                        for (f, value) in values.iter_mut().enumerate().take(record.kind.fields()) {
+                            *value = row
+                                .value(ValueField::ALL[f])
+                                .ok_or_else(|| invalid("missing inherited value"))?;
+                        }
+                        rows.write(
+                            &keys[..usize::from(record.dimension)],
+                            &values[..record.kind.fields()],
+                        )?;
+                        count = count
+                            .checked_add(1)
+                            .ok_or_else(|| invalid("append record counter overflow"))?;
                     }
-                    let row = batch
-                        .row(index)
-                        .ok_or_else(|| invalid("missing inherited row"))?;
-                    let mut keys = [WriterUelId::for_append(token, UelId::new(1)?); 20];
-                    for (d, key) in keys
-                        .iter_mut()
-                        .enumerate()
-                        .take(usize::from(record.dimension))
-                    {
-                        let raw = row
-                            .key(d as u8)
-                            .ok_or_else(|| invalid("missing inherited key"))?;
-                        *key = WriterUelId::for_append(token, raw);
-                    }
-                    let mut values = [Value::ZERO; 5];
-                    for (f, value) in values.iter_mut().enumerate().take(record.kind.fields()) {
-                        *value = row
-                            .value(ValueField::ALL[f])
-                            .ok_or_else(|| invalid("missing inherited value"))?;
-                    }
-                    rows.write(
-                        &keys[..usize::from(record.dimension)],
-                        &values[..record.kind.fields()],
-                    )?;
-                    count = count
-                        .checked_add(1)
-                        .ok_or_else(|| invalid("append record counter overflow"))?;
                 }
-            }
-            if count != u64::from(record.count) {
-                return Err(invalid("inherited physical record count changed"));
-            }
+                if count != u64::from(record.count) {
+                    return Err(invalid("inherited physical record count changed"));
+                }
+                Ok(count)
+            })();
+            let count = match copied {
+                Ok(count) => count,
+                Err(error) => return Err(rows.fail_import(error)),
+            };
             rows.finish()?;
             let a = self
                 .append
