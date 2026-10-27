@@ -3119,8 +3119,272 @@
     "run_id": 40517730390,
     "url": "https://github.com/enioarz/gdxrs/actions/runs/40517730390",
     "head_sha": "db274d13c411bea3c5f405048189512cfd607e80",
-    "last_observed_status": "queued",
-    "result": "unverified; subsequent authenticated API requests returned HTTP 401"
+    "tested_revision": "05875f9c30e8bd6330e6d4ccddf8f3a37ba4d8ac",
+    "tree": "cbdd57c2c63107987735c72564d9fc029b71fa0c",
+    "tree_matches_implementation": true,
+    "conclusion": "success",
+    "checks": [
+      {
+        "name": "Reader / aarch64-apple-darwin",
+        "url": "https://github.com/enioarz/gdxrs/actions/runs/40517730390/job/122235598017",
+        "qualification": {
+          "revision": "05875f9c30e8bd6330e6d4ccddf8f3a37ba4d8ac",
+          "platform": {
+            "system": "Darwin",
+            "machine": "arm64",
+            "release": "24.6.0"
+          },
+          "host": "aarch64-apple-darwin",
+          "profiles": [
+            "debug default/minimal/all",
+            "release default"
+          ],
+          "run_id": "e4803acc39df4ee8a02b652ab88bc00f",
+          "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "suites": [
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                154,
+                40,
+                5,
+                6
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--no-default-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                146,
+                39,
+                5,
+                6
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--all-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                154,
+                40,
+                5,
+                6
+              ]
+            }
+          ],
+          "fixtures": 10,
+          "records": 141358,
+          "report": ".work/reports/reader-check-e4803acc39df4ee8a02b652ab88bc00f.json"
+        }
+      },
+      {
+        "name": "Reader / x86_64-unknown-linux-gnu",
+        "url": "https://github.com/enioarz/gdxrs/actions/runs/40517730390/job/122235598420",
+        "qualification": {
+          "revision": "05875f9c30e8bd6330e6d4ccddf8f3a37ba4d8ac",
+          "platform": {
+            "system": "Linux",
+            "machine": "x86_64",
+            "release": "6.17.0-1022-azure"
+          },
+          "host": "x86_64-unknown-linux-gnu",
+          "profiles": [
+            "debug default/minimal/all",
+            "release default"
+          ],
+          "run_id": "ce2773666e6647d2996bcd7dbbc98d2f",
+          "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "suites": [
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                154,
+                40,
+                5,
+                6
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--no-default-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                146,
+                39,
+                5,
+                6
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--all-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                154,
+                40,
+                5,
+                6
+              ]
+            }
+          ],
+          "fixtures": 10,
+          "records": 141358,
+          "report": ".work/reports/reader-check-ce2773666e6647d2996bcd7dbbc98d2f.json"
+        }
+      },
+      {
+        "name": "Reader / x86_64-apple-darwin",
+        "url": "https://github.com/enioarz/gdxrs/actions/runs/40517730390/job/122235598483",
+        "qualification": {
+          "revision": "05875f9c30e8bd6330e6d4ccddf8f3a37ba4d8ac",
+          "platform": {
+            "system": "Darwin",
+            "machine": "x86_64",
+            "release": "24.6.0"
+          },
+          "host": "x86_64-apple-darwin",
+          "profiles": [
+            "debug default/minimal/all",
+            "release default"
+          ],
+          "run_id": "59f37dbba7f14a449bf7528f7c53ca6b",
+          "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "suites": [
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                154,
+                40,
+                5,
+                6
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--no-default-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                146,
+                39,
+                5,
+                6
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--all-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                154,
+                40,
+                5,
+                6
+              ]
+            }
+          ],
+          "fixtures": 10,
+          "records": 141358,
+          "report": ".work/reports/reader-check-59f37dbba7f14a449bf7528f7c53ca6b.json"
+        }
+      },
+      {
+        "name": "Reader / x86_64-pc-windows-msvc",
+        "url": "https://github.com/enioarz/gdxrs/actions/runs/40517730390/job/122235598554",
+        "qualification": {
+          "revision": "05875f9c30e8bd6330e6d4ccddf8f3a37ba4d8ac",
+          "platform": {
+            "system": "Windows",
+            "machine": "AMD64",
+            "release": "2025Server"
+          },
+          "host": "x86_64-pc-windows-msvc",
+          "profiles": [
+            "debug default/minimal/all",
+            "release default"
+          ],
+          "run_id": "1180721471a243cd95d91619f5dd35ed",
+          "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "suites": [
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                154,
+                40,
+                5,
+                6
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--no-default-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                146,
+                39,
+                5,
+                6
+              ]
+            },
+            {
+              "command": [
+                "cargo",
+                "test",
+                "--locked",
+                "--all-features"
+              ],
+              "unit_integration_doctest_groups_passed": [
+                154,
+                40,
+                5,
+                6
+              ]
+            }
+          ],
+          "fixtures": 10,
+          "records": 141358,
+          "report": ".work\\reports\\reader-check-1180721471a243cd95d91619f5dd35ed.json"
+        }
+      }
+    ]
   },
   "review": "Implementer self-review; resolves the two user-reported P2 findings. Not independent signoff."
 }

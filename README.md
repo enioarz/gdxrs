@@ -259,7 +259,7 @@ acronym mappings/next IDs and resets. Floating-point identity loss requires
 a bounded journal rewrite. See [ownership, quotas and exclusions](docs/decisions/0022-value-acronym-policies.md).
 
 [Task 028 evidence](docs/evidence/028.md) records local and four-platform native checks.
-Task 029 is next; general-input scale/performance acceptance remains task 031.
+Tasks 029–030 continue M4; general-input scale/performance acceptance remains task 031.
 
 
 Task 029 adds [modern UEL/metadata operations](docs/uel-metadata-api.md): ID-preserving
@@ -270,3 +270,10 @@ and maximum-length queries use bounded storage. See [phase, quota and cleanup ru
 
 [Task 029 evidence](docs/evidence/029.md) records local and four-platform native checks.
 Task 030 (atomic append) is next; M4 scale/performance acceptance remains task 031.
+
+
+Task 030 adds [atomic new-symbol append](docs/append-api.md): an explicit bounded
+rewrite under one reader/writer root, with CreateNew or ReplaceSource publication.
+Prior UEL/symbol IDs, metadata and physical records remain intact; source replacement
+requires exclusive pathname ownership. See the [transaction policy](docs/decisions/0024-atomic-append.md).
+Qualification is in progress; task 031 remains the M4 acceptance gate.

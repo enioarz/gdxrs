@@ -66,8 +66,9 @@ pub use large::{
 };
 
 pub use write::{
-    DeferredRecordWriter, KeyBounds, MappedSymbolWriter, MetadataOptions, MetadataStatistics,
-    StringRecordWriter, StringWriteStatistics, SymbolReference, SymbolWriter, UnsortedSymbolWriter,
+    AppendOptions, AppendPolicy, AppendStatistics, DeferredRecordWriter, KeyBounds,
+    MappedSymbolWriter, MetadataOptions, MetadataStatistics, StringRecordWriter,
+    StringWriteStatistics, SymbolReference, SymbolWriter, UnsortedSymbolWriter,
     UnsortedWriteStatistics, ValidationStatistics, WriteCompression, WriteDomain, WriteOptions,
     WriteStatistics, WriteStatus, WriteSymbol, Writer, WriterSymbolId, WriterUelId,
 };

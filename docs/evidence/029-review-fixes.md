@@ -34,10 +34,10 @@ All commands exited 0 at the implementation revision:
 - `cargo fmt --check` and `git diff --check`: pass.
 
 [Four-platform CI run 40517730390](https://github.com/enioarz/gdxrs/actions/runs/40517730390)
-was queued for this implementation. Subsequent authenticated GitHub API queries
-returned HTTP 401; its result is unverified here. Earlier task 029 platform evidence
-is historical and does not qualify this fix. No new performance/RSS qualification
-is claimed. Other milestone gates were not rerun for this bounded callback fix.
+passes Linux x64, macOS ARM64/Intel and Windows MSVC. Its tested merge revision
+`05875f9c30e8bd6330e6d4ccddf8f3a37ba4d8ac` has the same tree as `db274d1`; annotations are retained in the structured
+record. The earlier authentication interruption is resolved. No new performance/RSS
+qualification is claimed. Other milestone gates were not rerun for this bounded callback fix.
 
 Implementer self-review confirmed batch configuration, acknowledgment order,
 terminal failure, cursor-before-parent cleanup and retained retry ownership. This

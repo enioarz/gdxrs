@@ -3,6 +3,7 @@ use super::records::{DomainMembership, Domains, RecordSetup};
 use super::store::{Frame, Store};
 use super::*;
 use crate::model::Bytes;
+mod append;
 mod deferred;
 mod edit;
 mod mapped;
@@ -255,6 +256,9 @@ pub(crate) struct Metadata {
     peak: u64,
     owner: u64,
     stats: MetadataStatistics,
+    inherited_symbols: u32,
+    inherited_uels: u32,
+    inherited_acronyms: u32,
     domains: u32,
     display_overrides: bool,
     comments: u32,
@@ -409,6 +413,9 @@ impl Metadata {
                 set_texts: 1,
                 ..MetadataStatistics::default()
             },
+            inherited_symbols: 0,
+            inherited_uels: 0,
+            inherited_acronyms: 0,
             domains: 0,
             display_overrides: false,
             comments: 0,
@@ -679,6 +686,7 @@ impl Metadata {
     }
     pub fn comment(&mut self, s: WriterSymbolId, bytes: &[u8]) -> Result<()> {
         let id = self.check(s)?;
+        self.edit_symbol(id)?;
         text(bytes)?;
         let next = next_id(self.comments)?;
         let mut p = Packet::new();
@@ -736,6 +744,7 @@ impl Metadata {
     pub fn domains(&mut self, id: WriterSymbolId, domains: &[WriteDomain<'_>]) -> Result<()> {
         self.mutable()?;
         let id = self.check(id)?;
+        self.edit_symbol(id)?;
         let s = self.lookup(id)?;
         if domains.is_empty() {
             return Ok(());
@@ -842,10 +851,14 @@ impl Metadata {
         }
         self.j()?.sync()?;
         let mut counts = [0u32; 6];
+        let mut members = None;
         let mut at = 0;
         while let Some(f) = self.j()?.next(&mut at)? {
             let mut p = Parse::new(f.payload());
             let id = p.u32()?;
+            if members.is_some() && f.tag != 8 && f.tag != 9 {
+                return Err(corrupt());
+            }
             match f.tag {
                 1 | 4 => {
                     let b = p.string()?;
@@ -942,8 +955,12 @@ impl Metadata {
                         name(label.as_slice())?;
                     }
                 }
+                8 | 9 | 12 | 13 => self.check_import_frame(&f, &mut members)?,
                 _ => return Err(corrupt()),
             }
+        }
+        if members.is_some() {
+            return Err(corrupt());
         }
         if (counts[1], counts[2], counts[3], counts[4] + 1, counts[5])
             != (
@@ -1267,6 +1284,16 @@ impl Metadata {
         if s.kind == SymbolType::Alias {
             return Err(invalid("aliases have no own records"));
         }
+        let domains = self.record_domains(&s)?;
+        Ok(RecordSetup {
+            kind: s.kind,
+            dimension: s.dim,
+            domains,
+            members: self.j()?.length,
+        })
+    }
+    fn record_domains(&mut self, s: &Symbol) -> Result<Domains> {
+        let id = s.id;
         let mut domains = [None; 20];
         if self.mode(id)? == Some(1) {
             for axis in 0..s.dim {
@@ -1289,12 +1316,7 @@ impl Metadata {
                 }
             }
         }
-        Ok(RecordSetup {
-            kind: s.kind,
-            dimension: s.dim,
-            domains,
-            members: self.j()?.length,
-        })
+        Ok(domains)
     }
     pub(super) fn domain_violations(
         &mut self,
@@ -1483,13 +1505,14 @@ impl Metadata {
             };
             w.section_i32(user)?;
             w.section_i32(record_count as i32)?;
-            w.section_i32(0)?;
-            Self::emit(
-                w,
-                &[u8::from(
-                    s.kind == SymbolType::Set && record_count != 0 && self.has_text_id(id)?,
-                )],
-            )?;
+            let inherited = self.import_info(id)?;
+            w.section_i32(inherited.map_or(0, |v| v.0) as i32)?;
+            let has_text = if let Some((_, flag)) = inherited {
+                flag
+            } else {
+                s.kind == SymbolType::Set && record_count != 0 && self.has_text_id(id)?
+            };
+            Self::emit(w, &[u8::from(has_text)])?;
             w.section_string(s.description.as_slice())?;
             Self::emit(
                 w,
@@ -1622,6 +1645,17 @@ impl Metadata {
 }
 impl Writer {
     pub(super) fn open(&self) -> Result<()> {
+        if self
+            .append
+            .as_ref()
+            .is_some_and(|a| !a.ready && !a.preparing)
+            && self.statistics.status == WriteStatus::Open
+        {
+            return Err(Error::new(
+                ErrorKind::InvalidWriteState,
+                "initialize append before writing",
+            ));
+        }
         if self.statistics.status != WriteStatus::Open {
             return Err(self.error.clone().unwrap_or_else(|| {
                 Error::new(ErrorKind::InvalidWriteState, "writer is not open")

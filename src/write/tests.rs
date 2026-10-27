@@ -7,11 +7,22 @@ struct Hooks {
     sequence: Option<u64>,
     deny_cleanup: bool,
     zero_write: bool,
+    mutation: Option<(Event, usize, PathBuf)>,
 }
 thread_local! {static HOOKS:RefCell<Hooks>=RefCell::new(Hooks::default());}
 pub(super) fn event(kind: Event) -> io::Result<()> {
     HOOKS.with(|h| {
         let mut h = h.borrow_mut();
+        if let Some((target, after, path)) = h.mutation.take() {
+            if target == kind && after == 0 {
+                fs::OpenOptions::new()
+                    .append(true)
+                    .open(path)?
+                    .write_all(b"external mutation")?;
+            } else {
+                h.mutation = Some((target, if target == kind { after - 1 } else { after }, path));
+            }
+        }
         if kind == Event::Remove && h.deny_cleanup {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
@@ -510,4 +521,12 @@ fn explicit_abort_cleanup_failure_is_retryable_and_existing_directories_survive(
 
 pub(super) fn short_chunks(n: usize) {
     HOOKS.with(|h| h.borrow_mut().chunk = n);
+}
+
+pub(super) fn deny_cleanup() {
+    HOOKS.with(|h| h.borrow_mut().deny_cleanup = true);
+}
+
+pub(super) fn mutate_source(event: Event, after: usize, path: &Path) {
+    HOOKS.with(|h| h.borrow_mut().mutation = Some((event, after, path.to_path_buf())));
 }
