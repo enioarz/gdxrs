@@ -378,7 +378,7 @@ impl MappedUels {
             let mut options = self.reader.scan_options();
             options.key_projection = KeyProjection::Mask(1 << dimension);
             options.value_projection = ValueProjection::Mask(0);
-            options.batch_bytes = 4096;
+            options.batch_bytes = options.batch_bytes.min(4096);
             let mut scan = self.reader.scan(symbol, options)?;
             while let Some(batch) = scan.next_batch()? {
                 for raw in batch.key_column(dimension).ok_or_else(invalid)? {
@@ -414,6 +414,7 @@ impl MappedUels {
         let replay: Result<()> = (|| {
             let mut previous = None;
             while let Some(entry) = cursor.next()? {
+                self.reader.source.check_unchanged()?;
                 let mapped = MappedUelId::new(i64::from(u32::from_be_bytes(
                     entry.label.try_into().map_err(|_| invalid())?,
                 )))?;
@@ -430,11 +431,15 @@ impl MappedUels {
                     .visited
                     .checked_add(1)
                     .ok_or_else(invalid)?;
+                // A successful callback is acknowledged even if it changed the
+                // source. Detect that before cursor EOF can trigger cleanup.
+                self.reader.source.check_unchanged()?;
                 previous = Some((raw, mapped));
             }
             if !cursor.statistics().complete {
                 return Err(invalid());
             }
+            self.reader.source.check_unchanged()?;
             Ok(())
         })();
         let closed = cursor.close();

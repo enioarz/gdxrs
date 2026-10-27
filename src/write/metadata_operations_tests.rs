@@ -668,3 +668,113 @@ fn metadata_callbacks_detect_source_changes_and_keep_partial_acknowledgments_sti
     assert_eq!(session.find_uel(b"a").unwrap_err().kind, error.kind);
     session.abort().unwrap();
 }
+
+#[test]
+fn domain_callbacks_respect_small_reader_batch_cap() {
+    let p = Parent::new();
+    drop(source(&p));
+    let r = Reader::open(
+        p.destination(),
+        OpenOptions {
+            memory_budget_bytes: 1024 * 1024,
+            maximum_batch_bytes: 64,
+            ..OpenOptions::default()
+        },
+    )
+    .unwrap();
+    let h = r.symbol(SymbolId::new(4).unwrap()).unwrap();
+    let mut map = r.mapped_uels(&limits(&p)).unwrap();
+    map.register(
+        [(1, 9), (2, 0)].map(|(r, m)| Ok((UelId::new(r).unwrap(), MappedUelId::new(m).unwrap()))),
+    )
+    .unwrap();
+    for _ in 0..2 {
+        let mut seen = vec![];
+        let stats = map
+            .visit_domain(&h, 0, |raw, mapped| {
+                seen.push((raw.get(), mapped.get()));
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(seen, vec![(2, 0), (1, 9)]);
+        assert_eq!(
+            stats,
+            MetadataVisitStatistics {
+                visited: 2,
+                complete: true
+            }
+        );
+    }
+    assert_eq!(
+        map.mapped(UelId::new(1).unwrap()).unwrap().unwrap().get(),
+        9
+    );
+    map.close().unwrap();
+}
+
+#[test]
+fn domain_callbacks_detect_source_changes_during_replay_and_at_completion() {
+    for (change_after, deny_cleanup) in [(1, false), (2, false), (1, true), (2, true)] {
+        let reset = Reset::new();
+        let p = Parent::new();
+        let r = source(&p);
+        let h = r.symbol(SymbolId::new(4).unwrap()).unwrap();
+        let mut map = r.mapped_uels(&limits(&p)).unwrap();
+        map.register(
+            [(1, 9), (2, 0)]
+                .map(|(r, m)| Ok((UelId::new(r).unwrap(), MappedUelId::new(m).unwrap()))),
+        )
+        .unwrap();
+        let mut calls = 0;
+        let mut cleanup = None;
+        let error = map
+            .visit_domain(&h, 0, |_, _| {
+                calls += 1;
+                if calls == change_after {
+                    let mut file = fs::OpenOptions::new()
+                        .append(true)
+                        .open(p.destination())
+                        .map_err(Error::from)?;
+                    file.write_all(&[0]).map_err(Error::from)?;
+                    if deny_cleanup {
+                        cleanup = Some(crate::spill::test_cleanup_failure());
+                        fault(
+                            Event::MetadataRemove,
+                            0,
+                            true,
+                            io::ErrorKind::PermissionDenied,
+                        );
+                    }
+                }
+                Ok(())
+            })
+            .unwrap_err();
+        assert_eq!(error.kind, ErrorKind::SourceChanged);
+        assert_eq!(error.cleanup_error().is_some(), deny_cleanup);
+        assert_eq!(calls, change_after);
+        assert_eq!(
+            map.domain_visit_statistics(),
+            MetadataVisitStatistics {
+                visited: change_after,
+                complete: false
+            }
+        );
+        assert_eq!(
+            map.visit_domain(&h, 0, |_, _| panic!("must not replay"))
+                .unwrap_err()
+                .kind,
+            error.kind
+        );
+        assert_eq!(map.domain_visit_statistics().visited, change_after);
+        assert_eq!(
+            map.mapped(UelId::new(1).unwrap()).unwrap_err().kind,
+            error.kind
+        );
+        if deny_cleanup {
+            assert!(map.abort().is_err());
+        }
+        drop(cleanup);
+        drop(reset);
+        map.abort().unwrap();
+    }
+}
