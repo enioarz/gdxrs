@@ -576,3 +576,46 @@ fn parent_cleanup_does_not_replace_the_first_cursor_cleanup_diagnostic() {
     w.abort().unwrap();
     p.empty();
 }
+
+#[test]
+fn every_operation_after_a_terminal_failure_preserves_the_original_error() {
+    for reporting in [false, true] {
+        let p = Parent::new();
+        let (mut w, par, _, k) = setup(&p);
+        let mut rows = w.begin_deferred_records().unwrap();
+        rows.begin_symbol(par).unwrap();
+        let error = rows.write(&[], &[Value::ZERO]).unwrap_err();
+        assert_eq!(error.kind, ErrorKind::InvalidDimension);
+        assert_eq!(
+            rows.write_mapped(&[MappedUelId::new(0).unwrap()], &[Value::ZERO])
+                .unwrap_err()
+                .kind,
+            error.kind
+        );
+        assert_eq!(
+            rows.write_strings(&[b"unregistered"], &[Value::ZERO])
+                .unwrap_err()
+                .kind,
+            error.kind
+        );
+        assert_eq!(rows.begin_symbol(par).unwrap_err().kind, error.kind);
+        assert_eq!(
+            rows.write(&[k[0], k[0]], &[Value::ZERO]).unwrap_err().kind,
+            error.kind
+        );
+        let mut calls = 0;
+        let result = if reporting {
+            rows.finish_reporting(ErrorLimits::default(), |_| {
+                calls += 1;
+                Ok(())
+            })
+        } else {
+            rows.finish()
+        };
+        assert_eq!(result.unwrap_err().kind, error.kind);
+        assert_eq!(calls, 0);
+        assert_eq!(w.finish().unwrap_err().kind, error.kind);
+        w.abort().unwrap();
+        p.empty();
+    }
+}

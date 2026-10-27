@@ -108,6 +108,7 @@ impl DeferredRecordWriter<'_> {
         Ok(false)
     }
     pub fn begin_symbol(&mut self, id: WriterSymbolId) -> Result<()> {
+        self.writer.open()?;
         let result = (|| {
             self.end()?;
             let m = self.writer.metadata.as_mut().ok_or_else(invalid)?;
@@ -129,11 +130,13 @@ impl DeferredRecordWriter<'_> {
     }
     /// Raw-key input, retaining one-based raw identities.
     pub fn write(&mut self, keys: &[WriterUelId], values: &[Value]) -> Result<()> {
+        self.writer.open()?;
         let result = self.stage(keys, values, DataOrigin::RawWrite, &[]);
         result.map_err(|e| self.writer.fail(e))
     }
     /// Caller-key input. All mappings must already exist; missing mappings are terminal.
     pub fn write_mapped(&mut self, keys: &[MappedUelId], values: &[Value]) -> Result<()> {
+        self.writer.open()?;
         let result = (|| {
             self.keys.data.clear();
             let m = self.writer.metadata.as_mut().ok_or_else(invalid)?;
@@ -159,6 +162,7 @@ impl DeferredRecordWriter<'_> {
     /// Exact string keys must have been registered before this phase. Error
     /// callbacks can inspect their original bytes through DataErrorRecord::label.
     pub fn write_strings(&mut self, labels: &[&[u8]], values: &[Value]) -> Result<()> {
+        self.writer.open()?;
         let result = (|| {
             let mut keys = Buffer::new(&self.writer.budget, labels.len().min(20))?;
             let m = self.writer.metadata.as_mut().ok_or_else(invalid)?;
@@ -236,6 +240,7 @@ impl DeferredRecordWriter<'_> {
     }
     /// Terminal rejection remains the default; nothing is published on failure.
     pub fn finish(mut self) -> Result<ValidationStatistics> {
+        self.writer.open()?;
         let result = self.complete(None, &mut |_| Ok(()));
         self.finish_result(result)
     }
@@ -249,6 +254,7 @@ impl DeferredRecordWriter<'_> {
     where
         F: for<'a> FnMut(DataErrorRecord<'a>) -> Result<()>,
     {
+        self.writer.open()?;
         let result = self.complete(Some(limits), &mut callback);
         self.finish_result(result)
     }
