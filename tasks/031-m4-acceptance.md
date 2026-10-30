@@ -27,6 +27,9 @@ No M4 release follows merely from successful task 024 or smoke tests.
   growing >4×-cap families, RSS/quotas/handles, full validation and SHA-256 before
   generated artifact retirement. The 256 MiB root and 512 MiB OS cap are fixed;
   the eager native reference uses a separately recorded 16 GiB cap.
+- `python tools/m4_boundary.py PATH_TO_ACCEPTANCE_NATIVE_SNAPSHOT` additionally
+  calibrates every recipe at 131,073 inputs, including key wrap and diagnostic
+  ordering across multiple 65,536-row blocks; fixed small tooling memory only.
 - Preserve reader-check, writer-check, label-pages-check, m0-check,
   m3-writer-check and four-platform CI. Record findings and remaining gates in
   [031 evidence](../docs/evidence/031.md). Independent review remains a separate

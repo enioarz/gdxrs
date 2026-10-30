@@ -29,7 +29,10 @@ references. `python tools/dev.py m4-check --profile smoke` calibrates all six
 workload families against independently enumerated Python expectations and the
 pinned C++ reference, executes eight benchmark configurations with three alternating
 Rust/native trials, and validates growing small outputs with both implementations.
-Smoke explicitly reports `m4_scale_qualified: false`.
+Smoke explicitly reports `m4_scale_qualified: false`. The separate fixed-size
+`tools/m4_boundary.py NATIVE_SNAPSHOT` check independently enumerates 131,073
+inputs per family to cover key wrap and diagnostic ordering across multiple
+65,536-row blocks. It is an additional calibration gate, never an oversized case.
 
 The scale profile requires committed measured sources. It snapshots binaries and
 source hashes, enforces a 256 MiB shared library root and 512 MiB Linux address-space
