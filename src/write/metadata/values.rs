@@ -54,13 +54,18 @@ impl Metadata {
             return Err(invalid("acronym name collision or active scratch phase"));
         }
         let mut at = 0;
+        let mut ordinal = 0;
         let mut found = false;
         while let Some(f) = self.j()?.next(&mut at)? {
             if f.tag == 5 {
+                ordinal += 1;
                 let mut p = Parse::new(f.payload());
                 let old = p.u32()?;
                 let old_name = p.string()?;
                 if old == id.get() {
+                    if ordinal <= self.inherited_acronyms {
+                        return Err(invalid("cannot edit inherited acronym"));
+                    }
                     if found {
                         return Err(corrupt());
                     }

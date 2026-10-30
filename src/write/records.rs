@@ -170,6 +170,15 @@ impl Writer {
     }
 }
 impl SymbolWriter<'_> {
+    // Fail before an import's borrowing encoder drops, so its abandonment
+    // guard cannot replace the read error or discard cleanup diagnostics.
+    pub(super) fn fail_import(&mut self, error: Error) -> Error {
+        if self.writer.statistics.status == WriteStatus::Open {
+            self.writer.fail(error)
+        } else {
+            error
+        }
+    }
     pub fn write_f64(&mut self, keys: &[WriterUelId], values: &[f64]) -> Result<()> {
         let typed = self
             .writer

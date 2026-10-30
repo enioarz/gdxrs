@@ -1,4 +1,6 @@
 //! Bounded v7 metadata registration and sorted raw record creation.
+mod append;
+pub use append::{AppendOptions, AppendPolicy, AppendStatistics};
 mod encoder;
 mod metadata;
 mod records;
@@ -16,6 +18,8 @@ pub use records::{
     SymbolWriter, UnsortedSymbolWriter, UnsortedWriteStatistics, ValidationStatistics,
 };
 pub(crate) use records::{pack_values, unpack_values};
+#[cfg(test)]
+mod append_tests;
 #[cfg(test)]
 mod codec_tests;
 #[cfg(test)]
@@ -104,6 +108,7 @@ pub struct WriteStatistics {
 }
 pub struct Writer {
     owner: u64,
+    append: Option<append::State>,
     value_policy: WriteValuePolicy,
     symbol_active: bool,
     validation_statistics: ValidationStatistics,
@@ -167,6 +172,15 @@ impl Writer {
         )
     }
     fn with_budget(path: &Path, options: &WriteOptions, budget: Arc<Budget>) -> Result<Self> {
+        Self::with_budget_mode(path, options, budget, None, false)
+    }
+    fn with_budget_mode(
+        path: &Path,
+        options: &WriteOptions,
+        budget: Arc<Budget>,
+        inherited: Option<&crate::format::Header>,
+        replace: bool,
+    ) -> Result<Self> {
         options.validate()?;
         if size_of::<Self>() > CONTROL {
             return Err(Error::new(
@@ -216,12 +230,13 @@ impl Writer {
             ));
         }
         match fs::symlink_metadata(&destination) {
-            Ok(_) => {
+            Ok(_) if !replace => {
                 return Err(Error::io(io::Error::new(
                     io::ErrorKind::AlreadyExists,
                     "destination already exists",
                 )));
             }
+            Ok(_) => {}
             Err(e) if e.kind() == io::ErrorKind::NotFound => {}
             Err(e) => return Err(Error::io(e)),
         }
@@ -249,6 +264,7 @@ impl Writer {
                 Ok(file) => {
                     let mut writer = Self {
                         owner,
+                        append: None,
                         value_policy: WriteValuePolicy::default(),
                         symbol_active: false,
                         validation_statistics: ValidationStatistics::default(),
@@ -276,7 +292,7 @@ impl Writer {
                         _paths: paths,
                         _control: control,
                     };
-                    if let Err(e) = writer.header() {
+                    if let Err(e) = writer.header(inherited) {
                         return Err(writer.fail(e));
                     }
                     return Ok(writer);
@@ -309,6 +325,9 @@ impl Writer {
         error
     }
     fn cleanup(&mut self) -> io::Result<()> {
+        if let Some(append) = &mut self.append {
+            append.reader = None;
+        }
         self.file = None;
         self.buffer = None;
         self.encoder = None;
@@ -446,7 +465,7 @@ impl Writer {
         self.position = position;
         Ok(())
     }
-    fn header(&mut self) -> Result<()> {
+    fn header(&mut self, inherited: Option<&crate::format::Header>) -> Result<()> {
         self.bytes(&[
             2, 0x34, 0x12, 4, 0x78, 0x56, 0x34, 0x12, 8, 0x18, 0x2d, 0x44, 0x54, 0xfb, 0x21, 9,
             0x40, 123,
@@ -454,8 +473,8 @@ impl Writer {
         self.string(b"GAMSGDX")?;
         self.bytes(&7i32.to_le_bytes())?;
         self.bytes(&i32::from(self.compression == WriteCompression::Zlib).to_le_bytes())?;
-        self.string(b"gdxrs")?;
-        self.string(b"gdxrs")?;
+        self.string(inherited.map_or(b"gdxrs".as_slice(), |h| h.audit.as_slice()))?;
+        self.string(inherited.map_or(b"gdxrs".as_slice(), |h| h.producer.as_slice()))?;
         self.index = self.position;
         self.bytes(&[0; 80])
     }
@@ -478,6 +497,8 @@ impl Writer {
         self.encoded(|e, w| e.end(|b| w.bytes(b)))
     }
     fn finalize(&mut self) -> Result<()> {
+        self.open()?;
+        self.check_append_source()?;
         if self.symbol_active {
             return Err(Error::new(
                 ErrorKind::InvalidWriteState,
@@ -543,14 +564,30 @@ impl Writer {
             .sync_all()
             .map_err(Error::io)?;
         self.file = None;
+        event(Event::AppendClose).map_err(Error::io)?;
+        self.check_append_source()?;
         event(Event::Publish).map_err(Error::io)?;
-        fs::hard_link(&self.temporary, &self.destination).map_err(Error::io)?;
+        self.check_append_source()?;
+        if let Some(append) = &mut self.append {
+            append.reader = None;
+        }
+        if self
+            .append
+            .as_ref()
+            .is_some_and(|a| a.options.policy == AppendPolicy::ReplaceSource)
+        {
+            fs::rename(&self.temporary, &self.destination).map_err(Error::io)?;
+            self.owned = false;
+        } else {
+            fs::hard_link(&self.temporary, &self.destination).map_err(Error::io)?;
+        }
         self.statistics.published = true;
         self.cleanup().map_err(Error::io)?;
         self.statistics.status = WriteStatus::Complete;
         Ok(())
     }
-    /// Finalize, sync, close and publish without overwriting. Errors are terminal.
+    /// Finalize, sync, close and publish. Creation uses no-clobber publication;
+    /// append uses its explicit policy. Errors are terminal.
     pub fn finish(&mut self) -> Result<WriteStatistics> {
         match self.statistics.status {
             WriteStatus::Complete => return Ok(self.statistics),
@@ -637,6 +674,8 @@ enum Event {
     MetadataSync,
     MetadataRename,
     MetadataRemove,
+    AppendRead,
+    AppendClose,
     #[cfg(feature = "compression")]
     Codec,
 }

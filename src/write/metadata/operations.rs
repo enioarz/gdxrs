@@ -60,6 +60,9 @@ impl Metadata {
     }
     pub(super) fn rename_uel(&mut self, id: WriterUelId, new: &[u8]) -> Result<()> {
         let raw = self.validate_uel(id)?;
+        if raw <= self.inherited_uels {
+            return Err(invalid("cannot rename inherited UEL"));
+        }
         label(new)?;
         if self.find_string(1, new, false)?.is_some() {
             return Err(invalid("UEL rename target already exists"));
@@ -199,6 +202,7 @@ impl Metadata {
     }
     pub(super) fn relaxed_domains(&mut self, id: WriterSymbolId, names: &[&[u8]]) -> Result<()> {
         let id = self.check(id)?;
+        self.edit_symbol(id)?;
         let symbol = self.lookup(id)?;
         if names.len() != usize::from(symbol.dim) {
             return Err(invalid("display domain arity mismatch"));

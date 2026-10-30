@@ -103,7 +103,9 @@ def check(run):
     values = writer_values.check(run,area,executable)
     import writer_metadata_ops
     metadata_operations=writer_metadata_ops.check(run,area,executable)
-    return dict(metadata_operations=metadata_operations,values=values,domains=domains,mapped=mapped,strings=strings,full=full,scope='tasks 018–022 metadata, sorted records and bounded section codec',records=records,metadata=metadata,codec=codec,cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),native_read_isolation=isolation_policy(),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
+    import writer_append
+    append=writer_append.check(run,area,executable)
+    return dict(append=append,metadata_operations=metadata_operations,values=values,domains=domains,mapped=mapped,strings=strings,full=full,scope='tasks 018–022 metadata, sorted records and bounded section codec',records=records,metadata=metadata,codec=codec,cases=cases,root=str(area.relative_to(ROOT)),native_executable_sha256=oracle.file_digest(executable),native_read_isolation=isolation_policy(),pinned_sources=json.loads((ROOT/'tools/oracle/sources.json').read_text()))
 
 
 def decode_blocks(data):
