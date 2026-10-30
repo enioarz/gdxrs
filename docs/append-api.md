@@ -31,7 +31,9 @@ failure. Register all new schemas before beginning new records, as for normal wr
 All existing write adapters remain available for new symbols. `append_symbol_id`
 binds inherited domains/aliases; `append_uel_id` binds original raw IDs without label
 lookup, including duplicate-label IDs. Inherited records/schema/UEL names and
-acronym metadata cannot be replaced. Numeric/acronym policies apply only to new
+acronym metadata cannot be replaced. New string/mapped label references choose
+the lowest matching inherited raw ID without collapsing inherited duplicate IDs.
+Numeric/acronym policies apply only to new
 writes; imported typed values preserve identity. Nodes and caller maps are session
 state, not file metadata.
 

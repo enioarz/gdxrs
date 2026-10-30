@@ -22,6 +22,10 @@ prior error counts and set-text flags. The latter two use private journal tag 13
 this is not a GDX or public spill-format extension. Audit/producer header bytes are
 preserved, including full-length strings. No nodes or caller maps are serialized
 in GDX; new maps and text-node state remain explicit per-session state.
+String-keyed and mapped registration retain every inherited raw ID, even for
+duplicate labels. New exact-byte label references resolve to the lowest existing
+matching raw ID; unrelated new labels receive IDs after the entire inherited
+dictionary. Raw tokens can still address each duplicate ID independently.
 
 Every non-alias physical data stream is checked and re-encoded in bounded batches
 under `min(reader.maximum_batch_bytes, 4096)`. A cap too small for one full row

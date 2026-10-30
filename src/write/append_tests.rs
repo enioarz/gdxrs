@@ -847,3 +847,177 @@ fn append_inflight_read_failure_stays_primary_and_retains_cleanup_diagnostics() 
         );
     }
 }
+
+#[test]
+fn append_duplicate_inherited_labels_support_string_and_mapped_registration() {
+    for mapped in [false, true] {
+        for reference_inherited in [false, true] {
+            let p = Parent::new();
+            source(&p, WriteCompression::None);
+            let r = Reader::open(p.destination(), read_options()).unwrap();
+            let second = r.source.header().unwrap().offsets[1] + 6 + 4 + 6;
+            drop(r);
+            let mut file = fs::OpenOptions::new()
+                .write(true)
+                .open(p.destination())
+                .unwrap();
+            file.seek(SeekFrom::Start(second + 1)).unwrap();
+            file.write_all(b"alpha").unwrap();
+            drop(file);
+            let original = fs::read(p.destination()).unwrap();
+            let mut w = pending(
+                &p,
+                &p.destination(),
+                WriteCompression::None,
+                AppendPolicy::ReplaceSource,
+            );
+            w.begin_append(&limits(&p)).unwrap();
+            let second_id = w.append_uel_id(UelId::new(2).unwrap()).unwrap();
+            let symbol = w
+                .register_symbol(&WriteSymbol::new(b"New", SymbolType::Parameter, 1))
+                .unwrap();
+            let raw = w
+                .register_symbol(&WriteSymbol::new(b"Raw", SymbolType::Parameter, 1))
+                .unwrap();
+            if mapped {
+                let mut entries =
+                    vec![(MappedUelId::new(i32::MAX as i64).unwrap(), b"cc".as_slice())];
+                if reference_inherited {
+                    entries.extend([
+                        (MappedUelId::new(0).unwrap(), b"alpha".as_slice()),
+                        (MappedUelId::new(7).unwrap(), b"Alpha".as_slice()),
+                        (MappedUelId::new(i32::MAX as i64).unwrap(), b"cc".as_slice()),
+                    ]);
+                }
+                w.register_mapped_uels(entries.into_iter().map(Ok)).unwrap();
+                assert_eq!(
+                    w.raw_id_for_mapped(MappedUelId::new(i32::MAX as i64).unwrap())
+                        .unwrap()
+                        .get(),
+                    3
+                );
+                if reference_inherited {
+                    assert_eq!(
+                        w.raw_id_for_mapped(MappedUelId::new(0).unwrap())
+                            .unwrap()
+                            .get(),
+                        1
+                    );
+                    assert_eq!(
+                        w.raw_id_for_mapped(MappedUelId::new(7).unwrap())
+                            .unwrap()
+                            .get(),
+                        4
+                    );
+                }
+                assert_eq!(w.uel_information(second_id).unwrap().label(), b"alpha");
+                assert!(w.uel_information(second_id).unwrap().mapped.is_none());
+                let mut rows = w.begin_mapped_symbol(symbol).unwrap();
+                rows.write(
+                    &[MappedUelId::new(i32::MAX as i64).unwrap()],
+                    &[Value::ZERO],
+                )
+                .unwrap();
+                if reference_inherited {
+                    rows.write(&[MappedUelId::new(7).unwrap()], &[Value::ZERO])
+                        .unwrap();
+                    rows.write(&[MappedUelId::new(0).unwrap()], &[Value::ZERO])
+                        .unwrap();
+                }
+                rows.finish().unwrap();
+            } else {
+                let mut rows = w.begin_string_records().unwrap();
+                rows.begin_symbol(symbol).unwrap();
+                rows.write(&[b"cc".as_slice()], &[Value::ZERO]).unwrap();
+                if reference_inherited {
+                    rows.write(&[b"Alpha".as_slice()], &[Value::ZERO]).unwrap();
+                    rows.write(&[b"alpha".as_slice()], &[Value::ZERO]).unwrap();
+                }
+                rows.finish().unwrap();
+            }
+            let mut rows = w.begin_symbol(raw, None).unwrap();
+            rows.write(&[second_id], &[Value::ZERO]).unwrap();
+            rows.finish().unwrap();
+            assert_eq!(fs::read(p.destination()).unwrap(), original);
+            w.finish().unwrap();
+            let r = Reader::open(p.destination(), read_options()).unwrap();
+            assert_eq!(
+                r.information().unwrap().uel_count,
+                if reference_inherited { 4 } else { 3 }
+            );
+            let mut labels = r.uels().unwrap();
+            for (id, expected) in [(1, b"alpha".as_slice()), (2, b"alpha"), (3, b"cc")]
+                .into_iter()
+                .chain(reference_inherited.then_some((4, b"Alpha".as_slice())))
+            {
+                let label = labels.next().unwrap().unwrap();
+                assert_eq!(label.id.get(), id);
+                assert_eq!(label.label, expected);
+            }
+            assert!(labels.next().unwrap().is_none());
+            for (id, expected) in [
+                (
+                    5,
+                    if reference_inherited {
+                        vec![1, 3, 4]
+                    } else {
+                        vec![3]
+                    },
+                ),
+                (6, vec![2]),
+            ] {
+                let h = r.symbol(SymbolId::new(id).unwrap()).unwrap();
+                let mut scan = r.scan(&h, r.scan_options()).unwrap();
+                let mut seen = vec![];
+                while let Some(batch) = scan.next_batch().unwrap() {
+                    seen.extend(batch.key_column(0).unwrap().iter().map(|key| key.get()));
+                }
+                assert_eq!(seen, expected);
+            }
+        }
+    }
+}
+
+#[test]
+fn append_invalid_count_import_error_remains_terminal_with_cleanup_diagnostics() {
+    for deny_cleanup in [false, true] {
+        let reset = Reset::new();
+        let p = Parent::new();
+        source(&p, WriteCompression::None);
+        let r = Reader::open(p.destination(), read_options()).unwrap();
+        let count = r.source.header().unwrap().offsets[0] + 11 + 2 + 8 + 4 + 1 + 4;
+        drop(r);
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .open(p.destination())
+            .unwrap();
+        file.seek(SeekFrom::Start(count)).unwrap();
+        file.write_all(&1u32.to_le_bytes()).unwrap();
+        drop(file);
+        let original = fs::read(p.destination()).unwrap();
+        let mut w = pending(
+            &p,
+            &p.destination(),
+            WriteCompression::None,
+            AppendPolicy::ReplaceSource,
+        );
+        if deny_cleanup {
+            tests::deny_cleanup();
+        }
+        let error = w.begin_append(&limits(&p)).unwrap_err();
+        assert_eq!(error.kind, ErrorKind::InvalidCount);
+        assert_eq!(error.cleanup_error().is_some(), deny_cleanup);
+        let sticky = w.finish().unwrap_err();
+        assert_eq!(sticky.kind, ErrorKind::InvalidCount);
+        assert_eq!(sticky.cleanup_error().is_some(), deny_cleanup);
+        assert_eq!(sticky.to_string(), error.to_string());
+        assert!(!w.statistics().published);
+        assert_eq!(fs::read(p.destination()).unwrap(), original);
+        if deny_cleanup {
+            assert!(w.abort().is_err());
+        }
+        drop(reset);
+        w.abort().unwrap();
+        assert!(!w.temporary_path().exists());
+    }
+}

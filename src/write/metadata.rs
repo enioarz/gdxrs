@@ -1124,9 +1124,8 @@ impl Metadata {
                     return Err(corrupt());
                 }
                 let id = if n <= existing {
-                    if canonical != i64::from(n) {
-                        return Err(corrupt());
-                    }
+                    // Inherited labels may repeat. Their raw identities stay
+                    // distinct; only new references use the first matching ID.
                     n
                 } else if canonical == i64::from(n) {
                     let id = next_id(self.stats.uels)?;
