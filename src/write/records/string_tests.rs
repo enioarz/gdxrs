@@ -371,3 +371,26 @@ fn occurrence_overflow_and_replay_output_failure_keep_primary_errors() {
         p.empty();
     }
 }
+
+#[test]
+fn registration_peak_is_not_combined_with_later_string_spool_handles() {
+    let p = Parent::new();
+    let mut w = Writer::create(p.destination(), options()).unwrap();
+    let mut limits = MetadataOptions::new(p.destination().parent().unwrap());
+    limits.maximum_open_files = 7;
+    limits.merge_fan_in = 3;
+    limits.run_bytes = 512;
+    w.begin_metadata(&limits).unwrap();
+    w.register_uels_fresh((0..2048).map(|n| Ok(format!("L{n:08}"))), |_, _| Ok(()))
+        .unwrap();
+    assert!(w.metadata_statistics().peak_open_files <= 7);
+    let set = w
+        .register_symbol(&WriteSymbol::new(b"I", SymbolType::Set, 1))
+        .unwrap();
+    let mut rows = w.begin_string_records().unwrap();
+    rows.begin_symbol(set).unwrap();
+    rows.write(&[b"L00000000"], &[Value::ZERO]).unwrap();
+    rows.finish().unwrap();
+    w.finish().unwrap();
+    assert!(w.metadata_statistics().peak_open_files <= 7);
+}

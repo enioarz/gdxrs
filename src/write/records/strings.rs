@@ -3,6 +3,7 @@ use super::*;
 use crate::model::Bytes;
 use crate::write::store::{Frame, Store};
 use std::sync::{Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 fn invalid() -> Error {
     Error::new(ErrorKind::InvalidSpill, "invalid string record spool")
@@ -32,6 +33,12 @@ pub struct StringWriteStatistics {
     pub label_requests: u32,
     pub uels: u32,
     pub merge_passes: u64,
+    /// Dictionary registration/remapping at finish, including its spill I/O.
+    pub registration_time: Duration,
+    /// Spool decoding, label-to-ID replay and initial sorted-run generation.
+    pub record_staging_time: Duration,
+    pub merge_preparation_time: Duration,
+    pub record_replay_time: Duration,
 }
 /// Stage contiguous symbol groups before freezing metadata, then map/replay at finish.
 /// Labels retain exact bytes; IDs follow existing registration then first encounter.
@@ -79,6 +86,10 @@ impl Writer {
                 label_requests: 0,
                 uels: 0,
                 merge_passes: 0,
+                registration_time: Duration::ZERO,
+                record_staging_time: Duration::ZERO,
+                merge_preparation_time: Duration::ZERO,
+                record_replay_time: Duration::ZERO,
             },
             keys,
             mapping,
@@ -194,6 +205,7 @@ impl StringRecordWriter<'_> {
         }
     }
     fn complete(&mut self) -> Result<()> {
+        let registration_start = Instant::now();
         self.end()?;
         let extent = {
             let mut store = lock(&self.store)?;
@@ -270,6 +282,7 @@ impl StringRecordWriter<'_> {
             .as_ref()
             .ok_or_else(invalid)?
             .statistics();
+        self.statistics.registration_time = registration_start.elapsed();
         self.statistics.uels = metadata.uels;
         self.statistics.merge_passes = metadata.merge_passes;
         self.writer.symbol_active = false;
@@ -278,6 +291,7 @@ impl StringRecordWriter<'_> {
         let mut map_index = 0usize;
         let mut loaded = 0u32;
         while at < extent {
+            let staging_start = Instant::now();
             let frame = next(&self.store, &mut at, extent, 1)?;
             let id = self
                 .writer
@@ -355,7 +369,17 @@ impl StringRecordWriter<'_> {
                 Ok(n) => n,
                 Err(e) => return Err(rows.reject(e)),
             };
+            let staging_time = staging_start.elapsed();
             let stats = rows.finish()?;
+            add_phase_time(&mut self.statistics.record_staging_time, staging_time)?;
+            add_phase_time(
+                &mut self.statistics.merge_preparation_time,
+                stats.merge_preparation_time,
+            )?;
+            add_phase_time(
+                &mut self.statistics.record_replay_time,
+                stats.record_replay_time,
+            )?;
             self.statistics.merge_passes = self
                 .statistics
                 .merge_passes

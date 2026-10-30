@@ -1,10 +1,15 @@
 //! Complete bounded records sorted using the existing exact-byte run format.
 use super::*;
+use std::time::{Duration, Instant};
 const PAYLOAD: usize = 145;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UnsortedWriteStatistics {
     pub records: u32,
     pub spill: SpillStatistics,
+    /// Wall time preparing the final merged run, including spill I/O.
+    pub merge_preparation_time: Duration,
+    /// Final-run replay, decoding, encoding and explicit cursor cleanup.
+    pub record_replay_time: Duration,
 }
 /// Explicit external sorting. Finish is required; failed/abandoned writes cannot publish.
 pub struct UnsortedSymbolWriter<'a> {
@@ -137,7 +142,10 @@ impl UnsortedSymbolWriter<'_> {
         };
         let observe = sorter.observer();
         let result = (|| {
+            let prepare = Instant::now();
             let mut cursor = sorter.finish()?;
+            let merge_preparation_time = prepare.elapsed();
+            let replay_start = Instant::now();
             let replay = (|| {
                 let mut records = 0u32;
                 while let Some(entry) = cursor.next()? {
@@ -171,19 +179,24 @@ impl UnsortedSymbolWriter<'_> {
             {
                 return Err(invalid());
             }
-            Ok((records, statistics))
+            Ok((records, statistics, merge_preparation_time, replay_start))
         })();
         if let Some(m) = inner.writer.metadata.as_mut() {
             m.record_sort_statistics(observe());
         }
         match result {
             Err(e) => Err(inner.writer.fail(e)),
-            Ok((records, spill)) => {
+            Ok((records, spill, merge_preparation_time, replay_start)) => {
                 if inner.count != records {
                     return Err(inner.writer.fail(invalid()));
                 }
                 inner.finish()?;
-                Ok(UnsortedWriteStatistics { records, spill })
+                Ok(UnsortedWriteStatistics {
+                    records,
+                    spill,
+                    merge_preparation_time,
+                    record_replay_time: replay_start.elapsed(),
+                })
             }
         }
     }

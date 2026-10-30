@@ -1,4 +1,13 @@
 //! Streaming sorted raw records; fixed state only.
+fn add_phase_time(
+    target: &mut std::time::Duration,
+    elapsed: std::time::Duration,
+) -> crate::Result<()> {
+    *target = target.checked_add(elapsed).ok_or_else(|| {
+        crate::Error::new(crate::ErrorKind::InvalidCount, "phase duration overflow")
+    })?;
+    Ok(())
+}
 use super::*;
 mod deferred;
 pub use deferred::{DeferredRecordWriter, ValidationStatistics};

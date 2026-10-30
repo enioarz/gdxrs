@@ -3,6 +3,7 @@ use super::*;
 use crate::model::Bytes;
 use crate::write::store::{Frame, Store};
 use std::sync::{Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 const MAX_PACKET: usize = 238; // 20 raw + ordinal + local ordinal + origin + 20 mapped + five values
 fn invalid() -> Error {
     Error::new(ErrorKind::InvalidSpill, "invalid deferred record spool")
@@ -28,6 +29,8 @@ pub struct ValidationStatistics {
     pub symbols: u32,
     pub auto_empty_sets: u32,
     pub errors: DataErrorStatistics,
+    pub merge_preparation_time: Duration,
+    pub record_replay_time: Duration,
 }
 /// Stage contiguous groups in any dependency order. Keys must be registered first.
 /// Membership and duplicates are resolved on disk at finish. Other errors are terminal.
@@ -433,10 +436,13 @@ impl DeferredRecordWriter<'_> {
                 });
             }
         };
+        let prepare = Instant::now();
         let mut cursor = match sort.finish() {
             Ok(cursor) => cursor,
             Err(e) => return Err(rows.writer.fail(e)),
         };
+        let merge_preparation_time = prepare.elapsed();
+        let replay_start = Instant::now();
         let replay = (|| {
             let mut seen = 0u32;
             while let Some(entry) = cursor.next()? {
@@ -573,6 +579,14 @@ impl DeferredRecordWriter<'_> {
             (Ok(()), Err(e)) => Err(rows.writer.fail(e)),
             (Ok(()), Ok(_)) => {
                 rows.finish()?;
+                add_phase_time(
+                    &mut self.writer.validation_statistics.merge_preparation_time,
+                    merge_preparation_time,
+                )?;
+                add_phase_time(
+                    &mut self.writer.validation_statistics.record_replay_time,
+                    replay_start.elapsed(),
+                )?;
                 self.writer.validation_statistics.symbols += 1;
                 Ok(())
             }

@@ -28,6 +28,9 @@ pub struct SpillOptions {
     pub maximum_temporary_bytes: u64,
     pub maximum_open_files: usize,
     pub merge_fan_in: usize,
+    /// Optional additional cache ceiling per writer journal/index, root charged.
+    /// Zero retains the original single-page footprint. Spill runs ignore this.
+    pub lookup_cache_bytes: usize,
 }
 impl SpillOptions {
     pub fn new(directory: impl AsRef<Path>) -> Self {
@@ -37,12 +40,14 @@ impl SpillOptions {
             maximum_temporary_bytes: 512 * 1024 * 1024,
             maximum_open_files: 9,
             merge_fan_in: 8,
+            lookup_cache_bytes: 0,
         }
     }
     pub(crate) fn validate(&self) -> Result<()> {
         if self.directory.as_os_str().len() > 4096
             || !(2..=64).contains(&self.merge_fan_in)
             || self.maximum_open_files <= self.merge_fan_in
+            || self.lookup_cache_bytes > 64 * 1024 * 1024
         {
             return Err(Error::new(
                 ErrorKind::InvalidOptions,

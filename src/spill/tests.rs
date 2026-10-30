@@ -105,6 +105,7 @@ fn options(parent: &Parent) -> SpillOptions {
         maximum_temporary_bytes: 2 * 1024 * 1024,
         maximum_open_files: 3,
         merge_fan_in: 2,
+        lookup_cache_bytes: 0,
     }
 }
 fn rows(sorter: &mut SpillSorter) {
