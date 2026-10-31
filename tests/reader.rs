@@ -564,3 +564,6 @@ fn optional_writer_pages_preserve_crossing_label_frames_and_comments() {
     );
     assert!(scan.next_batch().unwrap().is_none());
 }
+
+#[path = "reader/checkpoints.rs"]
+mod checkpoints;

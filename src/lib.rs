@@ -51,7 +51,7 @@ pub use value_policy::{
 };
 pub use value_session::{AcronymInformation, ValueSession};
 
-pub use scan::{BatchView, RecordView, ScanCursor, ScanStatistics};
+pub use scan::{BatchView, RecordCheckpoint, RecordView, ScanCursor, ScanStatistics};
 pub use selection::{DimensionSelection, KeySelection, Selection, UelRange};
 
 pub use labels::{

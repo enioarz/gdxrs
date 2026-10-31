@@ -1,6 +1,6 @@
 use crate::{
     budget::{Buffer, Reservation},
-    records::Decoder,
+    records::{Decoder, DecoderPosition},
     *,
 };
 use std::mem::size_of;
@@ -150,6 +150,33 @@ pub struct ScanStatistics {
     pub returned_rows: u64,
 }
 
+/// Opaque, root-charged position immediately before the next raw public row.
+/// Bound to one open Reader source and one requested symbol, including aliases.
+/// This is not a serialized sidecar or a cryptographic content identity.
+/// Resume takes fresh projection, batch and accepted-row limit options. Checkpoint
+/// values are not implicitly cloned; drop them to release their root charge.
+pub struct RecordCheckpoint {
+    source: std::sync::Arc<crate::source::Source>,
+    symbol: SymbolId,
+    position: DecoderPosition,
+    _state: Reservation,
+}
+impl RecordCheckpoint {
+    /// Number of raw public rows preceding this point, including a synthesized
+    /// empty scalar's default row or universe rows. Not a byte offset.
+    pub fn row_ordinal(&self) -> u64 {
+        self.position.row_ordinal()
+    }
+}
+impl std::fmt::Debug for RecordCheckpoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RecordCheckpoint")
+            .field("symbol", &self.symbol)
+            .field("row_ordinal", &self.row_ordinal())
+            .finish_non_exhaustive()
+    }
+}
+
 pub struct ScanCursor {
     reader: Reader,
     handle: SymbolHandle,
@@ -160,12 +187,80 @@ pub struct ScanCursor {
     selection: Option<Selection>,
     statistics: ScanStatistics,
     decoder: Option<Decoder>,
+    position: Option<DecoderPosition>,
     batch: Option<Batch>,
     done: bool,
     error: Option<Error>,
     _state: Reservation,
 }
 impl ScanCursor {
+    /// Capture an unselected raw scan boundary after the last returned batch.
+    /// All values/keys have been decoded regardless of projection. Before the
+    /// first batch this explicitly reads only the data preamble/read-ahead, not
+    /// a symbol prescan. Ordinary zero-limit scans remain lazy.
+    ///
+    /// Selected cursors return InvalidOptions without changing their state.
+    /// Root reservation denial also leaves the cursor usable. I/O/source/decode
+    /// failures are terminal, as for next_batch; no partial checkpoint escapes.
+    ///
+    /// ```compile_fail,E0499
+    /// # use gdxrs::{ScanCursor, Result};
+    /// fn retain(cursor: &mut ScanCursor) -> Result<()> {
+    ///     let batch = cursor.next_batch()?.unwrap();
+    ///     let point = cursor.checkpoint()?;
+    ///     println!("{}", batch.len()); // batch still borrows cursor
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn checkpoint(&mut self) -> Result<RecordCheckpoint> {
+        if let Some(error) = &self.error {
+            return Err(error.clone());
+        }
+        if self.selection.is_some() {
+            return Err(Error::new(
+                ErrorKind::InvalidOptions,
+                "selected checkpoint export is not supported",
+            ));
+        }
+        let state = self
+            .reader
+            .source
+            .budget
+            .reserve(size_of::<RecordCheckpoint>())?;
+        let result = (|| {
+            self.reader.source.check_unchanged()?;
+            let position = if let Some(decoder) = &mut self.decoder {
+                decoder.checkpoint()?
+            } else if let Some(position) = self.position {
+                position
+            } else {
+                let mut decoder = Decoder::new(&self.reader, &self.handle.inner.record)?;
+                let point = decoder.checkpoint()?;
+                self.position = Some(point);
+                if !self.done && self.remaining != 0 {
+                    self.decoder = Some(decoder);
+                }
+                point
+            };
+            self.reader.source.check_unchanged()?;
+            Ok(RecordCheckpoint {
+                source: std::sync::Arc::clone(&self.reader.source),
+                symbol: self.handle.id(),
+                position,
+                _state: state,
+            })
+        })();
+        result.map_err(|error| self.fail(error))
+    }
+    fn fail(&mut self, mut error: Error) -> Error {
+        error.source_id = Some(self.reader.source.id);
+        error.symbol_id = Some(self.handle.id().get());
+        self.decoder = None;
+        self.batch = None;
+        self.position = None;
+        self.error = Some(error.clone());
+        error
+    }
     pub fn statistics(&self) -> ScanStatistics {
         self.statistics
     }
@@ -241,6 +336,7 @@ impl ScanCursor {
             selection: None,
             statistics: ScanStatistics::default(),
             decoder: None,
+            position: None,
             batch: None,
             done: false,
             error: None,
@@ -259,7 +355,11 @@ impl ScanCursor {
         }
         self.reader.source.check_unchanged()?;
         if self.decoder.is_none() {
-            self.decoder = Some(Decoder::new(&self.reader, &self.handle.inner.record)?);
+            self.decoder = Some(if let Some(position) = &self.position {
+                Decoder::resume(&self.reader, &self.handle.inner.record, position)?
+            } else {
+                Decoder::new(&self.reader, &self.handle.inner.record)?
+            });
         }
         if let Some(batch) = &mut self.batch {
             batch.clear();
@@ -303,6 +403,7 @@ impl ScanCursor {
             accepted += 1;
         }
         if self.done || self.remaining == 0 {
+            self.position = Some(decoder.position()?);
             self.decoder = None;
         }
         let nonempty = self.batch.as_ref().is_some_and(|b| b.rows != 0);
@@ -326,18 +427,34 @@ impl ScanCursor {
                 self.batch = None;
                 Ok(None)
             }
-            Err(mut e) => {
-                e.source_id = Some(self.reader.source.id);
-                e.symbol_id = Some(self.handle.id().get());
-                self.decoder = None;
-                self.batch = None;
-                self.error = Some(e.clone());
-                Err(e)
-            }
+            Err(e) => Err(self.fail(e)),
         }
     }
 }
 impl Reader {
+    /// Start an unselected raw suffix scan in the same immutable open source.
+    /// No rows preceding the point are decoded. The bounded data preamble is
+    /// revalidated, and a compressed restart block is fully checksum-verified.
+    /// Options and counters start fresh; limits count newly accepted rows.
+    pub fn scan_from_checkpoint(
+        &self,
+        symbol: &SymbolHandle,
+        point: &RecordCheckpoint,
+        options: ScanOptions,
+    ) -> Result<ScanCursor> {
+        self.check_handle(symbol)?;
+        if !std::sync::Arc::ptr_eq(&self.source, &point.source) || symbol.id() != point.symbol {
+            return Err(Error::new(
+                ErrorKind::SourceMismatch,
+                "checkpoint belongs to another source/symbol",
+            )
+            .symbol(symbol.id().get()));
+        }
+        self.source.check_unchanged()?;
+        let mut scan = ScanCursor::new(self.clone(), symbol.clone(), options)?;
+        scan.position = Some(point.position);
+        Ok(scan)
+    }
     /// Defaults using this reader's configured maximum batch payload.
     pub fn scan_options(&self) -> ScanOptions {
         ScanOptions {
@@ -361,10 +478,10 @@ mod tests {
             atomic::{AtomicU64, Ordering},
         },
     };
-    struct Scripted {
-        bytes: Vec<u8>,
-        fail_at: Arc<AtomicU64>,
-        ranges: Arc<Mutex<Vec<(u64, usize)>>>,
+    pub(super) struct Scripted {
+        pub(super) bytes: Vec<u8>,
+        pub(super) fail_at: Arc<AtomicU64>,
+        pub(super) ranges: Arc<Mutex<Vec<(u64, usize)>>>,
     }
     impl ReadAt for Scripted {
         fn read_at(&self, at: u64, out: &mut [u8]) -> io::Result<usize> {
@@ -610,3 +727,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod checkpoint_tests;

@@ -1,7 +1,9 @@
+mod checkpoint;
 use crate::{
     Error, ErrorKind, Result, SpecialValue, SymbolType, UelId, Value, budget::Reservation,
     metadata::SymbolRecord, reader::Reader, source::Source, stream::Stream,
 };
+pub(crate) use checkpoint::DecoderPosition;
 use std::{mem::size_of, sync::Arc};
 
 pub(crate) struct Record {
@@ -206,6 +208,13 @@ impl Decoder {
         self.emitted += 1;
         Ok(true)
     }
+    fn fail(&mut self, e: Error) -> Error {
+        let mut error = e.symbol(self.requested);
+        error.source_id = Some(self.source.id);
+        self.stream = None;
+        self.error = Some(error.clone());
+        error
+    }
     pub fn next(&mut self) -> Result<Option<&Record>> {
         if let Some(e) = &self.error {
             return Err(e.clone());
@@ -221,13 +230,7 @@ impl Decoder {
                 self.stream = None;
                 Ok(None)
             }
-            Err(e) => {
-                let mut error = e.symbol(self.requested);
-                error.source_id = Some(self.source.id);
-                self.stream = None;
-                self.error = Some(error.clone());
-                Err(error)
-            }
+            Err(e) => Err(self.fail(e)),
         }
     }
 }

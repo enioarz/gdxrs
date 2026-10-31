@@ -32,10 +32,11 @@ pub(crate) struct Stream {
     _codec: Reservation,
     _state: Reservation,
 }
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct Checkpoint {
     pub physical: u64,
     pub decoded: usize,
+    pub logical: u64,
 }
 impl Stream {
     pub fn checkpoint(&self) -> Checkpoint {
@@ -43,11 +44,13 @@ impl Stream {
             Checkpoint {
                 physical: self.block,
                 decoded: self.index,
+                logical: self.logical,
             }
         } else {
             Checkpoint {
                 physical: self.block + self.index as u64,
                 decoded: 0,
+                logical: self.logical,
             }
         }
     }
@@ -59,6 +62,12 @@ impl Stream {
         order: Order,
         label: &'static str,
     ) -> Result<Self> {
+        if point.decoded > 32768 || !compressed && point.decoded != 0 {
+            return Err(Error::new(
+                ErrorKind::InvalidOffset,
+                "invalid stream checkpoint offset",
+            ));
+        }
         let mut stream = Self::new(source, point.physical, end, compressed, order, label)?;
         if point.decoded != 0 {
             stream.fill()?;
@@ -67,6 +76,7 @@ impl Stream {
             }
             stream.index = point.decoded;
         }
+        stream.logical = point.logical;
         Ok(stream)
     }
     pub fn new(
