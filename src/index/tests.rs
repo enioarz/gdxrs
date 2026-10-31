@@ -213,13 +213,14 @@ fn corrupted_rechecksummed_pages_are_rejected_before_open_and_after_validation()
 #[test]
 fn terminal_faults_preserve_cleanup_ownership_and_never_publish_partial_indexes() {
     let _reset = Reset::new();
-    for event in [
-        Event::CreateDirectory,
-        Event::Create,
-        Event::Write,
-        Event::Seek,
-        Event::Sync,
-        Event::Publish,
+    for (event, after) in [
+        (Event::CreateDirectory, 0),
+        (Event::Create, 0),
+        (Event::Write, 0),
+        (Event::Write, 2),
+        (Event::Seek, 0),
+        (Event::Sync, 0),
+        (Event::Publish, 0),
     ] {
         let temp = Temp::new();
         let reader = reader();
@@ -227,11 +228,18 @@ fn terminal_faults_preserve_cleanup_ownership_and_never_publish_partial_indexes(
         let mut builder = reader
             .index_builder(&symbol, temp.index(), options())
             .unwrap();
-        fault(event, 0, false);
+        fault(event, after, false);
         deny(true);
         let error = builder.finish().unwrap_err();
         assert_eq!(error.kind, ErrorKind::Io);
         assert!(!temp.index().exists());
+        if event == Event::Write {
+            let cause = std::error::Error::source(&error)
+                .unwrap()
+                .downcast_ref::<io::Error>()
+                .unwrap();
+            assert_eq!(cause.kind(), io::ErrorKind::StorageFull);
+        }
         if event != Event::CreateDirectory {
             assert!(error.cleanup_error().is_some());
             assert!(builder.owned_directory);

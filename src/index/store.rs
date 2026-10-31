@@ -84,7 +84,12 @@ pub(super) mod tests {
                     if !sticky {
                         h.fault = None;
                     }
-                    return Err(io::ErrorKind::PermissionDenied.into());
+                    return Err(if e == Event::Write {
+                        io::ErrorKind::StorageFull
+                    } else {
+                        io::ErrorKind::PermissionDenied
+                    }
+                    .into());
                 }
                 h.fault = Some((kind, left - 1, sticky));
             }
