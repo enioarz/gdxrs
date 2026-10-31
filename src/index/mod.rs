@@ -578,7 +578,7 @@ impl CheckpointIndex {
                 }
                 let start = num(&page, 32);
                 let end = num(&page, 40);
-                if end < start {
+                if end < start || end > self.statistics.rows_decoded {
                     return Err(invalid());
                 }
                 let mut minimum = [0; 20];
@@ -597,6 +597,16 @@ impl CheckpointIndex {
                     return Err(invalid());
                 }
                 let dimension = position.dimension();
+                let uels = self.reader.source.counts()?.uels;
+                for d in 0..20 {
+                    if d < usize::from(dimension) && end > start {
+                        if minimum[d] == 0 || minimum[d] > maximum[d] || maximum[d] > uels {
+                            return Err(invalid());
+                        }
+                    } else if minimum[d] != 0 || maximum[d] != 0 {
+                        return Err(invalid());
+                    }
+                }
                 let state = self
                     .reader
                     .source

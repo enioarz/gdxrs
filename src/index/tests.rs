@@ -146,6 +146,20 @@ fn corrupted_rechecksummed_pages_are_rejected_before_open_and_after_validation()
     // No unkeyed checksum can authenticate the forged assertion. Source replay
     // rejects it at reopen; an existing session's trusted root rejects it too.
     let mut data = fs::read(temp.index()).unwrap();
+    let pristine = data.clone();
+    for length in [0, PAGE - 1, 2 * PAGE + 1, data.len() - 1] {
+        fs::write(temp.index(), &data[..length]).unwrap();
+        assert!(matches!(
+            reader
+                .open_index(&symbol, temp.index(), options(), IndexPolicy::UseIfValid)
+                .unwrap(),
+            IndexOpen {
+                status: IndexStatus::Rejected(_),
+                ..
+            }
+        ));
+    }
+    fs::write(temp.index(), &data).unwrap();
     let mut leaf = [0; PAGE];
     leaf.copy_from_slice(&data[PAGE..2 * PAGE]);
     put(&mut leaf, 48, &4u32.to_le_bytes());
@@ -182,7 +196,7 @@ fn corrupted_rechecksummed_pages_are_rejected_before_open_and_after_validation()
     ));
     // Every independently damaged small header/data/directory position fails.
     for at in [0, 8, 24, 56, 64, 104, 112, 640, PAGE + 200, root + 100] {
-        let mut bad = data.clone();
+        let mut bad = pristine.clone();
         bad[at] ^= 1;
         fs::write(temp.index(), bad).unwrap();
         assert!(matches!(

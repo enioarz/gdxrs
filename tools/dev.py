@@ -143,7 +143,7 @@ def reader_check():
     audit_dependencies(minimal, compression=False)
     import index_dependencies
     for flags, compression in [(['--all-features'], True), (['--no-default-features', '--features', 'index'], False)]:
-        index_graph = json.loads(run(['cargo', 'metadata', '--locked', '--format-version', '1', '--offline', *flags], capture=True).stdout)
+        index_graph = json.loads(run(['cargo', 'metadata', '--locked', '--format-version', '1', *flags], capture=True).stdout)
         index_dependencies.audit(index_graph, compression)
     run(['cargo', 'clippy', '--locked', '--all-targets', '--all-features', '--', '-D', 'warnings'])
     run(['cargo', 'clippy', '--locked', '--all-targets', '--no-default-features', '--features', 'index', '--', '-D', 'warnings'])

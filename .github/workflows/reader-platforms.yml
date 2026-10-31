@@ -71,7 +71,7 @@ jobs:
           verbose = result['bootstrap']['versions']['rustc_verbose']
           host = next(line[6:] for line in verbose.splitlines() if line.startswith('host: '))
           summary = {'revision': record['revision'], 'platform': record['platform'], 'host': host,
-                     'profiles': ['debug default/minimal/all', 'release default'],
+                     'profiles': ['debug default/minimal/all/index-only', 'release default'],
                      'run_id': record['run_id'], 'compiler': result['bootstrap']['versions']['rustc'],
                      'suites': result['suites'], 'fixtures': result['differential_fixtures'],
                      'records': result['public_records_compared'], 'report': str(paths[0])}
