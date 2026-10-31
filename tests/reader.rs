@@ -571,3 +571,7 @@ mod checkpoints;
 #[cfg(feature = "index")]
 #[path = "reader/sidecars.rs"]
 mod sidecars;
+
+#[cfg(feature = "index")]
+#[path = "reader/indexed.rs"]
+mod indexed;

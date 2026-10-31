@@ -78,5 +78,5 @@ mod index;
 #[cfg(feature = "index")]
 pub use index::{
     CheckpointIndex, IndexBuilder, IndexInterval, IndexOpen, IndexOptions, IndexPolicy,
-    IndexPublication, IndexStatistics, IndexStatus,
+    IndexPublication, IndexScanMode, IndexStatistics, IndexStatus, IndexedScanStatistics,
 };

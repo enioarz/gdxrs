@@ -18,7 +18,10 @@ use std::{
 mod wire;
 use wire::*;
 mod generate;
+mod query;
 mod store;
+pub(crate) use query::Plan;
+pub use query::{IndexScanMode, IndexedScanStatistics};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IndexPublication {
     CreateNew,
@@ -374,6 +377,7 @@ pub struct CheckpointIndex {
     cache_offset: Option<u64>,
     error: Option<Error>,
     statistics: IndexStatistics,
+    validation_statistics: IndexStatistics,
     _state: Reservation,
 }
 pub struct IndexInterval {
@@ -397,6 +401,11 @@ impl IndexInterval {
     }
 }
 impl CheckpointIndex {
+    /// Work of the successful strict open only; later interval queries do not
+    /// alter these counters. The ordinary statistics method remains cumulative.
+    pub fn validation_statistics(&self) -> IndexStatistics {
+        self.validation_statistics
+    }
     pub fn statistics(&self) -> IndexStatistics {
         self.statistics
     }
@@ -444,6 +453,7 @@ impl CheckpointIndex {
             cache_offset: None,
             error: None,
             statistics: IndexStatistics::default(),
+            validation_statistics: IndexStatistics::default(),
             _state: state,
         };
         let result = session.validate(options);
@@ -532,6 +542,7 @@ impl CheckpointIndex {
         self.statistics.directory_pages = root.directory_pages;
         self.statistics.index_bytes = root.bytes;
         self.statistics.complete = true;
+        self.validation_statistics = self.statistics;
         Ok(())
     }
     /// Read one authenticated directory path and data page. No source digest or
