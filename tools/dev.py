@@ -141,8 +141,14 @@ def reader_check():
     run(["cargo", "clippy", "--locked", "--all-targets", "--no-default-features", "--", "-D", "warnings"])
     minimal = json.loads(run(["cargo", "metadata", "--locked", "--format-version", "1", "--offline", "--no-default-features"], capture=True).stdout)
     audit_dependencies(minimal, compression=False)
+    import index_dependencies
+    for flags, compression in [(['--all-features'], True), (['--no-default-features', '--features', 'index'], False)]:
+        index_graph = json.loads(run(['cargo', 'metadata', '--locked', '--format-version', '1', *flags], capture=True).stdout)
+        index_dependencies.audit(index_graph, compression)
+    run(['cargo', 'clippy', '--locked', '--all-targets', '--all-features', '--', '-D', 'warnings'])
+    run(['cargo', 'clippy', '--locked', '--all-targets', '--no-default-features', '--features', 'index', '--', '-D', 'warnings'])
     suites = []
-    for features in ([], ["--no-default-features"], ["--all-features"]):
+    for features in ([], ["--no-default-features"], ["--all-features"], ["--no-default-features", "--features", "index"]):
         args = ["cargo", "test", "--locked", *features]
         result = run(args, capture=True)
         counts = test_suite_counts(result.stdout)
@@ -171,7 +177,7 @@ def reader_check():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check", "label-pages-check", "m2-scale-check", "writer-check", "m3-writer-check", "m4-api-check", "m4-check"])
+    parser.add_argument("command", choices=["check-bootstrap", "oracle-build", "oracle-self-test", "fixtures-generate", "fixtures-check", "fixtures-regenerate-check", "spec-check", "contracts-check", "benchmark-oracle", "m0-check", "reader-check", "label-pages-check", "m2-scale-check", "writer-check", "m3-writer-check", "m4-api-check", "m4-check", "index-check"])
     parser.add_argument("--output", type=Path)
     parser.add_argument("--baseline", type=Path, help="Explicit validated baseline report for m0-check")
     parser.add_argument("--profile", choices=['small','smoke','scale'], default='small')
@@ -182,7 +188,7 @@ def main():
         parser.error('fixtures-generate requires --output NEW_DIRECTORY')
     if args.output is not None and args.command != 'fixtures-generate':
         parser.error('--output only applies to fixtures-generate')
-    if '--profile' in sys.argv and args.command not in ['benchmark-oracle','m2-scale-check','m3-writer-check','m4-check']:
+    if '--profile' in sys.argv and args.command not in ['benchmark-oracle','m2-scale-check','m3-writer-check','m4-check','index-check']:
         parser.error('--profile only applies to benchmark-oracle, m2-scale-check or m3-writer-check')
     if args.command == 'benchmark-oracle' and args.profile != 'small':
         parser.error('benchmark-oracle requires profile small')
@@ -214,6 +220,9 @@ def main():
         if args.command == 'label-pages-check':
             import label_pages
             return label_pages.check(run)
+        if args.command == 'index-check':
+            import index_scale
+            return index_scale.check(run, 'smoke' if args.profile == 'small' else args.profile)
         if args.command == 'm4-api-check':
             import m4_api
             return m4_api.check()

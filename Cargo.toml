@@ -9,6 +9,9 @@ publish = false
 [dependencies]
 miniz_oxide = { version = "=0.9.1", default-features = false, optional = true }
 
+sha2 = { version = "=0.10.9", default-features = false, features = ["force-soft"], optional = true }
+
 [features]
 default = ["compression"]
 compression = ["dep:miniz_oxide", "miniz_oxide/with-alloc"]
+index = ["dep:sha2"]

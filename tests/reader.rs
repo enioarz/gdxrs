@@ -567,3 +567,7 @@ fn optional_writer_pages_preserve_crossing_label_frames_and_comments() {
 
 #[path = "reader/checkpoints.rs"]
 mod checkpoints;
+
+#[cfg(feature = "index")]
+#[path = "reader/sidecars.rs"]
+mod sidecars;
