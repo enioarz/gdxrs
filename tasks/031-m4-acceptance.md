@@ -1,6 +1,6 @@
 # 031 — General-write and modern semantic acceptance
 
-Milestone: M4. Prerequisites: 024–030 complete. Status: in progress.
+Milestone: M4. Prerequisites: 024–030 complete. Status: complete for the measured scope; review pending.
 
 Audit the M4 native API inventory, record exact implemented semantics/exclusions
 and close required parity gaps before claiming milestone completion. Execute
@@ -34,3 +34,12 @@ No M4 release follows merely from successful task 024 or smoke tests.
   m3-writer-check and four-platform CI. Record findings and remaining gates in
   [031 evidence](../docs/evidence/031.md). Independent review remains a separate
   gate; successful smoke never closes this task.
+
+## Completion
+
+See [031 evidence](../docs/evidence/031.md) and its structured report for 12 M4
+scale cases, refreshed full M3 qualification, exact feature-suite counts, native
+interoperability, API closure and four-platform CI at the recorded revisions.
+General adapter throughput remains below the provisional native target; findings
+and future optimization constraints are explicit. This is not a release or an
+independent review. M5 remains gated on review/merge of the M4 acceptance change.

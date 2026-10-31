@@ -1,6 +1,8 @@
 # M4 API and acceptance status
 
-Task 031 is in progress. The [current inventory](m4-api.csv) maps every function
+Task 031 has passed its API/correctness/scale checks for the measured scope;
+review is pending. General adapter throughput remains below the provisional
+target; see [031 evidence](evidence/031.md). The [current inventory](m4-api.csv) maps every function
 and property accessor in pinned native `gdxapi.yaml` to concrete Rust methods,
 exact semantics, existing evidence and explicit exclusions. It supplements the
 frozen M0 planning inventory, which is deliberately unchanged. The audit checks
