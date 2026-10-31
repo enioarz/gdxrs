@@ -1,6 +1,6 @@
 # 033 — Bounded persistent checkpoint sidecars
 
-Milestone: M5. Prerequisite: 032 complete/reviewed. Status: in progress.
+Milestone: M5. Prerequisite: 032 complete/reviewed. Status: complete for sidecar scope; PR #28 awaits review.
 
 Specify and implement a versioned disposable sidecar with fixed-size checkpoint
 pages and a bounded disk-backed directory. Build incrementally in one explicit
@@ -43,3 +43,7 @@ with a directory independently larger than that process cap, growing sizes, exac
 native source validation, source SHA-256 checks and full canonical page replay.
 This does not replace task 035's 256/512 MiB >4× milestone/query gates. Source-bound
 reports and exact four-platform feature results belong in docs/evidence/033.md.
+
+Completion evidence: [033](../docs/evidence/033.md), including source-bound Linux
+container qualification and four native platform feature gates. Task 034 remains
+gated on review of this sidecar contract; task 035 remains the M5 exit gate.
