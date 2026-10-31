@@ -66,11 +66,23 @@ fn checkpoint_suffixes_match_frozen_native_expectations() {
                 .filter(|l| l.starts_with(&prefix))
                 .collect();
             let symbol = reader.symbol(SymbolId::new(id).unwrap()).unwrap();
+            let metadata = symbol.metadata().unwrap();
+            let fields = if matches!(metadata.kind, SymbolType::Variable | SymbolType::Equation) {
+                5
+            } else {
+                1
+            };
+            let batch_bytes = if metadata.raw_record_count <= 64 {
+                usize::from(metadata.dimension) * std::mem::size_of::<UelId>()
+                    + fields * std::mem::size_of::<Value>()
+            } else {
+                240
+            };
             let mut scan = reader
                 .scan(
                     &symbol,
                     ScanOptions {
-                        batch_bytes: 240,
+                        batch_bytes,
                         ..reader.scan_options()
                     },
                 )
@@ -311,4 +323,97 @@ fn checkpoint_source_changes_are_terminal_and_alias_binding_is_preserved() {
         scan.next_batch().err().unwrap().kind,
         ErrorKind::SourceChanged
     );
+}
+
+#[test]
+fn checkpoints_retain_twenty_axis_predecessors_across_delta_and_group_changes() {
+    for compression in [WriteCompression::None, WriteCompression::Zlib] {
+        if compression == WriteCompression::Zlib && !cfg!(feature = "compression") {
+            continue;
+        }
+        let temp = common::TempFile::new(&[]);
+        std::fs::remove_file(&temp.path).unwrap();
+        let mut writer = Writer::create(
+            &temp.path,
+            WriteOptions {
+                compression,
+                ..WriteOptions::default()
+            },
+        )
+        .unwrap();
+        writer
+            .begin_metadata(&MetadataOptions::new(temp.path.parent().unwrap()))
+            .unwrap();
+        let ids: Vec<_> = (1..=100)
+            .map(|n| writer.register_uel(format!("u{n}").as_bytes()).unwrap())
+            .collect();
+        let symbol = writer
+            .register_symbol(&WriteSymbol::new(b"wide", SymbolType::Parameter, 20))
+            .unwrap();
+        let mut rows = writer.begin_symbol(symbol, None).unwrap();
+        for n in 0..50 {
+            let mut keys = [ids[0]; 20];
+            keys[0] = ids[n / 10];
+            keys[1..19].copy_from_slice(&ids[2..20]);
+            keys[19] = ids[n % 10];
+            rows.write(&keys, &[Value::NumberBits(0x3ff0000000000000 | n as u64)])
+                .unwrap();
+        }
+        rows.finish().unwrap();
+        writer.finish().unwrap();
+        drop(writer);
+        let reader = Reader::open(
+            &temp.path,
+            OpenOptions {
+                memory_budget_bytes: 1024 * 1024,
+                metadata_cache_bytes: 0,
+                ..OpenOptions::default()
+            },
+        )
+        .unwrap();
+        let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
+        let mut scan = reader
+            .scan(
+                &symbol,
+                ScanOptions {
+                    batch_bytes: 96,
+                    ..reader.scan_options()
+                },
+            )
+            .unwrap();
+        for n in 0..50 {
+            let point = scan.checkpoint().unwrap();
+            assert_eq!(point.row_ordinal(), n as u64);
+            let mut suffix = reader
+                .scan_from_checkpoint(
+                    &symbol,
+                    &point,
+                    ScanOptions {
+                        limit: Some(1),
+                        ..reader.scan_options()
+                    },
+                )
+                .unwrap();
+            let batch = suffix.next_batch().unwrap().unwrap();
+            let row = batch.row(0).unwrap();
+            for axis in 0..20 {
+                let expected = if axis == 0 {
+                    n / 10 + 1
+                } else if axis == 19 {
+                    n % 10 + 1
+                } else {
+                    axis + 2
+                };
+                assert_eq!(row.key(axis as u8).unwrap().get(), expected as u32);
+            }
+            assert_eq!(
+                row.value(ValueField::Level),
+                Some(Value::NumberBits(0x3ff0000000000000 | n as u64))
+            );
+            assert_eq!(scan.next_batch().unwrap().unwrap().len(), 1);
+        }
+        assert!(scan.next_batch().unwrap().is_none());
+        assert_eq!(scan.checkpoint().unwrap().row_ordinal(), 50);
+        assert!(reader.budget_statistics().peak_bytes <= 1024 * 1024);
+    }
 }

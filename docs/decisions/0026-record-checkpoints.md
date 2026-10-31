@@ -32,6 +32,31 @@ I/O or decoder failure is terminal and repeated next/checkpoint calls preserve t
 original error/context. A failed fill exposes neither a partial batch nor point.
 Existing points never trigger an implicit fallback/retry or duplicate delivered rows.
 
+Example (within one immutable open Reader):
+
+```rust
+use gdxrs::{OpenOptions, Reader, ScanOptions, SymbolId};
+fn example() -> gdxrs::Result<()> {
+let reader = Reader::open("model.gdx", OpenOptions::default())?;
+let symbol = reader.symbol(SymbolId::new(1)?)?;
+let mut scan = reader.scan(&symbol, reader.scan_options())?;
+if let Some(batch) = scan.next_batch()? {
+    // Consume this batch before checkpointing the cursor.
+    println!("{} rows", batch.len());
+}
+let point = scan.checkpoint()?;
+drop(scan);
+let mut suffix = reader.scan_from_checkpoint(
+    &symbol, &point,
+    ScanOptions { limit: Some(100), ..reader.scan_options() },
+)?;
+while let Some(batch) = suffix.next_batch()? {
+    println!("{} suffix rows", batch.len());
+}
+Ok(())
+}
+```
+
 ## State and replay proof
 
 The fixed state carries source/requested/resolved identity, data region, physical
