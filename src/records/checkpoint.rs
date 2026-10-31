@@ -172,3 +172,6 @@ impl Decoder {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "index")]
+mod index_wire;

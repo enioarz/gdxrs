@@ -72,3 +72,11 @@ pub use write::{
     UnsortedWriteStatistics, ValidationStatistics, WriteCompression, WriteDomain, WriteOptions,
     WriteStatistics, WriteStatus, WriteSymbol, Writer, WriterSymbolId, WriterUelId,
 };
+
+#[cfg(feature = "index")]
+mod index;
+#[cfg(feature = "index")]
+pub use index::{
+    CheckpointIndex, IndexBuilder, IndexInterval, IndexOpen, IndexOptions, IndexPolicy,
+    IndexPublication, IndexStatistics, IndexStatus,
+};

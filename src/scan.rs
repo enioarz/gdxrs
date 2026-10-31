@@ -162,6 +162,20 @@ pub struct RecordCheckpoint {
     _state: Reservation,
 }
 impl RecordCheckpoint {
+    #[cfg(feature = "index")]
+    pub(crate) fn verified(
+        source: std::sync::Arc<crate::source::Source>,
+        symbol: SymbolId,
+        position: DecoderPosition,
+    ) -> Result<Self> {
+        let state = source.budget.reserve(size_of::<Self>())?;
+        Ok(Self {
+            source,
+            symbol,
+            position,
+            _state: state,
+        })
+    }
     /// Number of raw public rows preceding this point, including a synthesized
     /// empty scalar's default row or universe rows. Not a byte offset.
     pub fn row_ordinal(&self) -> u64 {

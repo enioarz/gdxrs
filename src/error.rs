@@ -32,6 +32,7 @@ pub enum ErrorKind {
     TemporarySpaceExceeded,
     FileLimitExceeded,
     InvalidSpill,
+    InvalidIndex,
     InvalidWriteState,
     OutputLimitExceeded,
     DataErrorLimitExceeded,
