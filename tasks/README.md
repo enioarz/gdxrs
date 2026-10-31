@@ -141,5 +141,5 @@ The existing M4 adapter throughput limitations remain documented, not erased by 
 | --- | --- | --- | --- |
 | [032](032-record-checkpoints.md) | Complete bounded record-boundary restart state | 031 merged | Complete for in-session scope; PR #27 merged; [evidence](../docs/evidence/032.md) |
 | [033](033-paged-checkpoint-sidecars.md) | Paged sidecars, source identity and atomic explicit build | 032 | Complete for sidecar scope; PR #28 merged; [evidence](../docs/evidence/033.md) |
-| [034](034-indexed-selected-scans.md) | Validated interval planning, exact slices and safe fallback | 033 | In progress; [evidence](../docs/evidence/034.md) |
+| [034](034-indexed-selected-scans.md) | Validated interval planning, exact slices and safe fallback | 033 | Complete for correctness/API scope; PR #29 awaits review; [evidence](../docs/evidence/034.md) |
 | [035](035-m5-index-acceptance.md) | OS-capped index build/query scale and cold/warm acceptance | 032–034 | Pending |

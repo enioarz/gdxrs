@@ -1,6 +1,6 @@
 # 034 — Exact indexed selected scans
 
-Milestone: M5. Prerequisite: 033 complete/reviewed. Status: in progress.
+Milestone: M5. Prerequisite: 033 complete/reviewed. Status: complete for correctness/API scope; PR #29 awaits review.
 
 Integrate validated sidecars with explicit Reader policies. Plan bounded streamed
 candidate intervals from conservative summaries; scan/filter exact raw IDs and
@@ -22,3 +22,6 @@ cross-block records, aliases, scalars, universe, zero/exact limits, malformed
 sidecars and source changes before/during output. Include fail-closed fault and
 resource tests on four native platforms. Do not add parallel execution or postings
 without evidence and a separate specification. Task 035 remains the exit gate.
+
+Completion evidence: [034](../docs/evidence/034.md). Task 035 remains gated on
+review and retains OS-capped scale, cold/warm trials and M5 performance acceptance.

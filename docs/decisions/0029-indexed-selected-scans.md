@@ -50,7 +50,22 @@ Source integrity is checked at fill entry, interval access and successful fill e
 `ScanStatistics` counts actual decoded rows (including rejected/discarded work) and
 acknowledged returned rows. `indexed_statistics` separately reports considered/
 pruned intervals, adjacent coalescing, checkpoint restarts, query index reads/cache
-hits, explicit validation statistics, and source read/decoded-buffer deltas during
+hits, the immutable successful-open validation snapshot, and source read/decoded-buffer deltas during
 cursor calls. Shared-source concurrent I/O can contribute to source deltas, as with
 `Reader::io_statistics`; unrelated work between calls is excluded. These are work
 counters, not a claim of cold/warm latency or aggregate process memory containment.
+
+An explicit warm-reuse sequence (error handling uses the ordinary Result API):
+
+```rust
+let open = reader.open_index(&symbol, &path, index_options, IndexPolicy::UseIfValid)?;
+let mut query = reader.scan_selected_indexed(&symbol, &selection, options, open)?;
+while let Some(batch) = query.next_batch()? {
+    consume(batch); // Lending buffers cannot outlive the next call.
+}
+if let Some(index) = query.into_index() {
+    let open = IndexOpen { status: IndexStatus::Ready, index: Some(index) };
+    let next = reader.scan_selected_indexed(&symbol, &next_selection, next_options, open)?;
+    // No source digest/replay is repeated by this query constructor.
+}
+```
