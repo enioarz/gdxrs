@@ -1,6 +1,8 @@
 //! Private checksummed journal storage, with bounded buffers and explicit extent.
 use super::*;
 use std::io::Read;
+mod cache;
+use cache::Cache;
 const FRAME: usize = 1024;
 // Whole 19-byte ordinal frames; variable journal frames may cross pages.
 const PAGE: usize = 19 * 1724;
@@ -29,6 +31,7 @@ pub(super) struct Store {
     cache_len: usize,
     cache_dirty: bool,
     stamp: Option<std::time::SystemTime>,
+    cache: Option<Cache>,
 }
 impl Store {
     pub fn reopen(&mut self, path: &Path) -> Result<()> {
@@ -49,10 +52,14 @@ impl Store {
         self.buffer.data.clear();
         self.cache_len = 0;
         self.cache_dirty = false;
+        if let Some(cache) = &mut self.cache {
+            cache.invalidate();
+        }
         self.file = Some(file);
         Ok(())
     }
     pub fn close(&mut self) {
+        self.cache = None;
         self.file = None;
     }
     pub fn create(path: &Path, budget: &Arc<Budget>) -> Result<Self> {
@@ -74,7 +81,24 @@ impl Store {
             cache_len: 0,
             cache_dirty: false,
             stamp: None,
+            cache: None,
         })
+    }
+    pub fn enable_cache(&mut self, budget: &Arc<Budget>, bytes: usize) -> Result<()> {
+        if bytes == 0 || self.cache.is_some() {
+            return Ok(());
+        }
+        self.flush()?;
+        self.cache_len = 0;
+        self.buffer.data.clear();
+        self.cache = Cache::new(budget, bytes, self.length)?;
+        Ok(())
+    }
+    fn with_cache<T>(&mut self, f: impl FnOnce(&mut Cache, &mut Store) -> Result<T>) -> Result<T> {
+        let mut cache = self.cache.take().ok_or_else(Self::invalid_snapshot)?;
+        let result = f(&mut cache, self);
+        self.cache = Some(cache);
+        result
     }
     fn file(&mut self) -> Result<&mut fs::File> {
         self.file
@@ -130,9 +154,14 @@ impl Store {
         peak: &mut u64,
         limit: u64,
     ) -> Result<()> {
-        if self.cache_dirty {
+        if self.cache_dirty || self.cache.as_ref().is_some_and(Cache::is_dirty) {
             self.validate_snapshot()?;
             self.flush_cache()?;
+        }
+        if let Some(cache) = &mut self.cache
+            && cache.is_valid()
+        {
+            cache.invalidate();
         }
         if self.cache_len != 0 {
             self.cache_len = 0;
@@ -192,8 +221,11 @@ impl Store {
         }
         let stamp = m.modified().map_err(Error::io)?;
         if self.stamp != Some(stamp) {
-            if self.cache_dirty {
+            if self.cache_dirty || self.cache.as_ref().is_some_and(Cache::is_dirty) {
                 return Err(Self::invalid_snapshot());
+            }
+            if let Some(cache) = &mut self.cache {
+                cache.invalidate();
             }
             self.cache_len = 0;
             self.buffer.data.clear();
@@ -202,6 +234,9 @@ impl Store {
         Ok(())
     }
     fn flush_cache(&mut self) -> Result<()> {
+        if self.cache.is_some() {
+            self.with_cache(|cache, store| cache.flush(store))?;
+        }
         if !self.cache_dirty {
             return Ok(());
         }
@@ -246,6 +281,9 @@ impl Store {
         {
             return Err(Self::invalid_snapshot());
         }
+        if self.cache.is_some() {
+            return self.with_cache(|cache, store| cache.read(store, at, bytes));
+        }
         while !bytes.is_empty() {
             if at < self.cache_start || at >= self.cache_start + self.cache_len as u64 {
                 self.flush_cache()?;
@@ -272,6 +310,20 @@ impl Store {
     }
     pub fn next(&mut self, position: &mut u64) -> Result<Option<Frame>> {
         self.validate_snapshot()?;
+        self.next_in_snapshot(position)
+    }
+    pub fn begin_snapshot(&mut self) -> Result<Option<std::time::SystemTime>> {
+        self.validate_snapshot()?;
+        Ok(self.stamp)
+    }
+    pub fn end_snapshot(&mut self, stamp: Option<std::time::SystemTime>) -> Result<()> {
+        self.validate_snapshot()?;
+        if self.stamp != stamp {
+            return Err(Self::invalid_snapshot());
+        }
+        Ok(())
+    }
+    pub fn next_in_snapshot(&mut self, position: &mut u64) -> Result<Option<Frame>> {
         event(Event::MetadataRead).map_err(Error::io)?;
         if *position == self.length {
             self.read_at(*position, &mut [])?;
@@ -319,12 +371,17 @@ impl Store {
 impl Store {
     #[cfg(not(windows))]
     pub fn integer(&mut self, index: u32) -> Result<i64> {
+        self.validate_snapshot()?;
+        self.integer_in_snapshot(index)
+    }
+    #[cfg(not(windows))]
+    pub fn integer_in_snapshot(&mut self, index: u32) -> Result<i64> {
         if index == 0 {
             return Err(Error::new(ErrorKind::InvalidSpill, "zero ordinal index"));
         }
         let mut at = u64::from(index - 1) * 19;
         let f = self
-            .next(&mut at)?
+            .next_in_snapshot(&mut at)?
             .ok_or_else(|| Error::new(ErrorKind::InvalidSpill, "missing ordinal index"))?;
         if f.tag != 8 || f.len != 8 {
             return Err(Error::new(ErrorKind::InvalidSpill, "invalid ordinal frame"));
@@ -335,10 +392,14 @@ impl Store {
     }
     #[cfg(windows)]
     pub fn integer(&mut self, index: u32) -> Result<i64> {
+        self.validate_snapshot()?;
+        self.integer_in_snapshot(index)
+    }
+    #[cfg(windows)]
+    pub fn integer_in_snapshot(&mut self, index: u32) -> Result<i64> {
         if index == 0 {
             return Err(Self::invalid_snapshot());
         }
-        self.validate_snapshot()?;
         let at = u64::from(index - 1) * 19;
         if at.checked_add(19).is_none_or(|end| end > self.length) {
             return Err(Self::invalid_snapshot());
@@ -385,6 +446,9 @@ impl Store {
         }
         #[cfg(not(windows))]
         {
+            if self.cache.is_some() {
+                return self.with_cache(|cache, store| cache.patch(store, at, &b));
+            }
             let offset = (at - self.cache_start) as usize;
             // PAGE is a multiple of 19: integer() brought this entire frame into cache.
             self.buffer
@@ -451,5 +515,119 @@ mod cache_tests {
             assert_eq!(&f.payload()[4..], &[b'x'; 1020]);
         }
         assert!(store.next(&mut at).unwrap().is_none());
+    }
+    #[test]
+    fn multipage_cache_is_charged_evicts_dirty_pages_and_releases_on_close() {
+        let _reset = Reset::new();
+        let p = Parent::new();
+        let budget = Budget::new(4 * 1024 * 1024);
+        let mut store = Store::create(&p.destination(), &budget).unwrap();
+        let base = budget.statistics().current_bytes;
+        store.enable_cache(&budget, 600 * 1024).unwrap();
+        let charged = budget.statistics().current_bytes - base;
+        assert!(charged > 500 * 1024 && charged <= 600 * 1024);
+        let (mut used, mut peak) = (0, 0);
+        // More than one set: this forces dirty eviction with the one-set cache.
+        let count = 1724 * 24;
+        for _ in 0..count {
+            store
+                .append(
+                    8,
+                    &0i64.to_le_bytes(),
+                    &mut used,
+                    &mut peak,
+                    8 * 1024 * 1024,
+                )
+                .unwrap();
+        }
+        short_chunks(7);
+        for i in 0..count {
+            let ordinal = (i * 37) % count + 1;
+            store.set_integer(ordinal, -i64::from(ordinal)).unwrap();
+        }
+        store.sync().unwrap();
+        for i in 1..=count {
+            assert_eq!(store.integer(i).unwrap(), -i64::from(i));
+        }
+        store.close();
+        assert_eq!(budget.statistics().current_bytes, base);
+        store.reopen(&p.destination()).unwrap();
+        assert_eq!(store.integer(count).unwrap(), -i64::from(count));
+        drop(store);
+        assert_eq!(budget.statistics().current_bytes, 0);
+    }
+    #[test]
+    fn cached_snapshot_rejects_changed_extent_and_allocation_failure_leaks_no_charge() {
+        let _reset = Reset::new();
+        let p = Parent::new();
+        let budget = Budget::new(1024 * 1024);
+        let mut store = Store::create(&p.destination(), &budget).unwrap();
+        let base = budget.statistics().current_bytes;
+        // Empty file requests the configured maximum, which cannot fit this root.
+        assert!(store.enable_cache(&budget, 2 * 1024 * 1024).is_err());
+        assert_eq!(budget.statistics().current_bytes, base);
+        let (mut used, mut peak) = (0, 0);
+        store
+            .append(8, &42i64.to_le_bytes(), &mut used, &mut peak, 1024)
+            .unwrap();
+        store.enable_cache(&budget, 600 * 1024).unwrap();
+        let stamp = store.begin_snapshot().unwrap();
+        assert_eq!(store.integer_in_snapshot(1).unwrap(), 42);
+        fs::OpenOptions::new()
+            .write(true)
+            .open(p.destination())
+            .unwrap()
+            .set_len(20)
+            .unwrap();
+        assert_eq!(
+            store.end_snapshot(stamp).unwrap_err().kind,
+            ErrorKind::InvalidSpill
+        );
+        drop(store);
+        assert_eq!(budget.statistics().current_bytes, 0);
+    }
+    #[test]
+    fn multipage_cache_reports_corruption_and_retains_failed_writeback() {
+        let _reset = Reset::new();
+        let p = Parent::new();
+        let budget = Budget::new(2 * 1024 * 1024);
+        let mut store = Store::create(&p.destination(), &budget).unwrap();
+        let (mut used, mut peak) = (0, 0);
+        store
+            .append(8, &0i64.to_le_bytes(), &mut used, &mut peak, 1024)
+            .unwrap();
+        store.enable_cache(&budget, 600 * 1024).unwrap();
+        store.set_integer(1, -7).unwrap();
+        #[cfg(not(windows))]
+        {
+            crate::write::tests::fault(
+                Event::MetadataWrite,
+                0,
+                false,
+                io::ErrorKind::PermissionDenied,
+            );
+            assert!(store.sync().is_err());
+            assert!(store.cache.as_ref().unwrap().is_dirty());
+            store.sync().unwrap();
+        }
+        store.sync().unwrap();
+        store.close();
+        store.reopen(&p.destination()).unwrap();
+        store.enable_cache(&budget, 600 * 1024).unwrap();
+        assert_eq!(store.integer(1).unwrap(), -7);
+        // Force physical read of the corrupted frame on every platform.
+        store.close();
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .open(p.destination())
+            .unwrap();
+        file.seek(SeekFrom::Start(3)).unwrap();
+        file.write_all(&[1]).unwrap();
+        drop(file);
+        store.reopen(&p.destination()).unwrap();
+        store.enable_cache(&budget, 600 * 1024).unwrap();
+        assert_eq!(store.integer(1).unwrap_err().kind, ErrorKind::InvalidSpill);
+        drop(store);
+        assert_eq!(budget.statistics().current_bytes, 0);
     }
 }

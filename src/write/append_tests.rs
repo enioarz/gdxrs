@@ -155,6 +155,8 @@ fn append_preserves_ids_metadata_physical_empty_and_forward_alias_domains_across
                     p.destination().with_file_name("appended.gdx")
                 };
                 let mut w = pending(&p, &dest, output, policy);
+                let shared = w.append.as_ref().unwrap().reader.as_ref().unwrap();
+                assert!(Arc::ptr_eq(&w.budget, &shared.source.budget));
                 w.begin_append(&limits(&p)).unwrap();
                 let stats = w.append_statistics().unwrap();
                 assert!(stats.initialized);

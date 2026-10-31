@@ -483,3 +483,84 @@ mod platforms;
 
 #[path = "cases/writer.rs"]
 mod writer;
+
+#[test]
+fn optional_writer_pages_preserve_crossing_label_frames_and_comments() {
+    let temp = common::TempFile::new(&[]);
+    std::fs::remove_file(&temp.path).unwrap();
+    let mut writer = Writer::create(
+        &temp.path,
+        WriteOptions {
+            memory_budget_bytes: 4 * 1024 * 1024,
+            ..WriteOptions::default()
+        },
+    )
+    .unwrap();
+    let mut options = MetadataOptions::new(temp.path.parent().unwrap());
+    options.lookup_cache_bytes = 600 * 1024;
+    options.run_bytes = 256 * 1024;
+    options.merge_fan_in = 4;
+    writer.begin_metadata(&options).unwrap();
+    let (mut first, mut last) = (None, None);
+    writer
+        .register_uels_fresh(
+            (1..=10_000).map(|n| Ok(format!("L{n:08}").repeat(7))),
+            |ordinal, id| {
+                if ordinal == 1 {
+                    first = Some(id);
+                }
+                last = Some(id);
+                Ok(())
+            },
+        )
+        .unwrap();
+    let symbol = writer
+        .register_symbol(&WriteSymbol::new(b"P", SymbolType::Parameter, 1))
+        .unwrap();
+    for _ in 0..22 {
+        writer.add_comment(symbol, &[b'x'; 255]).unwrap();
+    }
+    let mut rows = writer.begin_symbol(symbol, None).unwrap();
+    rows.write(&[first.unwrap()], &[Value::NumberBits(1f64.to_bits())])
+        .unwrap();
+    rows.write(&[last.unwrap()], &[Value::NumberBits(2f64.to_bits())])
+        .unwrap();
+    rows.finish().unwrap();
+    writer.finish().unwrap();
+    assert!(writer.budget_statistics().peak_bytes <= 4 * 1024 * 1024);
+    assert_eq!(writer.metadata_statistics().temporary_bytes, 0);
+    drop(writer);
+    let reader = Reader::open(&temp.path, OpenOptions::default()).unwrap();
+    let mut labels = reader.uels().unwrap();
+    for n in 1..=10_000 {
+        let label = labels.next().unwrap().unwrap();
+        assert_eq!(label.id.get(), n);
+        assert_eq!(label.label, format!("L{n:08}").repeat(7).as_bytes());
+    }
+    assert!(labels.next().unwrap().is_none());
+    let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
+    let mut comments = reader.comments(&symbol).unwrap();
+    for _ in 0..22 {
+        assert_eq!(comments.next().unwrap().unwrap().text, &[b'x'; 255]);
+    }
+    assert!(comments.next().unwrap().is_none());
+    let mut scan = reader.scan(&symbol, reader.scan_options()).unwrap();
+    let batch = scan.next_batch().unwrap().unwrap();
+    assert_eq!(
+        batch
+            .key_column(0)
+            .unwrap()
+            .iter()
+            .map(|k| k.get())
+            .collect::<Vec<_>>(),
+        [1, 10_000]
+    );
+    assert_eq!(
+        batch.value_column(ValueField::Level).unwrap(),
+        &[
+            Value::NumberBits(1f64.to_bits()),
+            Value::NumberBits(2f64.to_bits())
+        ]
+    );
+    assert!(scan.next_batch().unwrap().is_none());
+}

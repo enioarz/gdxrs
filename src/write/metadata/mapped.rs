@@ -126,6 +126,10 @@ impl Metadata {
                 (Ok(entries), Ok(_)) => entries,
             };
             self.mapped_store.as_mut().ok_or_else(corrupt)?.sync()?;
+            self.mapped_store
+                .as_mut()
+                .ok_or_else(corrupt)?
+                .enable_cache(&self.budget, self.options.lookup_cache_bytes)?;
             self.map_entries = entries;
             self.map_maximum = maximum;
             self.map_ready = true;
@@ -171,32 +175,39 @@ impl Metadata {
             0
         };
         let store = self.mapped_store.as_mut().ok_or_else(corrupt)?;
-        while low < high {
-            let mid = low + (high - low) / 2;
-            let ordinal = base
-                .checked_add(mid)
-                .and_then(|n| n.checked_add(1))
-                .ok_or_else(corrupt)?;
-            // Reuse the verified ordinal path, including physical NTFS reads.
-            let pair = store
-                .integer(u32::try_from(ordinal).map_err(|_| corrupt())?)?
-                .to_le_bytes();
-            let found = u32_at(&pair[..4])?;
-            let target = u32_at(&pair[4..])?;
-            if found > i32::MAX as u32
-                || target > i32::MAX as u32
-                || inverse && (target == 0 || target > self.map_maximum)
-                || !inverse && (found == 0 || found > self.map_maximum)
-            {
-                return Err(corrupt());
+        let stamp = store.begin_snapshot()?;
+        let result = (|| {
+            while low < high {
+                let mid = low + (high - low) / 2;
+                let ordinal = base
+                    .checked_add(mid)
+                    .and_then(|n| n.checked_add(1))
+                    .ok_or_else(corrupt)?;
+                // Reuse the verified ordinal path, including physical NTFS reads.
+                let pair = store
+                    .integer_in_snapshot(u32::try_from(ordinal).map_err(|_| corrupt())?)?
+                    .to_le_bytes();
+                let found = u32_at(&pair[..4])?;
+                let target = u32_at(&pair[4..])?;
+                if found > i32::MAX as u32
+                    || target > i32::MAX as u32
+                    || inverse && (target == 0 || target > self.map_maximum)
+                    || !inverse && (found == 0 || found > self.map_maximum)
+                {
+                    return Err(corrupt());
+                }
+                match found.cmp(&key) {
+                    std::cmp::Ordering::Less => low = mid + 1,
+                    std::cmp::Ordering::Greater => high = mid,
+                    std::cmp::Ordering::Equal => return Ok(Some(target)),
+                }
             }
-            match found.cmp(&key) {
-                std::cmp::Ordering::Less => low = mid + 1,
-                std::cmp::Ordering::Greater => high = mid,
-                std::cmp::Ordering::Equal => return Ok(Some(target)),
-            }
+            Ok(None)
+        })();
+        if result.is_ok() {
+            store.end_snapshot(stamp)?;
         }
-        Ok(None)
+        result
     }
     pub(crate) fn map_sort_closed(&mut self, statistics: SpillStatistics, closed: bool) {
         self.record_sort_statistics(statistics);

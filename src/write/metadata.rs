@@ -265,7 +265,6 @@ pub(crate) struct Metadata {
     sort_directory: Option<PathBuf>,
     sort_used: u64,
     sort_peak: u64,
-    sort_handles: u64,
     cleaned: bool,
     _state: Reservation,
     _paths: Reservation,
@@ -365,6 +364,7 @@ impl Metadata {
         }
         let mut limits = SpillOptions::new(&parent);
         limits.run_bytes = options.run_bytes;
+        limits.lookup_cache_bytes = options.lookup_cache_bytes;
         limits.maximum_temporary_bytes = options.maximum_temporary_bytes / 2;
         limits.maximum_open_files = options.maximum_open_files - 3;
         limits.merge_fan_in = options.merge_fan_in.min(limits.maximum_open_files - 1);
@@ -422,7 +422,6 @@ impl Metadata {
             sort_directory: None,
             sort_used: 0,
             sort_peak: 0,
-            sort_handles: 0,
             cleaned: false,
             _state: state,
             _paths: paths,
@@ -448,6 +447,11 @@ impl Metadata {
         })
     }
     fn j(&mut self) -> Result<&mut Store> {
+        if let Some(j) = &mut self.journal
+            && j.length != 0
+        {
+            j.enable_cache(&self.budget, self.options.lookup_cache_bytes)?;
+        }
         self.journal
             .as_mut()
             .ok_or_else(|| Error::new(ErrorKind::InvalidWriteState, "metadata journal is closed"))
@@ -479,14 +483,6 @@ impl Metadata {
                 + u64::from(self.string_store.is_some())
                 + u64::from(self.mapped_store.is_some())
                 + u64::from(self.deferred_store.is_some()),
-            peak_open_files: self.stats.peak_open_files.max(if self.sort_handles > 0 {
-                3 + self.sort_handles
-                    + u64::from(self.string_store.is_some())
-                    + u64::from(self.owned[4])
-                    + u64::from(self.deferred_store.is_some())
-            } else {
-                0
-            }),
             ..self.stats
         }
     }
@@ -511,10 +507,22 @@ impl Metadata {
         self.sort_used = 0;
         Ok(sorter)
     }
+    fn observe_sort_handles(&mut self, peak: u64) {
+        // Freeze each sort's aggregate peak while its retained owners are known.
+        // Combining an old peak with a later spool invents concurrent handles.
+        if peak != 0 {
+            self.stats.peak_open_files = self.stats.peak_open_files.max(
+                3 + peak
+                    + u64::from(self.string_store.is_some())
+                    + u64::from(self.owned[4])
+                    + u64::from(self.deferred_store.is_some()),
+            );
+        }
+    }
     pub(crate) fn record_sort_statistics(&mut self, stats: SpillStatistics) {
         self.sort_used = stats.temporary_bytes;
         self.sort_peak = self.sort_peak.max(stats.peak_temporary_bytes);
-        self.sort_handles = self.sort_handles.max(stats.peak_open_files);
+        self.observe_sort_handles(stats.peak_open_files);
         self.stats.merge_passes = stats.merge_passes;
         if stats.complete {
             self.sort_directory = None;
@@ -1007,6 +1015,7 @@ impl Metadata {
         self.stats.peak_open_files = self.stats.peak_open_files.max(2);
         let mut index = Store::create(&self.path(2), &self.budget)?;
         self.owned[2] = true;
+        index.enable_cache(&self.budget, self.options.lookup_cache_bytes)?;
         self.stats.peak_open_files = self.stats.peak_open_files.max(3);
         let mut sort = Some(SpillSorter::with_budget(
             Arc::clone(&self.budget),
@@ -1135,6 +1144,8 @@ impl Metadata {
                     self.append(1, &p)?;
                     self.stats.uels = id;
                     id
+                } else if canonical <= i64::from(existing) {
+                    canonical as u32
                 } else {
                     let resolved = index.integer(canonical as u32)?;
                     if resolved >= 0 || resolved < -i64::from(self.stats.uels) {
@@ -1170,7 +1181,7 @@ impl Metadata {
         let statistics = observe();
         self.sort_used = statistics.temporary_bytes;
         self.sort_peak = self.sort_peak.max(statistics.peak_temporary_bytes);
-        self.sort_handles = self.sort_handles.max(statistics.peak_open_files);
+        self.observe_sort_handles(statistics.peak_open_files);
         self.stats.merge_passes = statistics.merge_passes;
         result?;
         let bytes = requests
@@ -1336,12 +1347,14 @@ impl Metadata {
                 start,
             }) = domains[axis]
             {
+                let store = self.j()?;
+                let stamp = store.begin_snapshot()?;
                 let (mut low, mut high) = (0u32, count);
                 let mut found = false;
                 while low < high {
                     let mid = low + (high - low) / 2;
                     let mut at = start.checked_add(u64::from(mid) * 19).ok_or_else(corrupt)?;
-                    let f = self.j()?.next(&mut at)?.ok_or_else(corrupt)?;
+                    let f = store.next_in_snapshot(&mut at)?.ok_or_else(corrupt)?;
                     if f.tag != 9 {
                         return Err(corrupt());
                     }
@@ -1360,6 +1373,7 @@ impl Metadata {
                         }
                     }
                 }
+                store.end_snapshot(stamp)?;
                 if !found {
                     violations |= 1 << axis;
                 }
