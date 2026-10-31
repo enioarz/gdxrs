@@ -1,7 +1,7 @@
 # 032 — Exact bounded record checkpoints
 
 Milestone: M5. Prerequisite: 031 reviewed/merged (PR #26, merge `6b29a9e`).
-Status: in progress.
+Status: complete for the in-session scope; review pending.
 
 Implement a complete record-boundary restart primitive before designing persistent
 sidecars. Checkpoints are explicit, opaque, owned and charged to the same Reader
@@ -43,3 +43,10 @@ Acceptance:
   counts, source revisions, findings and limits in `docs/evidence/032.md`.
 
 Task 033 is gated on this proof and review; no persistent reuse is claimed here.
+
+## Completion
+
+[032 evidence](../docs/evidence/032.md) records the qualification revision, exact
+feature/focused counts, unchanged native fixture expectations, all four native
+platforms, source hashes and self-review findings. No persistence or acceleration
+claim follows from this task; 033 remains gated on review/merge.
