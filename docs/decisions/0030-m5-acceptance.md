@@ -42,12 +42,15 @@ wait4 RSS, sampled descriptors/I/O and explicit 12 GiB owned-index / two-handle 
 retired only after full native validation, ordered serial/indexed comparisons,
 source-unchanged verification, independent source/header SHA-256 and sidecar hashing.
 
-Scale uses growing 18M/36M wide record inputs, 18M/36M 63-byte UEL dictionaries,
+Scale uses growing 18M/36M wide raw and native-written zlib record inputs,
+18M/36M 63-byte UEL dictionaries,
 and 4.2M/8.4M one-record checkpoint sidecars. Largest records and metadata files
 are physically/logically >4× the process cap. The largest sidecar input is also
 physically/logically >4× the cap, with its directory alone >512 MiB independently
 of checkpoint data. Directory stress is separate from source-record/metadata stress;
-no assertion is inferred from just total index size or a count-only sink.
+no assertion is inferred from just total index size or a count-only sink. Zlib
+cases independently qualify oversized logical records; their compressed physical
+files may fit RAM. Raw records/dictionaries provide the physical oversized proof.
 
 Every case has three fresh cold serial, explicit build and strict reopen trials;
 the first indexed query follows each strict reopen, then three warm queries reuse

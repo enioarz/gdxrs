@@ -17,6 +17,8 @@ def validate_worker(trial):
         raise ValueError('M5 enforced process cap missing')
     if r['index_quota'] != QUOTA or r['handle_limit'] != 2 or r['cache_limit'] != 1024:
         raise ValueError('M5 index byte/handle/cache admission mismatch')
+    if trial.get('sampled_peak_fds', 0) > 5:
+        raise ValueError('M5 observed descriptors exceed stdin/stdout/stderr plus two admitted files')
     if not 1 <= len(r['phases']) <= 13:
         raise ValueError('M5 bounded phase output missing')
 
@@ -74,7 +76,7 @@ def performance(case):
     return dict(cold_serial_seconds=samples(serial_seconds), build_seconds=samples(builds), strict_reopen_seconds=samples([r['seconds'] for r in opens]), source_digest_seconds=samples([r['digest_seconds'] for r in opens]), canonical_replay_seconds=samples([r['replay_seconds'] for r in opens]), first_indexed_seconds=samples(first), warm_seconds=samples(warm_seconds), warm_speedup=statistics.median(serial_seconds) / statistics.median(warm_seconds), reopen_break_even_queries=math.ceil((statistics.median((r['seconds'] for r in opens)) + statistics.median(first) - statistics.median(warm_seconds)) / saving), build_and_reopen_break_even_queries=math.ceil((statistics.median(builds) + statistics.median((r['seconds'] for r in opens)) + statistics.median(first) - statistics.median(warm_seconds)) / saving))
 
 def qualify(cases):
-    for kind in ['records', 'metadata', 'directory']:
+    for kind in ['records', 'compressed', 'metadata', 'directory']:
         rows = [c for c in cases if c['kind'] == kind]
         if len(rows) < 2 or rows[-1]['count'] <= rows[0]['count']:
             raise ValueError('M5 requires growing independently oversized ' + kind)
@@ -91,7 +93,7 @@ def qualify(cases):
             if min((t['index']['bytes'] for t in last['trials'])) <= 4 * CAP:
                 raise ValueError('physical/logical sidecar input must exceed four times cap')
         else:
-            if last['source']['bytes'] <= 4 * CAP or last['logical_bytes'] <= 4 * CAP:
+            if last['logical_bytes'] <= 4 * CAP or kind != 'compressed' and last['source']['bytes'] <= 4 * CAP:
                 raise ValueError('physical AND logical source input must exceed four times cap')
             if kind == 'metadata' and last['count'] * 64 <= 4 * CAP:
                 raise ValueError('metadata itself is not independently oversized')
@@ -125,7 +127,7 @@ def check(run, profile):
         t = scale.measure([worker, mode, source, index, 'metadata' if kind == 'metadata' else 'records', n, stride, selector, repeats], area, name, timeout=7200)
         validate_worker(t)
         return t
-    schedule = [('records', n) for n in ([4096, 16384] if profile == 'smoke' else [18000000, 36000000])] + [('metadata', n) for n in ([4096, 16384] if profile == 'smoke' else [18000000, 36000000])] + [('directory', n) for n in ([4096, 16384] if profile == 'smoke' else [4200000, 8400000])]
+    schedule = [('records', n) for n in ([4096, 16384] if profile == 'smoke' else [18000000, 36000000])] + [('compressed', n) for n in ([4096, 16384] if profile == 'smoke' else [18000000, 36000000])] + [('metadata', n) for n in ([4096, 16384] if profile == 'smoke' else [18000000, 36000000])] + [('directory', n) for n in ([4096, 16384] if profile == 'smoke' else [4200000, 8400000])]
     progress()
     for kind, n in schedule:
         stride = 1 if kind == 'directory' else 65536
@@ -134,9 +136,13 @@ def check(run, profile):
             raise ValueError('insufficient storage for owned M5 case; no unrelated artifacts removed')
         source = area / f'{kind}-{n}.gdx'
         index = area / f'{kind}-{n}.index'
-        recipe = json.loads(run([native, 'generate', source, 'metadata' if kind == 'metadata' else 'records', n], capture=True, timeout=7200).stdout)
+        if kind == 'compressed':
+            generated = json.loads(run([native, 'write', source, 'records', n, 'zlib'], capture=True, timeout=7200).stdout)
+            recipe = dict(count=n, labels=generated['labels'], label_digest=generated['label_digest'], expected=dict(all=generated['all']), native_generation=generated)
+        else:
+            recipe = json.loads(run([native, 'generate', source, 'metadata' if kind == 'metadata' else 'records', n], capture=True, timeout=7200).stdout)
         if profile == 'smoke':
-            if kind != 'metadata' and recipe['expected'] != scale.expected(n):
+            if kind != 'metadata' and (recipe['expected']['all'] != scale.expected(n)['all'] or kind != 'compressed' and recipe['expected'] != scale.expected(n)):
                 raise ValueError('independent Python record calibration')
             if recipe['label_digest'] != scale.expected_labels(recipe['labels']):
                 raise ValueError('independent Python label calibration')
@@ -202,4 +208,4 @@ def check(run, profile):
         qualify(cases)
     if hashes != {p: oracle.file_digest(ROOT / p) for p in SOURCES}:
         raise ValueError('M5 sources changed during qualification')
-    return dict(source_revision=revision, source_hashes=hashes, profile=profile, m5_qualified=profile == 'scale', process_cap=CAP, library_budget=BUDGET, index_quota=QUOTA, handle_limit=2, page_cache_limit=1024, trials=TRIALS, root=str(area.relative_to(ROOT)), cases=cases, calibration=calibration, oracle=reference, worker_sha256=oracle.file_digest(worker), native_binary_sha256=oracle.file_digest(native), compiler=run(['rustc', '--version', '--verbose'], capture=True).stdout, hardware=dict(platform=platform.platform(), cpu=next((l.split(':', 1)[1].strip() for l in Path('/proc/cpuinfo').read_text().splitlines() if l.startswith('model name')))), storage=run(['df', '-T', ROOT], capture=True).stdout, cache_policy='Cold phases use fresh process plus per-file fsync/POSIX_FADV_DONTNEED before each trial; advisory only, device caches uncontrolled. First query follows strict replay. Three warm queries reuse one validated session. Functional matrix follows warm queries; serial matrix uses a fresh process after advisory source eviction.', retention='Owned generated source/index files retired only after complete native validation, ordered serial/indexed comparison and SHA-256; compact reports/binaries retained', limitations=['Linux RLIMIT_AS/RSS containment only; native metadata reference uses explicit 16 GiB cap because upstream eagerly loads dictionaries', 'Directory itself must exceed 512 MiB, and its complete physical/logical sidecar input exceeds 4x cap. Records and metadata source inputs independently exceed 4x cap.', 'No privileged global/device cache eviction; cold means documented advisory eviction', 'Source I/O deltas may include concurrent same-source work; workers are single-threaded', 'No independent approval or automatic M5 release'])
+    return dict(source_revision=revision, source_hashes=hashes, profile=profile, m5_qualified=profile == 'scale', process_cap=CAP, library_budget=BUDGET, index_quota=QUOTA, handle_limit=2, page_cache_limit=1024, trials=TRIALS, root=str(area.relative_to(ROOT)), cases=cases, calibration=calibration, oracle=reference, worker_sha256=oracle.file_digest(worker), native_binary_sha256=oracle.file_digest(native), compiler=run(['rustc', '--version', '--verbose'], capture=True).stdout, hardware=dict(platform=platform.platform(), cpu=next((l.split(':', 1)[1].strip() for l in Path('/proc/cpuinfo').read_text().splitlines() if l.startswith('model name')))), storage=run(['df', '-T', ROOT], capture=True).stdout, cache_policy='Cold phases use fresh process plus per-file fsync/POSIX_FADV_DONTNEED before each trial; advisory only, device caches uncontrolled. First query follows strict replay. Three warm queries reuse one validated session. Functional matrix follows warm queries; serial matrix uses a fresh process after advisory source eviction.', retention='Owned generated source/index files retired only after complete native validation, ordered serial/indexed comparison and SHA-256; compact reports/binaries retained', limitations=['Linux RLIMIT_AS/RSS containment only; native metadata reference uses explicit 16 GiB cap because upstream eagerly loads dictionaries', 'Compressed cases qualify logical oversized records; their compressed physical files may fit RAM. Raw records and dictionaries separately qualify physical oversized inputs.', 'Directory itself must exceed 512 MiB, and its complete physical/logical sidecar input exceeds 4x cap. Records and metadata source inputs independently exceed 4x cap.', 'No privileged global/device cache eviction; cold means documented advisory eviction', 'Source I/O deltas may include concurrent same-source work; workers are single-threaded', 'No independent approval or automatic M5 release'])
