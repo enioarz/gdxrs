@@ -532,6 +532,8 @@ fn indexed_query_prunes_reuses_and_keeps_zero_limit_lazy() {
         assert!(stats.source_io.read_calls > 0);
     }
     let index = scan.into_index().unwrap();
+    assert!(index.statistics().pages_read > index.validation_statistics().pages_read);
+    let validation_pages = index.validation_statistics().pages_read;
     let mut scan = reader
         .scan_selected_indexed(
             &symbol,
@@ -550,6 +552,11 @@ fn indexed_query_prunes_reuses_and_keeps_zero_limit_lazy() {
     assert!(scan.next_batch().unwrap().is_none());
     assert_eq!(reader.io_statistics().read_calls, io.read_calls);
     assert_eq!(scan.indexed_statistics().unwrap().intervals_considered, 0);
+    assert_eq!(
+        scan.indexed_statistics().unwrap().validation.pages_read,
+        validation_pages
+    );
+    assert_eq!(scan.indexed_statistics().unwrap().index_pages_read, 0);
     assert_eq!(scan.statistics().decoded_rows, 0);
 }
 #[test]

@@ -72,6 +72,10 @@ impl Plan {
             .index
             .as_ref()
             .map_or_else(IndexStatistics::default, CheckpointIndex::statistics);
+        let validation = open.index.as_ref().map_or_else(
+            IndexStatistics::default,
+            CheckpointIndex::validation_statistics,
+        );
         let tail = open.index.is_none() || !selection.can_prune_intervals();
         let mode = if open.index.is_some() && tail {
             IndexScanMode::Sequential
@@ -86,7 +90,7 @@ impl Plan {
             tail,
             statistics: IndexedScanStatistics {
                 mode,
-                validation: baseline,
+                validation,
                 ..IndexedScanStatistics::default()
             },
             baseline,
