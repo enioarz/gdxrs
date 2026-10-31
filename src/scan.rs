@@ -227,7 +227,7 @@ impl ScanCursor {
             .source
             .budget
             .reserve(size_of::<RecordCheckpoint>())?;
-        let result = (|| {
+        let result: Result<RecordCheckpoint> = (|| {
             self.reader.source.check_unchanged()?;
             let position = if let Some(decoder) = &mut self.decoder {
                 decoder.checkpoint()?
