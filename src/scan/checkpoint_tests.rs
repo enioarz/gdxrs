@@ -21,6 +21,20 @@ fn checkpoint_ownership_budget_denial_and_release_are_explicit() {
     );
     assert_eq!(scan.statistics().decoded_rows, 0);
     drop(block);
+    // Also deny decoder initialization after the checkpoint's own reservation
+    // succeeds. This must remain a retryable export, not poison a lazy scan.
+    let block = source
+        .budget
+        .reserve(free - size_of::<RecordCheckpoint>() - 1024)
+        .unwrap();
+    let before_io = source.statistics().bytes_read;
+    assert_eq!(
+        scan.checkpoint().err().unwrap().kind,
+        ErrorKind::BudgetTooSmall
+    );
+    assert!(scan.error.is_none());
+    assert_eq!(source.statistics().bytes_read, before_io);
+    drop(block);
     assert!(scan.next_batch().unwrap().is_some());
     let before = source.budget.statistics().current_bytes;
     let point = scan.checkpoint().unwrap();

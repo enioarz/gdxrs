@@ -250,7 +250,16 @@ impl ScanCursor {
                 _state: state,
             })
         })();
-        result.map_err(|error| self.fail(error))
+        result.map_err(|error| {
+            // Export does not consume records. A tentative decoder used before
+            // the first batch is local until initialization succeeds, so root
+            // denial can be retried after releasing other charged objects.
+            if error.kind == ErrorKind::BudgetTooSmall {
+                error
+            } else {
+                self.fail(error)
+            }
+        })
     }
     fn fail(&mut self, mut error: Error) -> Error {
         error.source_id = Some(self.reader.source.id);
