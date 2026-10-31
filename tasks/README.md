@@ -1,6 +1,6 @@
 # Numbered implementation tasks
 
-These specifications break **M0–M3** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
+These specifications break **M0–M5** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
 
 ## Execution order
 
@@ -129,4 +129,17 @@ M3 tree. Complete one gate at a time; task 031 is the M4 exit gate.
 | [028](028-value-acronym-policies.md) | Special-value/acronym policies and semantic parity | 027 | Complete; [evidence](../docs/evidence/028.md) |
 | [029](029-uel-metadata-operations.md) | Remaining modern UEL/metadata operations | 028 | Complete; [evidence](../docs/evidence/029.md) |
 | [030](030-atomic-append.md) | Atomic copy/rewrite append | 029 | Complete; [evidence](../docs/evidence/030.md) |
-| [031](031-m4-acceptance.md) | API inventory, general-input scale and M4 acceptance | 024–030 | Complete for measured scope; review pending; [evidence](../docs/evidence/031.md) |
+| [031](031-m4-acceptance.md) | API inventory, general-input scale and M4 acceptance | 024–030 | Complete for measured scope; PR #26 merged at `6b29a9e`; [evidence](../docs/evidence/031.md) |
+
+## M5 — user-directed persistent slice acceleration
+
+PR #26 merged at `6b29a9e`; the user requested beginning M5. Start with exact
+in-session record checkpoints, then persist and validate them before query planning.
+The existing M4 adapter throughput limitations remain documented, not erased by M5.
+
+| Task | Scope | Prerequisites | Status |
+| --- | --- | --- | --- |
+| [032](032-record-checkpoints.md) | Complete bounded record-boundary restart state | 031 merged | Complete for in-session scope; review pending; [evidence](../docs/evidence/032.md) |
+| [033](033-paged-checkpoint-sidecars.md) | Paged sidecars, source identity and atomic explicit build | 032 | Pending |
+| [034](034-indexed-selected-scans.md) | Validated interval planning, exact slices and safe fallback | 033 | Pending |
+| [035](035-m5-index-acceptance.md) | OS-capped index build/query scale and cold/warm acceptance | 032–034 | Pending |
