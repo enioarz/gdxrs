@@ -322,8 +322,57 @@ fn indexed_twenty_axis_single_group_crosses_buffers_and_honors_small_batch_cap()
         assert!(scan.statistics().decoded_rows < 150);
         assert_eq!(stats.checkpoint_restarts, 2);
         assert!(stats.source_io.decoded_buffers > 0);
-        let mut serial = reader.scan_selected(&symbol, &selection, options).unwrap();
+        let mut serial = reader
+            .scan_selected(&symbol, &selection, options.clone())
+            .unwrap();
         assert_eq!(got, collect(&mut serial));
+        drop(serial);
+        let open = IndexOpen {
+            status: IndexStatus::Ready,
+            index: scan.into_index(),
+        };
+        let broad = reader
+            .selection(
+                &symbol,
+                &[
+                    DimensionSelection {
+                        dimension: 0,
+                        keys: KeySelection::One(UelId::new(1).unwrap()),
+                    },
+                    DimensionSelection {
+                        dimension: 19,
+                        keys: KeySelection::Range(
+                            UelRange::new(UelId::new(3000).unwrap(), UelId::new(4096).unwrap())
+                                .unwrap(),
+                        ),
+                    },
+                ],
+            )
+            .unwrap();
+        let mut crossing = reader
+            .scan_selected_indexed(
+                &symbol,
+                &broad,
+                ScanOptions {
+                    limit: None,
+                    ..options
+                },
+                open,
+            )
+            .unwrap();
+        let want: Vec<_> = (3000..=4096)
+            .map(|id| {
+                format!(
+                    "{id}\t{}",
+                    common::value(Value::NumberBits((id as f64 - 1.0 + 0.25).to_bits()))
+                )
+            })
+            .collect();
+        assert_eq!(collect(&mut crossing), want);
+        let stats = crossing.indexed_statistics().unwrap();
+        assert_eq!(stats.checkpoint_restarts, 1);
+        assert!(stats.adjacent_intervals_coalesced > 20);
+        assert!(stats.source_io.decoded_buffers >= 2);
         assert!(reader.budget_statistics().peak_bytes <= 1024 * 1024);
     }
 }
