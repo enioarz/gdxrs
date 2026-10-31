@@ -1,6 +1,6 @@
 # 034 — Exact indexed selected scans
 
-Milestone: M5. Prerequisite: 033 complete/reviewed. Status: pending.
+Milestone: M5. Prerequisite: 033 complete/reviewed. Status: in progress.
 
 Integrate validated sidecars with explicit Reader policies. Plan bounded streamed
 candidate intervals from conservative summaries; scan/filter exact raw IDs and

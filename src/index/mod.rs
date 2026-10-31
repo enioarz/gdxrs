@@ -18,7 +18,10 @@ use std::{
 mod wire;
 use wire::*;
 mod generate;
+mod query;
 mod store;
+pub(crate) use query::Plan;
+pub use query::{IndexScanMode, IndexedScanStatistics};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IndexPublication {
     CreateNew,

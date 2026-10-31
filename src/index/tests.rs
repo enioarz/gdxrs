@@ -463,3 +463,516 @@ fn replacement_cannot_target_gdx_and_failed_digest_allocation_retains_cleanup() 
     builder.abort().unwrap();
     assert!(!temp.index().exists());
 }
+
+fn query_reader() -> Reader {
+    Reader::open(
+        if cfg!(feature = "compression") {
+            "tests/fixtures/v7/blocks.gdx"
+        } else {
+            "tests/fixtures/v7/key-widths.gdx"
+        },
+        OpenOptions {
+            memory_budget_bytes: 1024 * 1024,
+            metadata_cache_bytes: 0,
+            ..OpenOptions::default()
+        },
+    )
+    .unwrap()
+}
+fn query_index(reader: &Reader, symbol: &SymbolHandle, path: &Path) -> IndexOpen {
+    let options = IndexOptions {
+        record_stride: 8,
+        decoded_byte_stride: u64::MAX,
+        ..IndexOptions::default()
+    };
+    reader
+        .index_builder(symbol, path, options)
+        .unwrap()
+        .finish()
+        .unwrap();
+    reader
+        .open_index(symbol, path, options, IndexPolicy::UseIfValid)
+        .unwrap()
+}
+fn query_keys(scan: &mut ScanCursor) -> Vec<u32> {
+    let mut keys = Vec::new();
+    while let Some(batch) = scan.next_batch().unwrap() {
+        keys.extend(batch.key_column(0).unwrap().iter().map(|v| v.get()));
+    }
+    keys
+}
+#[test]
+fn indexed_query_prunes_reuses_and_keeps_zero_limit_lazy() {
+    let temp = Temp::new();
+    let reader = query_reader();
+    let symbol = reader
+        .symbol(SymbolId::new(if cfg!(feature = "compression") { 1 } else { 0 }).unwrap())
+        .unwrap();
+    let open = query_index(&reader, &symbol, &temp.index());
+    let selection = reader
+        .selection(
+            &symbol,
+            &[DimensionSelection {
+                dimension: 0,
+                keys: KeySelection::One(UelId::new(4000).unwrap()),
+            }],
+        )
+        .unwrap();
+    let mut scan = reader
+        .scan_selected_indexed(&symbol, &selection, reader.scan_options(), open)
+        .unwrap();
+    assert_eq!(query_keys(&mut scan), vec![4000]);
+    let stats = scan.indexed_statistics().unwrap();
+    assert!(stats.intervals_pruned > 400);
+    assert_eq!(stats.checkpoint_restarts, 1);
+    assert!(scan.statistics().decoded_rows <= 8);
+    assert_eq!(stats.validation.source_bytes_hashed, reader.source.length);
+    assert!(stats.index_pages_read > 0);
+    if cfg!(feature = "compression") {
+        assert!(stats.source_io.read_calls > 0);
+    }
+    let index = scan.into_index().unwrap();
+    let mut scan = reader
+        .scan_selected_indexed(
+            &symbol,
+            &selection,
+            ScanOptions {
+                limit: Some(0),
+                ..reader.scan_options()
+            },
+            IndexOpen {
+                status: IndexStatus::Ready,
+                index: Some(index),
+            },
+        )
+        .unwrap();
+    let io = reader.io_statistics();
+    assert!(scan.next_batch().unwrap().is_none());
+    assert_eq!(reader.io_statistics().read_calls, io.read_calls);
+    assert_eq!(scan.indexed_statistics().unwrap().intervals_considered, 0);
+    assert_eq!(scan.statistics().decoded_rows, 0);
+}
+#[test]
+fn indexed_integrity_fallback_rolls_back_unacknowledged_rows_and_global_limit() {
+    let temp = Temp::new();
+    let reader = query_reader();
+    let symbol = reader
+        .symbol(SymbolId::new(if cfg!(feature = "compression") { 1 } else { 0 }).unwrap())
+        .unwrap();
+    let open = query_index(&reader, &symbol, &temp.index());
+    let ids = [UelId::new(10).unwrap(), UelId::new(4000).unwrap()];
+    let selection = reader
+        .selection(
+            &symbol,
+            &[DimensionSelection {
+                dimension: 0,
+                keys: KeySelection::AnyOf(&ids),
+            }],
+        )
+        .unwrap();
+    // Fourth leaf follows three data pages, before the first directory flush.
+    // It is reached after row 10 was accepted into the still-unpublished fill.
+    let mut bytes = fs::read(temp.index()).unwrap();
+    bytes[4 * PAGE + 48] ^= 1;
+    fs::write(temp.index(), bytes).unwrap();
+    let mut scan = reader
+        .scan_selected_indexed(
+            &symbol,
+            &selection,
+            ScanOptions {
+                limit: Some(2),
+                batch_bytes: 4096,
+                ..reader.scan_options()
+            },
+            open,
+        )
+        .unwrap();
+    assert_eq!(query_keys(&mut scan), vec![10, 4000]);
+    assert_eq!(scan.statistics().returned_rows, 2);
+    assert!(scan.statistics().decoded_rows > 4000);
+    assert_eq!(
+        scan.indexed_statistics().unwrap().mode,
+        IndexScanMode::Rejected
+    );
+    assert_eq!(
+        scan.index_rejection().unwrap().kind,
+        ErrorKind::InvalidIndex
+    );
+}
+#[test]
+fn indexed_integrity_after_output_is_terminal_and_progress_is_not_replayed() {
+    let temp = Temp::new();
+    let reader = query_reader();
+    let symbol = reader
+        .symbol(SymbolId::new(if cfg!(feature = "compression") { 1 } else { 0 }).unwrap())
+        .unwrap();
+    let open = query_index(&reader, &symbol, &temp.index());
+    let ids = [UelId::new(10).unwrap(), UelId::new(4000).unwrap()];
+    let selection = reader
+        .selection(
+            &symbol,
+            &[DimensionSelection {
+                dimension: 0,
+                keys: KeySelection::AnyOf(&ids),
+            }],
+        )
+        .unwrap();
+    let mut scan = reader
+        .scan_selected_indexed(
+            &symbol,
+            &selection,
+            ScanOptions {
+                batch_bytes: std::mem::size_of::<UelId>() + std::mem::size_of::<Value>(),
+                ..reader.scan_options()
+            },
+            open,
+        )
+        .unwrap();
+    assert_eq!(
+        scan.next_batch()
+            .unwrap()
+            .unwrap()
+            .row(0)
+            .unwrap()
+            .key(0)
+            .unwrap()
+            .get(),
+        10
+    );
+    fs::OpenOptions::new()
+        .write(true)
+        .open(temp.index())
+        .unwrap()
+        .set_len(PAGE as u64)
+        .unwrap();
+    assert_eq!(
+        scan.next_batch().err().unwrap().kind,
+        ErrorKind::InvalidIndex
+    );
+    let statistics = scan.statistics();
+    assert_eq!(statistics.returned_rows, 1);
+    assert_eq!(
+        scan.next_batch().err().unwrap().kind,
+        ErrorKind::InvalidIndex
+    );
+    assert_eq!(scan.statistics(), statistics);
+    assert!(scan.index_rejection().is_none());
+}
+#[test]
+fn indexed_access_and_budget_errors_never_become_cache_misses() {
+    let _reset = Reset::new();
+    for budget_denial in [false, true] {
+        let temp = Temp::new();
+        let reader = query_reader();
+        let symbol = reader
+            .symbol(SymbolId::new(if cfg!(feature = "compression") { 1 } else { 0 }).unwrap())
+            .unwrap();
+        let open = query_index(&reader, &symbol, &temp.index());
+        let selection = reader
+            .selection(
+                &symbol,
+                &[DimensionSelection {
+                    dimension: 0,
+                    keys: KeySelection::One(UelId::new(4000).unwrap()),
+                }],
+            )
+            .unwrap();
+        let mut scan = reader
+            .scan_selected_indexed(&symbol, &selection, reader.scan_options(), open)
+            .unwrap();
+        let held = if budget_denial {
+            Some(
+                reader
+                    .source
+                    .budget
+                    .reserve(1024 * 1024 - reader.budget_statistics().current_bytes)
+                    .unwrap(),
+            )
+        } else {
+            fault(Event::Read, 0, false);
+            None
+        };
+        let kind = if budget_denial {
+            ErrorKind::BudgetTooSmall
+        } else {
+            ErrorKind::Io
+        };
+        assert_eq!(scan.next_batch().err().unwrap().kind, kind);
+        assert_eq!(scan.statistics().returned_rows, 0);
+        assert!(scan.index_rejection().is_none());
+        assert_eq!(scan.next_batch().err().unwrap().kind, kind);
+        drop(held);
+    }
+}
+
+#[test]
+fn indexed_poor_pruning_coalesces_and_short_limits_do_not_prescan() {
+    let temp = Temp::new();
+    let reader = query_reader();
+    let symbol = reader
+        .symbol(SymbolId::new(if cfg!(feature = "compression") { 1 } else { 0 }).unwrap())
+        .unwrap();
+    let open = query_index(&reader, &symbol, &temp.index());
+    let selection = reader
+        .selection(
+            &symbol,
+            &[DimensionSelection {
+                dimension: 0,
+                keys: KeySelection::Range(
+                    UelRange::new(UelId::new(1).unwrap(), UelId::new(4000).unwrap()).unwrap(),
+                ),
+            }],
+        )
+        .unwrap();
+    let mut scan = reader
+        .scan_selected_indexed(
+            &symbol,
+            &selection,
+            ScanOptions {
+                limit: Some(1),
+                ..reader.scan_options()
+            },
+            open,
+        )
+        .unwrap();
+    assert_eq!(query_keys(&mut scan), vec![1]);
+    assert_eq!(scan.indexed_statistics().unwrap().intervals_considered, 1);
+    let open = IndexOpen {
+        status: IndexStatus::Ready,
+        index: scan.into_index(),
+    };
+    let mut scan = reader
+        .scan_selected_indexed(&symbol, &selection, reader.scan_options(), open)
+        .unwrap();
+    assert_eq!(query_keys(&mut scan), (1..=4000).collect::<Vec<_>>());
+    let stats = scan.indexed_statistics().unwrap();
+    assert_eq!(stats.mode, IndexScanMode::Sequential);
+    assert_eq!(stats.intervals_considered, 8);
+    assert_eq!(stats.adjacent_intervals_coalesced, 7);
+    assert_eq!(stats.checkpoint_restarts, 1);
+}
+#[test]
+fn indexed_fallback_policies_identity_and_configured_batch_cap_are_explicit() {
+    let temp = Temp::new();
+    let reader = reader();
+    let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
+    let selection = reader.selection(&symbol, &[]).unwrap();
+    for (policy, mode) in [
+        (IndexPolicy::Off, IndexScanMode::Off),
+        (IndexPolicy::UseIfValid, IndexScanMode::Missing),
+    ] {
+        let open = reader
+            .open_index(&symbol, temp.index(), options(), policy)
+            .unwrap();
+        let mut scan = reader
+            .scan_selected_indexed(
+                &symbol,
+                &selection,
+                ScanOptions {
+                    batch_bytes: 64,
+                    ..reader.scan_options()
+                },
+                open,
+            )
+            .unwrap();
+        assert_eq!(query_keys(&mut scan), (1..=5).collect::<Vec<_>>());
+        assert_eq!(scan.indexed_statistics().unwrap().mode, mode);
+    }
+    fs::write(temp.index(), b"corrupt").unwrap();
+    let open = reader
+        .open_index(&symbol, temp.index(), options(), IndexPolicy::UseIfValid)
+        .unwrap();
+    let mut scan = reader
+        .scan_selected_indexed(&symbol, &selection, reader.scan_options(), open)
+        .unwrap();
+    assert_eq!(query_keys(&mut scan), (1..=5).collect::<Vec<_>>());
+    assert_eq!(
+        scan.index_rejection().unwrap().kind,
+        ErrorKind::InvalidIndex
+    );
+    fs::remove_file(temp.index()).unwrap();
+    let open = query_index(&reader, &symbol, &temp.index());
+    let other = reader.symbol(SymbolId::new(2).unwrap()).unwrap();
+    let other_selection = reader.selection(&other, &[]).unwrap();
+    assert_eq!(
+        reader
+            .scan_selected_indexed(&other, &other_selection, reader.scan_options(), open)
+            .err()
+            .unwrap()
+            .kind,
+        ErrorKind::SourceMismatch
+    );
+    let open = reader
+        .open_index(
+            &symbol,
+            temp.index(),
+            IndexOptions {
+                record_stride: 8,
+                decoded_byte_stride: u64::MAX,
+                ..IndexOptions::default()
+            },
+            IndexPolicy::UseIfValid,
+        )
+        .unwrap();
+    let other = super::tests::reader();
+    let other_symbol = other.symbol(SymbolId::new(1).unwrap()).unwrap();
+    let other_selection = other.selection(&other_symbol, &[]).unwrap();
+    assert_eq!(
+        other
+            .scan_selected_indexed(&other_symbol, &other_selection, other.scan_options(), open)
+            .err()
+            .unwrap()
+            .kind,
+        ErrorKind::SourceMismatch
+    );
+    assert_eq!(
+        reader
+            .scan_selected_indexed(
+                &symbol,
+                &selection,
+                reader.scan_options(),
+                IndexOpen {
+                    status: IndexStatus::Ready,
+                    index: None
+                }
+            )
+            .err()
+            .unwrap()
+            .kind,
+        ErrorKind::InvalidOptions
+    );
+}
+#[test]
+fn indexed_source_changes_before_and_after_output_preserve_acknowledged_work() {
+    for before in [true, false] {
+        let temp = Temp::new();
+        let source = temp.0.join("source.gdx");
+        fs::copy("tests/fixtures/v7/semantics-0.gdx", &source).unwrap();
+        let reader = Reader::open(&source, OpenOptions::default()).unwrap();
+        let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
+        let open = query_index(&reader, &symbol, &temp.index());
+        let selection = reader
+            .selection(
+                &symbol,
+                &[DimensionSelection {
+                    dimension: 0,
+                    keys: KeySelection::Range(
+                        UelRange::new(UelId::new(1).unwrap(), UelId::new(5).unwrap()).unwrap(),
+                    ),
+                }],
+            )
+            .unwrap();
+        let mut scan = reader
+            .scan_selected_indexed(
+                &symbol,
+                &selection,
+                ScanOptions {
+                    batch_bytes: std::mem::size_of::<UelId>() + std::mem::size_of::<Value>(),
+                    ..reader.scan_options()
+                },
+                open,
+            )
+            .unwrap();
+        if !before {
+            assert_eq!(scan.next_batch().unwrap().unwrap().len(), 1);
+        }
+        use std::io::Write;
+        fs::OpenOptions::new()
+            .append(true)
+            .open(&source)
+            .unwrap()
+            .write_all(b"changed")
+            .unwrap();
+        assert_eq!(
+            scan.next_batch().err().unwrap().kind,
+            ErrorKind::SourceChanged
+        );
+        assert_eq!(scan.statistics().returned_rows, u64::from(!before));
+        assert_eq!(
+            scan.next_batch().err().unwrap().kind,
+            ErrorKind::SourceChanged
+        );
+    }
+}
+#[test]
+fn indexed_last_candidate_still_validates_pending_terminator() {
+    use crate::source::{ReadAt, Source};
+    use std::sync::Mutex;
+    struct Mutable(Arc<Mutex<Vec<u8>>>);
+    impl ReadAt for Mutable {
+        fn read_at(&self, at: u64, out: &mut [u8]) -> io::Result<usize> {
+            let data = self.0.lock().unwrap();
+            let rest = data.get(at as usize..).unwrap_or(&[]);
+            let n = rest.len().min(out.len());
+            out[..n].copy_from_slice(&rest[..n]);
+            Ok(n)
+        }
+        // Deliberately disable immutable-source detection to exercise decoder
+        // framing independently of the source-change gate above.
+        fn unchanged(&self) -> io::Result<bool> {
+            Ok(true)
+        }
+    }
+    let temp = Temp::new();
+    let data = Arc::new(Mutex::new(
+        fs::read("tests/fixtures/v7/semantics-0.gdx").unwrap(),
+    ));
+    let len = data.lock().unwrap().len() as u64;
+    let reader =
+        Reader::from_source(Source::testing(Box::new(Mutable(Arc::clone(&data))), len)).unwrap();
+    let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
+    let open = query_index(&reader, &symbol, &temp.index());
+    let mut decoder = Decoder::new(&reader, &symbol.inner.record).unwrap();
+    for _ in 0..5 {
+        decoder.next().unwrap().unwrap();
+    }
+    // Version-1 raw checkpoint physical offset, after the fixed tuple/state.
+    let encoded = decoder.position().unwrap().index_bytes().unwrap();
+    let physical = u64::from_le_bytes(encoded[387..395].try_into().unwrap()) as usize;
+    assert_eq!(data.lock().unwrap()[physical], 255);
+    data.lock().unwrap()[physical] = 1;
+    let selection = reader
+        .selection(
+            &symbol,
+            &[DimensionSelection {
+                dimension: 0,
+                keys: KeySelection::Range(
+                    UelRange::new(UelId::new(1).unwrap(), UelId::new(5).unwrap()).unwrap(),
+                ),
+            }],
+        )
+        .unwrap();
+    let mut scan = reader
+        .scan_selected_indexed(
+            &symbol,
+            &selection,
+            ScanOptions {
+                batch_bytes: std::mem::size_of::<UelId>() + std::mem::size_of::<Value>(),
+                ..reader.scan_options()
+            },
+            open,
+        )
+        .unwrap();
+    for key in 1..=5 {
+        assert_eq!(
+            scan.next_batch()
+                .unwrap()
+                .unwrap()
+                .row(0)
+                .unwrap()
+                .key(0)
+                .unwrap()
+                .get(),
+            key
+        );
+    }
+    assert_eq!(
+        scan.next_batch().err().unwrap().kind,
+        ErrorKind::InvalidCount
+    );
+    assert_eq!(scan.statistics().returned_rows, 5);
+    assert_eq!(
+        scan.next_batch().err().unwrap().kind,
+        ErrorKind::InvalidCount
+    );
+}

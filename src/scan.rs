@@ -163,6 +163,10 @@ pub struct RecordCheckpoint {
 }
 impl RecordCheckpoint {
     #[cfg(feature = "index")]
+    pub(crate) fn position(&self) -> DecoderPosition {
+        self.position
+    }
+    #[cfg(feature = "index")]
     pub(crate) fn verified(
         source: std::sync::Arc<crate::source::Source>,
         symbol: SymbolId,
@@ -200,6 +204,8 @@ pub struct ScanCursor {
     remaining: u64,
     selection: Option<Selection>,
     statistics: ScanStatistics,
+    #[cfg(feature = "index")]
+    index_plan: Option<crate::index::Plan>,
     decoder: Option<Decoder>,
     position: Option<DecoderPosition>,
     batch: Option<Batch>,
@@ -208,6 +214,26 @@ pub struct ScanCursor {
     _state: Reservation,
 }
 impl ScanCursor {
+    #[cfg(feature = "index")]
+    pub(crate) fn set_index_plan(&mut self, plan: crate::index::Plan) {
+        self.index_plan = Some(plan);
+    }
+    #[cfg(feature = "index")]
+    pub fn indexed_statistics(&self) -> Option<IndexedScanStatistics> {
+        self.index_plan.as_ref().map(crate::index::Plan::statistics)
+    }
+    #[cfg(feature = "index")]
+    pub fn index_rejection(&self) -> Option<&Error> {
+        self.index_plan
+            .as_ref()
+            .and_then(crate::index::Plan::rejection)
+    }
+    /// Consume/cancel the cursor and recover the explicitly validated session.
+    /// A session invalidated by a page integrity error remains unusable.
+    #[cfg(feature = "index")]
+    pub fn into_index(mut self) -> Option<CheckpointIndex> {
+        self.index_plan.take()?.index
+    }
     /// Capture an unselected raw scan boundary after the last returned batch.
     /// All values/keys have been decoded regardless of projection. Before the
     /// first batch this explicitly reads only the data preamble/read-ahead, not
@@ -358,6 +384,8 @@ impl ScanCursor {
             remaining: options.limit.unwrap_or(u64::MAX),
             selection: None,
             statistics: ScanStatistics::default(),
+            #[cfg(feature = "index")]
+            index_plan: None,
             decoder: None,
             position: None,
             batch: None,
@@ -377,7 +405,11 @@ impl ScanCursor {
             return Ok(false);
         }
         self.reader.source.check_unchanged()?;
-        if self.decoder.is_none() {
+        #[cfg(feature = "index")]
+        let indexed = self.index_plan.is_some();
+        #[cfg(not(feature = "index"))]
+        let indexed = false;
+        if self.decoder.is_none() && !indexed {
             self.decoder = Some(if let Some(position) = &self.position {
                 Decoder::resume(&self.reader, &self.handle.inner.record, position)?
             } else {
@@ -390,12 +422,43 @@ impl ScanCursor {
         let capacity = self
             .capacity
             .min(usize::try_from(self.remaining).unwrap_or(usize::MAX));
-        let decoder = self
-            .decoder
-            .as_mut()
-            .ok_or_else(|| Error::new(ErrorKind::UnexpectedEof, "missing decoder"))?;
         let mut accepted = 0;
+        #[cfg(feature = "index")]
+        let initial_remaining = self.remaining;
         while accepted < capacity {
+            #[cfg(feature = "index")]
+            if let Some(plan) = &mut self.index_plan {
+                let selection = self.selection.as_ref().ok_or_else(|| {
+                    Error::new(ErrorKind::InvalidSelection, "indexed selection missing")
+                })?;
+                match plan.prepare(&self.reader, &self.handle, selection, &mut self.decoder) {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        self.done = true;
+                        break;
+                    }
+                    Err(error)
+                        if error.kind == ErrorKind::InvalidIndex
+                            && self.statistics.returned_rows == 0 =>
+                    {
+                        plan.fallback(error);
+                        self.decoder = None;
+                        self.remaining = initial_remaining;
+                        accepted = 0;
+                        if let Some(batch) = &mut self.batch {
+                            batch.clear();
+                        }
+                    }
+                    Err(error) => return Err(error),
+                }
+                if self.decoder.is_none() {
+                    self.decoder = Some(Decoder::new(&self.reader, &self.handle.inner.record)?);
+                }
+            }
+            let decoder = self
+                .decoder
+                .as_mut()
+                .ok_or_else(|| Error::new(ErrorKind::UnexpectedEof, "missing decoder"))?;
             let Some(row) = decoder.next()? else {
                 self.done = true;
                 break;
@@ -404,6 +467,10 @@ impl ScanCursor {
                 self.statistics.decoded_rows.checked_add(1).ok_or_else(|| {
                     Error::new(ErrorKind::InvalidCount, "decoded row counter overflow")
                 })?;
+            #[cfg(feature = "index")]
+            if let Some(plan) = &mut self.index_plan {
+                plan.decoded()?;
+            }
             if let Some(selection) = &self.selection
                 && !selection.matches(row)?
             {
@@ -426,13 +493,14 @@ impl ScanCursor {
             accepted += 1;
         }
         if self.done || self.remaining == 0 {
-            self.position = Some(decoder.position()?);
+            self.position = self.decoder.as_ref().map(Decoder::position).transpose()?;
             self.decoder = None;
         }
         let nonempty = self.batch.as_ref().is_some_and(|b| b.rows != 0);
         if !nonempty {
             self.batch = None;
         }
+        self.reader.source.check_unchanged()?;
         self.statistics.returned_rows = self
             .statistics
             .returned_rows
@@ -444,7 +512,23 @@ impl ScanCursor {
         if let Some(e) = &self.error {
             return Err(e.clone());
         }
-        match self.fill() {
+        #[cfg(feature = "index")]
+        let before = self.reader.io_statistics();
+        let result = self.fill();
+        #[cfg(feature = "index")]
+        let result = {
+            let io = self
+                .index_plan
+                .as_mut()
+                .map(|plan| plan.record_io(before, self.reader.io_statistics()))
+                .transpose();
+            match (result, io) {
+                (Err(error), _) => Err(error),
+                (Ok(_), Err(error)) => Err(error),
+                (Ok(value), Ok(_)) => Ok(value),
+            }
+        };
+        match result {
             Ok(true) => Ok(self.batch.as_ref().map(|batch| BatchView { batch })),
             Ok(false) => {
                 self.batch = None;

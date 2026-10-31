@@ -55,6 +55,25 @@ enum Constraint {
     Ranges(Buffer<UelRange>),
 }
 impl Constraint {
+    #[cfg(feature = "index")]
+    fn overlaps(&self, first: UelId, last: UelId) -> bool {
+        match self {
+            Self::All => true,
+            Self::Empty => false,
+            Self::One(id) => first.get() <= id.get() && id.get() <= last.get(),
+            Self::Range(range) => {
+                range.first.get() <= last.get() && first.get() <= range.last.get()
+            }
+            Self::Set(ids) => ids
+                .data
+                .get(ids.data.partition_point(|id| id.get() < first.get()))
+                .is_some_and(|id| id.get() <= last.get()),
+            Self::Ranges(ranges) => ranges
+                .data
+                .get(ranges.data.partition_point(|r| r.last.get() < first.get()))
+                .is_some_and(|r| r.first.get() <= last.get()),
+        }
+    }
     fn matches(&self, key: UelId) -> bool {
         let value = key.get();
         match self {
@@ -88,6 +107,27 @@ pub struct Selection {
     inner: Arc<State>,
 }
 impl Selection {
+    #[cfg(feature = "index")]
+    pub(crate) fn can_prune_intervals(&self) -> bool {
+        self.inner
+            .constraints
+            .iter()
+            .take(usize::from(self.inner.dimension))
+            .any(|c| !matches!(c, Constraint::All))
+    }
+    #[cfg(feature = "index")]
+    pub(crate) fn may_match_interval(&self, interval: &IndexInterval) -> bool {
+        self.inner
+            .constraints
+            .iter()
+            .take(usize::from(self.inner.dimension))
+            .enumerate()
+            .all(|(d, c)| {
+                interval
+                    .key_bounds(d as u8)
+                    .is_some_and(|(low, high)| c.overlaps(low, high))
+            })
+    }
     pub fn is_empty(&self) -> bool {
         self.closed || self.inner.empty || self.disk.as_ref().is_some_and(|(_, ids)| ids.is_empty())
     }
