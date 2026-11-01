@@ -1,7 +1,7 @@
 # 038 — Explicit bounded ordered parallel scans
 
 Milestone: M6. Prerequisite: 037 complete/reviewed.
-Status: pending.
+Status: implementation complete; qualification in progress.
 
 Implement opt-in parallel record scans from trusted ordinal ranges, following
 decision 0031. Use safe Rust and `std` threads/channels initially. Reserve one shared
