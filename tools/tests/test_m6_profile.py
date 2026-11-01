@@ -23,19 +23,20 @@ def worker(phases):
                 sampled_peak_fds=5)
 
 
-def case():
+def case(count=100):
     def query(name='leading', seconds=.1):
-        return dict(query=name, seconds=seconds, count=100, digest='aabb', returned_rows=100,
-                    decoded_rows=100, bytes_read=1000, decoded_buffers=2, index_pages_read=1,
+        return dict(query=name, seconds=seconds, count=count, digest='aabb', returned_rows=count,
+                    decoded_rows=count, bytes_read=1000, decoded_buffers=2, index_pages_read=1,
                     validation_bytes_hashed=5000, validation_pages=20)
-    opened = dict(complete=True, published=False, rows_decoded=100, source_bytes_hashed=5000,
+    opened = dict(complete=True, published=False, rows_decoded=count, source_bytes_hashed=5000,
                   pages_read=20, index_bytes=10000, seconds=2., digest_seconds=.5, replay_seconds=1.)
+    profile=scan();profile['result'].update(count=count, decoded_rows=count, returned_rows=count)
     trial = dict(cold_serial=worker([query(seconds=1.)]),
                  build=worker([dict(opened, published=True)]),
                  session=worker([opened, query(), query(), query(), query(), query('all')]),
-                 serial_matrix=worker([query('all')]), profile_scan=scan(),
+                 serial_matrix=worker([query('all')]), profile_scan=profile,
                  index=dict(bytes=10000), source_identity_rechecked=True)
-    return dict(kind='records', count=100, source=dict(bytes=5000), expected_all=dict(count=100, digest='aabb'),
+    return dict(kind='records', count=count, source=dict(bytes=5000), expected_all=dict(count=count, digest='aabb'),
                 trials=[copy.deepcopy(trial) for _ in range(3)])
 
 
@@ -85,3 +86,17 @@ class ProfileGuards(unittest.TestCase):
         result=m.summarize(bad)
         self.assertEqual(result['warm_speedup'], .5)
         self.assertIsNone(result['build_and_reopen_break_even_queries'])
+
+    def test_missing_families_sizes_and_trials_cannot_complete_baseline(self):
+        rows=[]
+        for kind in m.KINDS:
+            for n in m.counts_for(kind, 'small'):
+                c=case(n);c['kind']=kind;rows.append(c)
+        m.validate_cases(rows, 'small')
+        for mutate in [lambda c:c.pop(), lambda c:c[-1].update(kind='records'),
+                       lambda c:c[-1].update(count=c[-2]['count']),
+                       lambda c:c[-1]['trials'].pop(),
+                       lambda c:c[-1]['source'].update(bytes=0),
+                       lambda c:c[-1]['expected_all'].update(count=1)]:
+            bad=copy.deepcopy(rows);mutate(bad)
+            with self.assertRaises(ValueError):m.validate_cases(bad, 'small')

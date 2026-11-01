@@ -19,6 +19,12 @@ SOURCES = sorted(set(m5.SOURCES + ['tools/m6_profile.py', 'examples/m6_profile_w
                                   'tools/tests/test_m6_profile.py']))
 TRIALS = 3
 TIMES = ['open_seconds', 'setup_seconds', 'batch_seconds', 'sink_seconds', 'close_seconds']
+KINDS = ('records', 'compressed', 'metadata', 'directory')
+
+
+def counts_for(kind, profile):
+    return [4096, 16384] if profile == 'smoke' else (
+        [131072, 524288] if kind == 'directory' else [1_000_000, 4_000_000])
 
 
 def validate_scan(trial, expected):
@@ -100,6 +106,19 @@ def summarize(case):
     return result
 
 
+def validate_cases(cases, profile):
+    if profile not in ['smoke', 'small'] or len(cases) != 8 or {c['kind'] for c in cases} != set(KINDS):
+        raise ValueError('all four profile families and two sizes are mandatory')
+    for kind in KINDS:
+        rows = sorted((c for c in cases if c['kind'] == kind), key=lambda c: c['count'])
+        if [c['count'] for c in rows] != counts_for(kind, profile):
+            raise ValueError('profile sizes differ from diagnostic contract')
+        for c in rows:
+            if c['source']['bytes'] <= 0 or c['expected_all']['count'] != c['count']:
+                raise ValueError('missing complete source/result extent')
+            summarize(c)
+
+
 def check(run, profile):
     if sys.platform != 'linux' or profile not in ['smoke', 'small']:
         raise ValueError('M6 diagnostic profiles require Linux smoke/small')
@@ -130,10 +149,8 @@ def check(run, profile):
         m5.validate_worker(t)
         return t
 
-    for kind in ['records', 'compressed', 'metadata', 'directory']:
-        counts = [4096, 16384] if profile == 'smoke' else (
-            [131072, 524288] if kind == 'directory' else [1_000_000, 4_000_000])
-        for n in counts:
+    for kind in KINDS:
+        for n in counts_for(kind, profile):
             source, index = area / f'{kind}-{n}.gdx', area / f'{kind}-{n}.index'
             stride = 1 if kind == 'directory' else 65536
             estimate = n * (1300 if kind == 'directory' else 140)
@@ -205,6 +222,7 @@ def check(run, profile):
                 raise ValueError('profile source changed')
             progress()
             source.unlink()
+    validate_cases(cases, profile)
     if hashes != {p: oracle.file_digest(ROOT / p) for p in SOURCES}:
         raise ValueError('measured sources changed during profiling')
     return dict(source_revision=revision, source_hashes=hashes, profile=profile,
