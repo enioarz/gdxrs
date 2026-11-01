@@ -156,7 +156,7 @@ the sequence and shared-root, stack, queue, order and cancellation requirements.
 | Task | Scope | Prerequisites | Status |
 | --- | --- | --- | --- |
 | [036](036-m6-profiling-contract.md) | Reproducible phase baseline and parallel-read contract | 035 merged | Complete for baseline/contract scope; PR #31 merged at `58af12b`; [evidence](../docs/evidence/036.md) |
-| [037](037-bounded-ordinal-ranges.md) | Exact bounded half-open ordinal-range cursors | 036 | Complete for serial ranges; PR #32 awaits review; [evidence](../docs/evidence/037.md) |
-| [038](038-ordered-parallel-scans.md) | Explicit admitted workers, bounded ordered delivery and cancellation | 037 | Pending |
+| [037](037-bounded-ordinal-ranges.md) | Exact bounded half-open ordinal-range cursors | 036 | Complete for serial ranges; PR #32 merged at `7f7e19a`; [evidence](../docs/evidence/037.md) |
+| [038](038-ordered-parallel-scans.md) | Explicit admitted workers, bounded ordered delivery and cancellation | 037 | Implementation complete; qualification in progress; [evidence](../docs/evidence/038.md) |
 | [039](039-measured-scan-policy.md) | Measured observable serial/indexed/parallel choices | 038 | Pending |
 | [040](040-m6-acceptance.md) | Ordered performance, cancellation and oversized containment gates | 036–039 | Pending |

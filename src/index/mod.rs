@@ -18,7 +18,12 @@ use std::{
 mod wire;
 use wire::*;
 mod generate;
+mod parallel;
 mod query;
+pub use parallel::{
+    ParallelAdmission, ParallelCancellation, ParallelOptions, ParallelScanCursor,
+    ParallelStatistics,
+};
 mod store;
 pub(crate) use query::Plan;
 pub use query::{IndexScanMode, IndexedScanStatistics};

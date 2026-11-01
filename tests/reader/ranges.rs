@@ -1,7 +1,7 @@
 use super::*;
 use std::fmt::Write;
 
-fn rows(batch: &BatchView<'_>, id: u32) -> Vec<String> {
+pub(super) fn rows(batch: &BatchView<'_>, id: u32) -> Vec<String> {
     // Only the fixed, independently authored small fixture corpus is collected.
     (0..batch.len())
         .map(|n| {

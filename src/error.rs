@@ -36,6 +36,7 @@ pub enum ErrorKind {
     InvalidWriteState,
     OutputLimitExceeded,
     DataErrorLimitExceeded,
+    WorkerFailure,
 }
 
 #[derive(Clone, Debug)]
@@ -52,6 +53,24 @@ pub struct Error {
 }
 
 impl Error {
+    #[cfg(feature = "index")]
+    pub(crate) fn worker_failure(cause: io::Error) -> Self {
+        let mut error = Self::io(cause);
+        error.kind = ErrorKind::WorkerFailure;
+        error.message = "parallel worker failed";
+        error
+    }
+    #[cfg(feature = "index")]
+    pub(crate) fn append_cleanup(mut self, error: io::Error) -> Self {
+        self.cleanup = Some(Arc::new(match self.cleanup.take() {
+            Some(earlier) => io::Error::other(CleanupPair {
+                earlier,
+                later: error,
+            }),
+            None => error,
+        }));
+        self
+    }
     pub(crate) fn new(kind: ErrorKind, message: &'static str) -> Self {
         Self {
             kind,
@@ -96,6 +115,24 @@ impl Error {
         self
     }
 }
+#[cfg(feature = "index")]
+#[derive(Debug)]
+struct CleanupPair {
+    earlier: Arc<io::Error>,
+    later: io::Error,
+}
+#[cfg(feature = "index")]
+impl fmt::Display for CleanupPair {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}; {}", self.earlier, self.later)
+    }
+}
+#[cfg(feature = "index")]
+impl std::error::Error for CleanupPair {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(self.earlier.as_ref())
+    }
+}
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}: {}", self.kind, self.message)?;
@@ -106,7 +143,7 @@ impl fmt::Display for Error {
             write!(f, ": {cause}")?;
         }
         if self.cleanup.is_some() {
-            write!(f, " (scratch cleanup also failed)")?;
+            write!(f, " (cleanup also failed)")?;
         }
         Ok(())
     }
