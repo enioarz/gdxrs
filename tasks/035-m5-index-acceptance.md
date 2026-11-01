@@ -1,6 +1,6 @@
 # 035 — Persistent slice acceleration acceptance
 
-Milestone: M5. Prerequisite: 032–034 complete/reviewed. Status: in progress.
+Milestone: M5. Prerequisite: 032–034 complete/reviewed. Status: complete for the measured scope; PR #30 awaits review. See [evidence](../docs/evidence/035.md).
 
 Qualify independently oversized records, metadata and sidecar directories/builds
 under one 256 MiB library root/enforced 512 MiB Linux process cap, growing sizes,
