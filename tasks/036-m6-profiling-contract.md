@@ -1,7 +1,7 @@
 # 036 — Reproducible M6 phase profiles and parallel-read contract
 
 Milestone: M6. Prerequisite: 035 complete, PR #30 merged at `efbd808`.
-Status: in progress.
+Status: complete for baseline/contract scope; PR #31 awaits review. See [evidence](../docs/evidence/036.md).
 
 Establish a reproducible baseline before optimizing or launching workers. Deliver
 `python tools/dev.py m6-profile --profile smoke|small`: smoke validates recipes;

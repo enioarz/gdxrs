@@ -5,6 +5,9 @@ acceptance remains historical evidence for its exact revision. No independent
 review or release is inferred from the new authorization. Task 036 implements
 development profiling and this contract; production execution remains serial.
 
+The completed [task 036 evidence](../evidence/036.md) records source-bound phase
+measurements, exact scope and the native Windows timeout/retry disposition.
+
 ## Measure before implementing
 
 `python tools/dev.py m6-profile --profile smoke|small` reuses the pinned native
@@ -46,8 +49,9 @@ controlled comparisons; existing M4 string/mapped throughput limitations remain.
 Partition a requested symbol into half-open **raw public row ordinals** `[start,end)`.
 Validate arithmetic and `start <= end <= verified_total`. Selection and projection
 do not change ordinals. A range ends before `end`, even when its last decoded row
-is rejected. A range reaching source EOF still validates pending framing unless an
-accepted limit intentionally stops first. Empty/zero-limit ranges allocate no
+is rejected. A nonempty range consumed through source EOF still validates pending
+framing unless an accepted limit intentionally stops first. Empty/zero-limit ranges,
+including `[verified_total,verified_total)`, allocate no
 worker/codec buffers or read records. Scalar defaults, empty symbols, universe and
 aliases retain serial semantics; explicit serial handling is permitted where a
 parallel partition adds no benefit.
@@ -70,6 +74,9 @@ stack size explicitly and reserve a conservative rounded allowance against the
 same root **before spawning**; measure actual VM/RSS as well. Reserve coordinator,
 task/channel capacity, checkpoints, codecs, output buffers, errors and reorder
 slots too. Do not charge only row payload or give each worker a fresh root.
+Bounded channel capacity alone does not account for its allocations: audit and
+reserve its control/storage overhead against the pinned standard library, or use
+an explicitly root-charged fixed queue with synchronization primitives.
 
 Admission must use checked arithmetic and actual available root capacity, reducing
 concurrency only under the documented explicit policy. Report requested/admitted
