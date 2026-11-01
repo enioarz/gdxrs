@@ -1,6 +1,6 @@
 # Numbered implementation tasks
 
-These specifications break **M0–M5** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
+These specifications break **M0–M6** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
 
 ## Execution order
 
@@ -142,4 +142,21 @@ The existing M4 adapter throughput limitations remain documented, not erased by 
 | [032](032-record-checkpoints.md) | Complete bounded record-boundary restart state | 031 merged | Complete for in-session scope; PR #27 merged; [evidence](../docs/evidence/032.md) |
 | [033](033-paged-checkpoint-sidecars.md) | Paged sidecars, source identity and atomic explicit build | 032 | Complete for sidecar scope; PR #28 merged; [evidence](../docs/evidence/033.md) |
 | [034](034-indexed-selected-scans.md) | Validated interval planning, exact slices and safe fallback | 033 | Complete for correctness/API scope; PR #29 merged; [evidence](../docs/evidence/034.md) |
-| [035](035-m5-index-acceptance.md) | OS-capped index build/query scale and cold/warm acceptance | 032–034 | Complete for measured scope; PR #30 awaits review; [evidence](../docs/evidence/035.md) |
+| [035](035-m5-index-acceptance.md) | OS-capped index build/query scale and cold/warm acceptance | 032–034 | Complete for measured scope; PR #30 merged at `efbd808`; [evidence](../docs/evidence/035.md) |
+
+## M6 — user-directed performance and parallel execution
+
+The user authorized beginning M6 after PR #30 merged at `efbd808`; its final
+four-platform run passed. Start with measured phases and a concurrency contract,
+then prove exact serial ranges before adding threads. Each task remains bounded;
+parallel speedup/containment is not established by profiling or compile-only checks.
+[Decision 0031](../docs/decisions/0031-m6-profiling-and-parallel-contract.md) defines
+the sequence and shared-root, stack, queue, order and cancellation requirements.
+
+| Task | Scope | Prerequisites | Status |
+| --- | --- | --- | --- |
+| [036](036-m6-profiling-contract.md) | Reproducible phase baseline and parallel-read contract | 035 merged | Complete for baseline/contract scope; PR #31 awaits review; [evidence](../docs/evidence/036.md) |
+| [037](037-bounded-ordinal-ranges.md) | Exact bounded half-open ordinal-range cursors | 036 | Pending |
+| [038](038-ordered-parallel-scans.md) | Explicit admitted workers, bounded ordered delivery and cancellation | 037 | Pending |
+| [039](039-measured-scan-policy.md) | Measured observable serial/indexed/parallel choices | 038 | Pending |
+| [040](040-m6-acceptance.md) | Ordered performance, cancellation and oversized containment gates | 036–039 | Pending |

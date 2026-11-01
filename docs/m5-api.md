@@ -2,8 +2,8 @@
 
 M5 provides opaque record checkpoints, explicit source-verified persistent
 sidecars and exact indexed selections. See [acceptance scope and measurements](evidence/035.md)
-and [ownership/trust/resource contract](decisions/0030-m5-acceptance.md). PR #30 awaits
-review; qualification does not automatically publish an M5 release.
+and [ownership/trust/resource contract](decisions/0030-m5-acceptance.md). PR #30 merged at
+`efbd808`; qualification does not automatically publish an M5 release.
 
 Enable `index` in Cargo features. It adds the [audited optional SHA-256 graph](decisions/0028-index-digest-audit.md).
 Default compression dependencies are unchanged; no features retains zero runtime
