@@ -108,6 +108,22 @@ pub struct Selection {
 }
 impl Selection {
     #[cfg(feature = "index")]
+    pub(crate) fn leading_bounds(&self) -> Option<(u32, u32)> {
+        if self.inner.dimension == 0 {
+            return None;
+        }
+        match &self.inner.constraints[0] {
+            Constraint::All | Constraint::Empty => None,
+            Constraint::One(id) => Some((id.get(), id.get())),
+            Constraint::Range(range) => Some((range.first.get(), range.last.get())),
+            Constraint::Set(ids) => Some((ids.data.first()?.get(), ids.data.last()?.get())),
+            Constraint::Ranges(ranges) => Some((
+                ranges.data.first()?.first.get(),
+                ranges.data.last()?.last.get(),
+            )),
+        }
+    }
+    #[cfg(feature = "index")]
     pub(crate) fn can_prune_intervals(&self) -> bool {
         self.inner
             .constraints

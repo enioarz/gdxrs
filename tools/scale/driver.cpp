@@ -79,6 +79,16 @@ void native_labels(const std::string &path,U count){gdx::TGXFileObj g;int error=
     if(g.gdxClose())throw std::runtime_error("native metadata close");std::cout<<"{\"count\":"<<count<<",\"digest\":\""<<std::hex<<std::setw(16)<<std::setfill('0')<<digest<<"\"}\n";
 }
 
+void native_universe(const std::string &path,U count){gdx::TGXFileObj g;int error=0,symbols=0,uels=0;
+    if(!g.gdxOpenRead(path.c_str(),error)||!g.gdxSystemInfo(symbols,uels)||symbols!=0||U(uels)!=count)throw std::runtime_error("native metadata open/count");
+    U labels=INITIAL;for(U n=1;n<=count;++n){char text[GMS_SSSIZE]{};int mapped=0;if(!g.gdxUMUelGet(int(n),text,mapped)||std::string(text)!=label(n))throw std::runtime_error("native UEL recipe");labels=step(labels,n);for(unsigned char c:label(n))labels=step(labels,c);}
+    int rows=0;if(!g.gdxDataReadRawStart(0,rows)||U(rows)!=count)throw std::runtime_error("native universe start");
+    int keys[20]{},changed=0;double values[5]{};U digest=INITIAL;
+    for(U n=1;n<=count;++n){if(!g.gdxDataReadRaw(keys,values,changed)||U(keys[0])!=n)throw std::runtime_error("native universe ID");U value=0;std::memcpy(&value,&values[0],8);if(value)throw std::runtime_error("native universe value");digest=step(step(digest,n),value);}
+    if(g.gdxDataReadRaw(keys,values,changed)||!g.gdxDataReadDone()||g.gdxClose())throw std::runtime_error("native universe finish");
+    std::cout<<"{\"count\":"<<count<<",\"label_digest\":\""<<std::hex<<std::setw(16)<<std::setfill('0')<<labels<<"\",\"digest\":\""<<std::setw(16)<<digest<<"\"}\n";
+}
+
 void native_write(const std::string &path,const std::string &kind,U count,bool compression){
     using Clock=std::chrono::steady_clock;
     auto seconds=[](auto start){return std::chrono::duration<double>(Clock::now()-start).count();};
@@ -100,4 +110,4 @@ void native_write(const std::string &path,const std::string &kind,U count,bool c
     double encoding=seconds(start);start=Clock::now();if(g.gdxClose())throw std::runtime_error("native writer close");double finalize=seconds(start);
     std::cout<<"{\"registration_seconds\":"<<registration<<",\"encoding_seconds\":"<<encoding<<",\"finalization_seconds\":"<<finalize<<",\"labels\":"<<labels<<",\"label_digest\":\""<<std::hex<<std::setw(16)<<std::setfill('0')<<label_digest<<std::dec<<"\",";summary("all",result,false);std::cout<<"}\n";
 }
-int main(int argc,char **argv){try{if(argc==6 && std::string(argv[1])=="write"){native_write(argv[2],argv[3],std::stoull(argv[4]),std::string(argv[5])=="zlib");return 0;}if(argc!=5)throw std::runtime_error("usage: generate|native PATH records|metadata COUNT");U n=std::stoull(argv[4]);if(std::string(argv[1])=="generate")generate(argv[2],argv[3],n);else if(std::string(argv[1])=="native")native_scan(argv[2],n);else if(std::string(argv[1])=="native-labels")native_labels(argv[2],n);else throw std::runtime_error("mode");return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(int argc,char **argv){try{if(argc==6 && std::string(argv[1])=="write"){native_write(argv[2],argv[3],std::stoull(argv[4]),std::string(argv[5])=="zlib");return 0;}if(argc!=5)throw std::runtime_error("usage: generate|native PATH records|metadata COUNT");U n=std::stoull(argv[4]);if(std::string(argv[1])=="generate")generate(argv[2],argv[3],n);else if(std::string(argv[1])=="native")native_scan(argv[2],n);else if(std::string(argv[1])=="native-universe")native_universe(argv[2],n);else if(std::string(argv[1])=="native-labels")native_labels(argv[2],n);else throw std::runtime_error("mode");return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

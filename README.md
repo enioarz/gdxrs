@@ -1,6 +1,6 @@
 # gdxrs
 
-An independent Rust reader for modern GDX v7 files, designed around bounded memory and streaming reads. M0 and M1 are merged. M2 provides exact raw-ID selections, small exact-label lookup, bounded label pages, quota-controlled scratch sorting, large requests and unique-domain enumeration. Record-heavy and independently metadata-heavy scale qualification has passed on Linux x86_64. M3 provides bounded metadata and sorted record writing. M4 adds unsorted, string, mapped and deferred-domain input with bounded error reporting. Indexes, parallel decoding and Polars integration remain planned.
+An independent Rust reader for modern GDX v7 files, designed around bounded memory and streaming reads. M0 and M1 are merged. M2 provides exact raw-ID selections, small exact-label lookup, bounded label pages, quota-controlled scratch sorting, large requests and unique-domain enumeration. Record-heavy and independently metadata-heavy scale qualification has passed on Linux x86_64. M3 provides bounded metadata and sorted record writing. M4 adds unsorted, string, mapped and deferred-domain input with bounded error reporting. M5 adds optional source-verified paged indexes and exact indexed selections; see [M5 API and measured scope](docs/m5-api.md). Parallel decoding and Polars integration remain planned.
 
 ```rust,no_run
 use gdxrs::{OpenOptions, Reader};
@@ -22,7 +22,7 @@ fn main() -> gdxrs::Result<()> {
 
 Keys retain one-based file UEL IDs. Typed values preserve ordinary numeric bits, the five GDX special classes, and acronym identity. Metadata is streamed through lending views; cold lookups may scan tables without building a full dictionary. Independent cursors share the reader's configurable memory quota, including codec scratch and output buffers. Sources must remain immutable.
 
-Compression is enabled by default using one direct dependency (`miniz_oxide`) and one transitive dependency (`adler2`). Disabling default features removes both and rejects compressed input/output explicitly. Production code uses safe Rust and no native GDX/GAMS/Python runtime.
+Compression is enabled by default using one direct dependency (`miniz_oxide`) and one transitive dependency (`adler2`). Disabling default features removes both and rejects compressed input/output explicitly. The optional `index` feature adds an [audited SHA-256 dependency graph](docs/decisions/0028-index-digest-audit.md); minimal builds with no features retain zero runtime dependencies. Production code uses safe Rust and no native GDX/GAMS/Python runtime.
 
 ```sh
 cargo run --locked --release --example dump -- FILE.gdx

@@ -15,7 +15,11 @@ pub enum IndexScanMode {
 pub struct IndexedScanStatistics {
     pub mode: IndexScanMode,
     pub intervals_considered: u64,
+    /// Proven nonmatching intervals, including ordered prefix/suffix skips.
+    /// Can exceed intervals_considered, which counts inspected summaries.
     pub intervals_pruned: u64,
+    pub intervals_skipped_by_leading_bounds: u64,
+    pub boundary_probes: u64,
     pub adjacent_intervals_coalesced: u64,
     pub checkpoint_restarts: u64,
     pub index_pages_read: u64,
@@ -32,6 +36,11 @@ pub(crate) struct Plan {
     end: u64,
     ordinal: u64,
     tail: bool,
+    tail_end: Option<u64>,
+    leading: Option<(u32, u32)>,
+    sought: bool,
+    observed: u64,
+    misses: u64,
     statistics: IndexedScanStatistics,
     baseline: IndexStatistics,
     rejection: Option<Error>,
@@ -88,6 +97,11 @@ impl Plan {
             end: 0,
             ordinal: 0,
             tail,
+            tail_end: None,
+            leading: selection.leading_bounds(),
+            sought: false,
+            observed: 0,
+            misses: 0,
             statistics: IndexedScanStatistics {
                 mode,
                 validation,
@@ -132,6 +146,7 @@ impl Plan {
     }
     pub(crate) fn fallback(&mut self, error: Error) {
         self.tail = true;
+        self.tail_end = None;
         self.ordinal = 0;
         self.statistics.mode = IndexScanMode::Rejected;
         self.rejection = Some(error);
@@ -147,19 +162,90 @@ impl Plan {
         selection: &Selection,
         decoder: &mut Option<Decoder>,
     ) -> Result<bool> {
-        if self.tail || self.ordinal < self.end {
+        if self.tail {
+            return Ok(self.tail_end.is_none_or(|end| {
+                self.ordinal < end
+                    || self
+                        .index
+                        .as_ref()
+                        .is_some_and(|index| end == index.validation_statistics.rows_decoded)
+            }));
+        }
+        if self.ordinal < self.end {
             return Ok(true);
         }
         let index = self.index.as_mut().ok_or_else(invalid)?;
+        if !self.sought {
+            // Strict canonical replay proved lexicographic raw-key ordering.
+            // First-axis maxima are monotone, even inside long leading groups.
+            if let Some((lower, _)) = self.leading.filter(|(lower, _)| *lower > 1) {
+                let (mut low, mut high) = (0, index.interval_count());
+                while low < high {
+                    let mid = low + (high - low) / 2;
+                    let interval = index.interval(mid)?;
+                    self.statistics.boundary_probes = self
+                        .statistics
+                        .boundary_probes
+                        .checked_add(1)
+                        .ok_or_else(invalid)?;
+                    self.statistics.intervals_considered = self
+                        .statistics
+                        .intervals_considered
+                        .checked_add(1)
+                        .ok_or_else(invalid)?;
+                    if interval
+                        .key_bounds(0)
+                        .is_none_or(|(_, maximum)| maximum.get() < lower)
+                    {
+                        low = mid.checked_add(1).ok_or_else(invalid)?;
+                    } else {
+                        high = mid;
+                    }
+                }
+                self.next = low;
+                self.statistics.intervals_pruned = low;
+                self.statistics.intervals_skipped_by_leading_bounds = low;
+            }
+            self.sought = true;
+        }
         while self.next < index.interval_count() {
             let interval = index.interval(self.next)?;
+            if self.leading.is_some_and(|(_, upper)| {
+                interval
+                    .key_bounds(0)
+                    .is_some_and(|(minimum, _)| minimum.get() > upper)
+            }) {
+                self.statistics.intervals_considered = self
+                    .statistics
+                    .intervals_considered
+                    .checked_add(1)
+                    .ok_or_else(invalid)?;
+                let skipped = index
+                    .interval_count()
+                    .checked_sub(self.next)
+                    .ok_or_else(invalid)?;
+                self.statistics.intervals_pruned = self
+                    .statistics
+                    .intervals_pruned
+                    .checked_add(skipped)
+                    .ok_or_else(invalid)?;
+                self.statistics.intervals_skipped_by_leading_bounds = self
+                    .statistics
+                    .intervals_skipped_by_leading_bounds
+                    .checked_add(skipped)
+                    .ok_or_else(invalid)?;
+                self.next = index.interval_count();
+                break;
+            }
             self.next = self.next.checked_add(1).ok_or_else(invalid)?;
+            self.observed = self.observed.checked_add(1).ok_or_else(invalid)?;
             self.statistics.intervals_considered = self
                 .statistics
                 .intervals_considered
                 .checked_add(1)
                 .ok_or_else(invalid)?;
             if !selection.may_match_interval(&interval) {
+                self.misses = self.misses.checked_add(1).ok_or_else(invalid)?;
                 self.statistics.intervals_pruned = self
                     .statistics
                     .intervals_pruned
@@ -191,9 +277,60 @@ impl Plan {
             self.end = interval.end;
             // Decide from observed interval work only. Never prescan summaries
             // or records to choose a plan for a short accepted-row limit.
-            if self.statistics.intervals_considered >= 8
-                && self.statistics.intervals_pruned <= self.statistics.intervals_considered / 8
-            {
+            if self.observed >= 8 && self.misses <= self.observed / 8 {
+                if let Some((_, upper)) = self.leading {
+                    let (mut low, mut high) = (self.next, index.interval_count());
+                    while low < high {
+                        let mid = low + (high - low) / 2;
+                        let probe = index.interval(mid)?;
+                        self.statistics.boundary_probes = self
+                            .statistics
+                            .boundary_probes
+                            .checked_add(1)
+                            .ok_or_else(invalid)?;
+                        self.statistics.intervals_considered = self
+                            .statistics
+                            .intervals_considered
+                            .checked_add(1)
+                            .ok_or_else(invalid)?;
+                        let (minimum, _) = probe.key_bounds(0).ok_or_else(invalid)?;
+                        if minimum.get() <= upper {
+                            low = mid.checked_add(1).ok_or_else(invalid)?;
+                        } else {
+                            high = mid;
+                        }
+                    }
+                    let end = if low == index.interval_count() {
+                        index.validation_statistics.rows_decoded
+                    } else {
+                        self.statistics.boundary_probes = self
+                            .statistics
+                            .boundary_probes
+                            .checked_add(1)
+                            .ok_or_else(invalid)?;
+                        self.statistics.intervals_considered = self
+                            .statistics
+                            .intervals_considered
+                            .checked_add(1)
+                            .ok_or_else(invalid)?;
+                        index.interval(low)?.start
+                    };
+                    let skipped = index
+                        .interval_count()
+                        .checked_sub(low)
+                        .ok_or_else(invalid)?;
+                    self.statistics.intervals_pruned = self
+                        .statistics
+                        .intervals_pruned
+                        .checked_add(skipped)
+                        .ok_or_else(invalid)?;
+                    self.statistics.intervals_skipped_by_leading_bounds = self
+                        .statistics
+                        .intervals_skipped_by_leading_bounds
+                        .checked_add(skipped)
+                        .ok_or_else(invalid)?;
+                    self.tail_end = Some(end);
+                }
                 self.tail = true;
                 self.statistics.mode = IndexScanMode::Sequential;
             }
