@@ -195,6 +195,12 @@ impl std::fmt::Debug for RecordCheckpoint {
     }
 }
 
+struct OrdinalRange {
+    next: u64,
+    end: u64,
+    total: u64,
+}
+
 pub struct ScanCursor {
     reader: Reader,
     handle: SymbolHandle,
@@ -208,6 +214,7 @@ pub struct ScanCursor {
     index_plan: Option<crate::index::Plan>,
     decoder: Option<Decoder>,
     position: Option<DecoderPosition>,
+    range: Option<OrdinalRange>,
     batch: Option<Batch>,
     done: bool,
     error: Option<Error>,
@@ -388,6 +395,7 @@ impl ScanCursor {
             index_plan: None,
             decoder: None,
             position: None,
+            range: None,
             batch: None,
             done: false,
             error: None,
@@ -419,13 +427,29 @@ impl ScanCursor {
         if let Some(batch) = &mut self.batch {
             batch.clear();
         }
-        let capacity = self
+        let mut capacity = self
             .capacity
             .min(usize::try_from(self.remaining).unwrap_or(usize::MAX));
+        if let Some(range) = &self.range {
+            let raw_left = range.end.checked_sub(range.next).ok_or_else(|| {
+                Error::new(ErrorKind::InvalidCount, "ordinal range counter exceeds end")
+            })?;
+            // At total, retain one loop iteration for pending EOF framing;
+            // no row/batch can escape that check. Small ranges should not need
+            // a full maximum-payload allocation just to return a few rows.
+            capacity = capacity.min(usize::try_from(raw_left).unwrap_or(usize::MAX).max(1));
+        }
         let mut accepted = 0;
         #[cfg(feature = "index")]
         let initial_remaining = self.remaining;
         while accepted < capacity {
+            if let Some(range) = &self.range
+                && range.next == range.end
+                && range.end < range.total
+            {
+                self.done = true;
+                break;
+            }
             #[cfg(feature = "index")]
             if let Some(plan) = &mut self.index_plan {
                 let selection = self.selection.as_ref().ok_or_else(|| {
@@ -460,6 +484,16 @@ impl ScanCursor {
                 .as_mut()
                 .ok_or_else(|| Error::new(ErrorKind::UnexpectedEof, "missing decoder"))?;
             let Some(row) = decoder.next()? else {
+                if self
+                    .range
+                    .as_ref()
+                    .is_some_and(|range| range.next != range.end)
+                {
+                    return Err(Error::new(
+                        ErrorKind::InvalidCount,
+                        "EOF before ordinal range end",
+                    ));
+                }
                 self.done = true;
                 break;
             };
@@ -467,6 +501,15 @@ impl ScanCursor {
                 self.statistics.decoded_rows.checked_add(1).ok_or_else(|| {
                     Error::new(ErrorKind::InvalidCount, "decoded row counter overflow")
                 })?;
+            if let Some(range) = &mut self.range {
+                range.next = range
+                    .next
+                    .checked_add(1)
+                    .filter(|next| *next <= range.end)
+                    .ok_or_else(|| {
+                        Error::new(ErrorKind::InvalidCount, "row beyond ordinal range end")
+                    })?;
+            }
             #[cfg(feature = "index")]
             if let Some(plan) = &mut self.index_plan {
                 plan.decoded()?;
@@ -491,6 +534,13 @@ impl ScanCursor {
             batch.push(row)?;
             self.remaining -= 1;
             accepted += 1;
+        }
+        if self
+            .range
+            .as_ref()
+            .is_some_and(|range| range.next == range.end && range.end < range.total)
+        {
+            self.done = true;
         }
         if self.done || self.remaining == 0 {
             self.position = self.decoder.as_ref().map(Decoder::position).transpose()?;
@@ -539,6 +589,75 @@ impl ScanCursor {
     }
 }
 impl Reader {
+    /// Scan `[point.row_ordinal(), end)` without decoding a record prefix.
+    /// `end` is an absolute raw public row ordinal, independent of projection
+    /// or accepted limits. Empty/zero-limit ranges remain lazy. Nonempty ranges
+    /// consumed through EOF validate framing unless an accepted limit stops first.
+    /// The cursor owns a root-charged copy of the restart; point can be dropped.
+    /// Persistent points still require explicit strict index validation.
+    ///
+    /// ```no_run
+    /// # use gdxrs::{Reader, SymbolHandle, RecordCheckpoint, Result};
+    /// fn consume(reader: &Reader, symbol: &SymbolHandle, point: RecordCheckpoint,
+    ///            end: u64) -> Result<u64> {
+    ///     let mut cursor = reader.scan_range(symbol, &point, end, reader.scan_options())?;
+    ///     drop(point);
+    ///     while let Some(batch) = cursor.next_batch()? {
+    ///         println!("{} rows", batch.len());
+    ///     }
+    ///     Ok(cursor.statistics().returned_rows)
+    /// }
+    /// ```
+    pub fn scan_range(
+        &self,
+        symbol: &SymbolHandle,
+        point: &RecordCheckpoint,
+        end: u64,
+        options: ScanOptions,
+    ) -> Result<ScanCursor> {
+        self.check_handle(symbol)?;
+        if !std::sync::Arc::ptr_eq(&self.source, &point.source) || symbol.id() != point.symbol {
+            return Err(Error::new(
+                ErrorKind::SourceMismatch,
+                "checkpoint belongs to another source/symbol",
+            )
+            .symbol(symbol.id().get()));
+        }
+        self.source.check_unchanged()?;
+        let total = self.raw_count(&symbol.inner.record)?;
+        let start = point.row_ordinal();
+        if start > end || end > total {
+            return Err(
+                Error::new(ErrorKind::InvalidOptions, "ordinal range outside symbol")
+                    .symbol(symbol.id().get()),
+            );
+        }
+        let mut cursor = ScanCursor::new(self.clone(), symbol.clone(), options)?;
+        cursor.position = Some(point.position);
+        cursor.range = Some(OrdinalRange {
+            next: start,
+            end,
+            total,
+        });
+        cursor.done = start == end;
+        Ok(cursor)
+    }
+    /// Exact selection within a checkpoint-based raw ordinal range. Rejected
+    /// rows still count toward `end`; options.limit counts only accepted rows.
+    /// Like other selected cursors, this does not support checkpoint export.
+    pub fn scan_selected_range(
+        &self,
+        symbol: &SymbolHandle,
+        selection: &Selection,
+        point: &RecordCheckpoint,
+        end: u64,
+        options: ScanOptions,
+    ) -> Result<ScanCursor> {
+        selection.validate(self, symbol)?;
+        let mut cursor = self.scan_range(symbol, point, end, options)?;
+        cursor.selection = Some(selection.clone());
+        Ok(cursor)
+    }
     /// Start an unselected raw suffix scan in the same immutable open source.
     /// No rows preceding the point are decoded. The bounded data preamble is
     /// revalidated, and a compressed restart block is fully checksum-verified.
@@ -837,3 +956,6 @@ mod tests {
 
 #[cfg(test)]
 mod checkpoint_tests;
+
+#[cfg(test)]
+mod range_tests;
