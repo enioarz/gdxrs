@@ -660,6 +660,7 @@ impl ParallelScanCursor {
                 }
                 #[cfg(test)]
                 {
+                    tests::after_exit(&shared, slot);
                     shared.hooks.exited.fetch_add(1, Ordering::SeqCst);
                     if shared.hooks.panic_join.load(Ordering::SeqCst) == slot {
                         panic!("injected join panic");
@@ -822,6 +823,7 @@ impl ParallelScanCursor {
                 }
                 self.status.complete = true;
                 self.shutdown()?;
+                self.reader.source.check_unchanged()?;
                 return Ok(false);
             }
             let workers = self
@@ -855,6 +857,7 @@ impl ParallelScanCursor {
                     if self.status.cancelled {
                         return Ok(false);
                     }
+                    self.reader.source.check_unchanged()?;
                     self.status.returned_rows = self
                         .status
                         .returned_rows

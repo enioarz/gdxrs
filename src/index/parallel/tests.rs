@@ -13,6 +13,7 @@ pub(super) struct Hooks {
     pub started: AtomicUsize,
     pub exited: AtomicUsize,
     pub coordinator_wait: AtomicBool,
+    source_on_exit: Mutex<Option<Arc<Data>>>,
     waiting: [AtomicUsize; MAX_WORKERS],
 }
 impl Default for Hooks {
@@ -26,8 +27,16 @@ impl Default for Hooks {
             started: AtomicUsize::new(0),
             exited: AtomicUsize::new(0),
             coordinator_wait: AtomicBool::new(false),
+            source_on_exit: Mutex::new(None),
             waiting: std::array::from_fn(|_| AtomicUsize::new(0)),
         }
+    }
+}
+pub(super) fn after_exit(shared: &Shared, slot: usize) {
+    if slot == 0
+        && let Some(data) = shared.hooks.source_on_exit.lock().unwrap().as_ref()
+    {
+        data.changed.store(true, Ordering::SeqCst);
     }
 }
 pub(super) fn waiting(shared: &Shared, slot: usize, reason: usize) {
@@ -555,6 +564,48 @@ fn fault_reader(path: &str) -> (Reader, Arc<Data>) {
     });
     let source = crate::source::Source::testing(Box::new(Backend(Arc::clone(&data))), length);
     (Reader::from_source(source).unwrap(), data)
+}
+
+#[test]
+fn parallel_checks_source_after_join_for_limit_and_full_completion() {
+    for limit in [Some(1), None] {
+        let (reader, data) = fault_reader("tests/fixtures/v7/semantics-0.gdx");
+        let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
+        let (_temp, idx) = index(&reader, &symbol, 2);
+        let hooks = Arc::new(Hooks::default());
+        *hooks.source_on_exit.lock().unwrap() = Some(data);
+        let mut cursor = ParallelScanCursor::new_inner(
+            &reader,
+            &symbol,
+            None,
+            idx,
+            ScanOptions {
+                limit,
+                ..reader.scan_options()
+            },
+            ParallelOptions::default(),
+            hooks,
+        )
+        .unwrap();
+        let mut acknowledged = 0;
+        loop {
+            match cursor.next_batch() {
+                Ok(Some(batch)) => acknowledged += batch.len() as u64,
+                Ok(None) => panic!("source change during joins lost"),
+                Err(error) => {
+                    assert_eq!(error.kind, ErrorKind::SourceChanged);
+                    break;
+                }
+            }
+        }
+        assert_eq!(cursor.statistics().returned_rows, acknowledged);
+        if limit.is_some() {
+            assert_eq!(acknowledged, 0);
+        }
+        assert!(!cursor.statistics().complete);
+        assert_eq!(cursor.statistics().joined_workers, 2);
+        assert_eq!(cursor.close().err().unwrap().kind, ErrorKind::SourceChanged);
+    }
 }
 
 #[cfg(feature = "compression")]
