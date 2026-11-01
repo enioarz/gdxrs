@@ -568,6 +568,9 @@ fn optional_writer_pages_preserve_crossing_label_frames_and_comments() {
 #[path = "reader/checkpoints.rs"]
 mod checkpoints;
 
+#[path = "reader/ranges.rs"]
+mod ranges;
+
 #[cfg(feature = "index")]
 #[path = "reader/sidecars.rs"]
 mod sidecars;

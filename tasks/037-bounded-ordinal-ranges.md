@@ -1,7 +1,7 @@
 # 037 — Bounded ordinal-range cursors
 
 Milestone: M6. Prerequisite: 036 baseline/contract complete and reviewed.
-Status: pending.
+Status: complete for serial ranges; PR #32 awaits review. See [evidence](../docs/evidence/037.md).
 
 Implement the serial range primitive needed before parallel execution. Define exact
 half-open raw record ordinals, validate start/end/count arithmetic and source/symbol
