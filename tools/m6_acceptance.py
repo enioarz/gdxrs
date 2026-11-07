@@ -92,13 +92,40 @@ def validate_phase(p, workers, query, expected, kind):
         raise ValueError('invalid parallel phase accounting')
 
 
-def validate_parallel(trial, workers, query, expected, kind):
+def validate_parallel(trial, workers, query, expected, kind, phase_count=1):
     r = trial['result']
     if r['mode'] != 'parallel' or not math.isfinite(r['reopen_seconds']) or r['reopen_seconds'] < 0:
         raise ValueError('invalid parallel run')
     validate_containment(trial)
+    if len(r['phases']) != phase_count or any(p['query'] != query for p in r['phases']):
+        raise ValueError('parallel phase count/query mismatch')
     for p in r['phases']:
         validate_phase(p, workers, query, expected if query != 'cancel' else expected_prefix(kind, p['count']), kind)
+
+
+def validate_trial(case, t):
+    kind, n = case['kind'], case['count']
+    for name in ['serial', 'build', 'session'] + [f'parallel-{w}' for w in WORKERS] \
+            + ['parallel-cancel', 'parallel-head', 'parallel-zero', 'parallel-warm']:
+        if name not in t:
+            raise ValueError('missing trial phase ' + name)
+        validate_containment(t[name])
+    validate_serial(t['serial'], case['expected_all'])
+    built = m5.phases(t['build'])[0]
+    opened = m5.phases(t['session'])[0]
+    indexed = m5.phases(t['session'])[1]
+    if not built['complete'] or not built['published'] or built['rows_decoded'] != n:
+        raise ValueError('incomplete explicit build')
+    if not opened['complete'] or opened['source_bytes_hashed'] != case['source']['bytes']:
+        raise ValueError('strict reopen validation incomplete')
+    if m5.identity(indexed) != case['expected_all'] or indexed['query'] != 'all':
+        raise ValueError('indexed full ordered digest mismatch')
+    for w in WORKERS:
+        validate_parallel(t[f'parallel-{w}'], w, 'all', case['expected_all'], kind)
+    validate_parallel(t['parallel-cancel'], 4, 'cancel', None, kind)
+    validate_parallel(t['parallel-head'], 2, 'head', expected_prefix(kind, 13), kind)
+    validate_parallel(t['parallel-zero'], 2, 'zero', dict(count=0, digest=f'{scale.INITIAL:016x}'), kind)
+    validate_parallel(t['parallel-warm'], 4, 'all', case['expected_all'], kind, phase_count=3)
 
 
 def qualify(cases):
@@ -119,32 +146,14 @@ def qualify(cases):
             if len(c['trials']) != TRIALS:
                 raise ValueError('three trials required per case')
             for t in c['trials']:
-                for name in ['serial', 'build', 'session'] + [f'parallel-{w}' for w in WORKERS] \
-                        + ['parallel-cancel', 'parallel-head', 'parallel-zero', 'parallel-warm']:
-                    validate_containment(t[name])
-                validate_serial(t['serial'], c['expected_all'])
-                built = m5.phases(t['build'])[0]
-                opened = m5.phases(t['session'])[0]
-                indexed = m5.phases(t['session'])[1]
-                if not built['complete'] or not built['published'] or built['rows_decoded'] != c['count']:
-                    raise ValueError('incomplete explicit build')
-                if not opened['complete'] or opened['source_bytes_hashed'] != c['source']['bytes']:
-                    raise ValueError('strict reopen validation incomplete')
-                if m5.identity(indexed) != c['expected_all'] or indexed['query'] != 'all':
-                    raise ValueError('indexed full ordered digest mismatch')
-                for w in WORKERS:
-                    validate_parallel(t[f'parallel-{w}'], w, 'all', c['expected_all'], kind)
-                validate_parallel(t['parallel-cancel'], 4, 'cancel', None, kind)
-                validate_parallel(t['parallel-head'], 2, 'head', expected_prefix(kind, 13), kind)
-                validate_parallel(t['parallel-zero'], 2, 'zero', dict(count=0, digest=f'{scale.INITIAL:016x}'), kind)
-                warm = t['parallel-warm']['result']['phases']
-                if len(warm) != 3 or any(p['query'] != 'all' for p in warm):
-                    raise ValueError('warm parallel repeats missing')
-                for p in warm:
-                    validate_phase(p, 4, 'all', c['expected_all'], kind)
+                validate_trial(c, t)
+        worker_keys = ['serial'] + [f'parallel-{w}' for w in WORKERS] \
+            + ['parallel-cancel', 'parallel-head', 'parallel-zero', 'parallel-warm']
+        baseline = max(t[k]['peak_rss_bytes'] for t in rows[0]['trials'] for k in worker_keys)
         for t in last['trials']:
-            if t['serial']['peak_rss_bytes'] > max(x['trials'][0]['serial']['peak_rss_bytes'] for x in rows) + 64 * 1024**2:
-                raise ValueError('RSS growth exceeds fixed 64 MiB allowance')
+            for k in worker_keys:
+                if t[k]['peak_rss_bytes'] > baseline + 64 * 1024**2:
+                    raise ValueError('RSS growth exceeds fixed 64 MiB allowance')
 
 
 def performance(case):
@@ -155,11 +164,14 @@ def performance(case):
                build_seconds=m5.samples([m5.phases(t['build'])[0]['seconds'] for t in case['trials']]),
                reopen_seconds=m5.samples([m5.phases(t['session'])[0]['seconds'] for t in case['trials']]),
                indexed_all_seconds=m5.samples([m5.phases(t['session'])[1]['seconds'] for t in case['trials']]))
+    indexed = [m5.phases(t['session'])[1]['seconds'] for t in case['trials']]
     parallel = {}
     for w in WORKERS:
         cold = [t[f'parallel-{w}']['result']['phases'][0]['seconds'] for t in case['trials']]
         s = m5.samples(cold)
         s['speedup_vs_serial'] = statistics.median(serial) / s['median'] if s['median'] > 0 else None
+        s['speedup_vs_indexed'] = statistics.median(indexed) / s['median'] if s['median'] > 0 else None
+        s['cache_state'] = 'parallel queries follow a strict source reopen in the same process (hash/replay warms the OS cache); cold serial uses advisory eviction - not like-for-like'
         s['phases'] = {name: m5.samples([t[f'parallel-{w}']['result']['phases'][0][name] for t in case['trials']])
                        for name in ['first_seconds', 'batch_seconds', 'sink_seconds']}
         parallel[str(w)] = s
@@ -290,6 +302,7 @@ def check(run, profile):
                                                  name + '-warm')
                 if writer_scale.hash_record(source) != identity:
                     raise ValueError('acceptance run mutated source')
+                validate_trial(case, t)
                 progress()
                 index.unlink()
             if writer_scale.hash_record(source) != identity:
@@ -298,12 +311,31 @@ def check(run, profile):
                 case['performance'] = performance(case)
             progress()
             source.unlink()
+    special_values = None
+    if profile == 'smoke':
+        fixture = ROOT / 'tests/fixtures/v7/semantics-0.gdx'
+        expected_tsv = fixture.with_suffix('.expected.tsv').read_text()
+        fixture_count = sum(1 for line in expected_tsv.splitlines()
+                            if line.startswith('R	') and line.split('	')[1] == '7')
+        special_index = area / 'special-semantics-0.index'
+        t = scale.measure([bins['m6_acceptance_worker'], 'special', fixture, special_index, '7', fixture_count],
+                          area, 'special-values', timeout=600)
+        validate_containment(t)
+        r = t['result']
+        if r['mode'] != 'special' or r['count'] != fixture_count or r['specials'] <= 0:
+            raise ValueError('special-value case missing sentinel/acronym values')
+        digests = {m['digest'] for m in r['modes']}
+        if len(r['modes']) != 3 or len(digests) != 1:
+            raise ValueError('serial/indexed/parallel special-value digests differ')
+        special_index.unlink()
+        special_values = dict(fixture=str(fixture.relative_to(ROOT)), symbol=7, count=fixture_count,
+                              specials=r['specials'], modes=r['modes'])
     if profile == 'scale':
         qualify(cases)
     if hashes != {p: oracle.file_digest(ROOT / p) for p in SOURCES}:
         raise ValueError('measured sources changed during acceptance')
     return dict(source_revision=revision, source_hashes=hashes, profile=profile,
-                m6_qualified=profile == 'scale', trials=TRIALS, workers=list(WORKERS),
+                m6_qualified=profile == 'scale', trials=TRIALS, workers=list(WORKERS), special_values=special_values,
                 root=str(area.relative_to(ROOT)), cases=cases, oracle=reference,
                 binary_hashes={k: oracle.file_digest(p) for k, p in bins.items()},
                 native_binary_sha256=oracle.file_digest(native),

@@ -67,11 +67,13 @@ def session_result(count=4096, source_bytes=582094):
 def case(kind='records', n=4096):
     def ph(workers, query, count):
         p = phase(workers, query, count)
-        p['digest'] = a.expected_prefix(kind, count)['digest'] if count else f'{a.scale.INITIAL:016x}'
         if query == 'all':
             p['digest'] = 'aa'
-        if query == 'zero':
+        elif query == 'zero':
+            p['digest'] = f'{a.scale.INITIAL:016x}'
             p.update(seconds=0.0, first_seconds=0.0, batch_seconds=0.0, sink_seconds=0.0)
+        else:
+            p['digest'] = a.expected_prefix(kind, count)['digest']
         return p
     t = dict(serial=dict(trial(), result=serial_result(n)),
              build=build_result(n), session=session_result(n),
@@ -150,7 +152,12 @@ class AcceptanceGuards(unittest.TestCase):
                        lambda cs: cs[1]['source'].update(bytes=1000),
                        lambda cs: cs[3].update(logical_bytes=1000),
                        lambda cs: cs[5].update(logical_bytes=1000),
-                       lambda cs: cs[1]['trials'][0]['serial'].update(peak_rss_bytes=a.m5.CAP + 1)]:
+                       lambda cs: cs[1]['trials'][0]['serial'].update(peak_rss_bytes=a.m5.CAP + 1),
+                       lambda cs: cs[1]['trials'][0]['parallel-8'].update(peak_rss_bytes=400 * 1024**2),
+                       lambda cs: cs[1]['trials'][0]['parallel-2']['result']['phases'].clear(),
+                       lambda cs: cs[1]['trials'][0]['parallel-warm']['result']['phases'].pop(),
+                       lambda cs: cs[1]['trials'][0]['parallel-head']['result']['phases'][0].update(query='all'),
+                       lambda cs: cs[1]['trials'][0].pop('parallel-zero')]:
             bad = copy.deepcopy(good)
             mutate(bad)
             with self.assertRaises(ValueError):

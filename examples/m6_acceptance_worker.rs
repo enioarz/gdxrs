@@ -316,6 +316,185 @@ mod worker {
         );
         Ok(())
     }
+    fn value_word(digest: &mut u64, value: Value) {
+        let text = format!("{value:?}");
+        for byte in text.as_bytes() {
+            *digest = step(*digest, u64::from(*byte));
+        }
+    }
+    fn generic_scan(
+        reader: &Reader,
+        symbol: &SymbolHandle,
+        mode: &str,
+        index_path: &std::ffi::OsStr,
+        index_options: IndexOptions,
+        index: Option<CheckpointIndex>,
+    ) -> R<(String, u64, u64, u64, CheckpointIndex)> {
+        let start = Instant::now();
+        let mut count = 0u64;
+        let mut specials = 0u64;
+        let mut digest = INITIAL;
+        let mut index = index;
+        match mode {
+            "serial" => {
+                let selection = reader.selection(symbol, &[])?;
+                let mut cursor = reader.scan_selected(symbol, &selection, reader.scan_options())?;
+                while let Some(batch) = cursor.next_batch()? {
+                    for at in 0..batch.len() {
+                        let row = batch.row(at).ok_or("row")?;
+                        for d in 0..20 {
+                            if let Some(key) = row.key(d) {
+                                digest = step(digest, u64::from(key.get()));
+                            }
+                        }
+                        for field in ValueField::ALL.iter() {
+                            if let Some(value) = row.value(*field) {
+                                if !matches!(value, Value::NumberBits(_)) {
+                                    specials += 1;
+                                }
+                                value_word(&mut digest, value);
+                            }
+                        }
+                        count += 1;
+                    }
+                }
+            }
+            "indexed" => {
+                let selection = reader.selection(symbol, &[])?;
+                let mut cursor = reader.scan_selected_indexed(
+                    symbol,
+                    &selection,
+                    reader.scan_options(),
+                    IndexOpen {
+                        status: IndexStatus::Ready,
+                        index: Some(index.take().ok_or("index")?),
+                    },
+                )?;
+                while let Some(batch) = cursor.next_batch()? {
+                    for at in 0..batch.len() {
+                        let row = batch.row(at).ok_or("row")?;
+                        for d in 0..20 {
+                            if let Some(key) = row.key(d) {
+                                digest = step(digest, u64::from(key.get()));
+                            }
+                        }
+                        for field in ValueField::ALL.iter() {
+                            if let Some(value) = row.value(*field) {
+                                if !matches!(value, Value::NumberBits(_)) {
+                                    specials += 1;
+                                }
+                                value_word(&mut digest, value);
+                            }
+                        }
+                        count += 1;
+                    }
+                }
+                index = cursor.into_index();
+            }
+            _ => {
+                let mut cursor = reader.scan_parallel(
+                    symbol,
+                    index.take().ok_or("index")?,
+                    reader.scan_options(),
+                    ParallelOptions {
+                        workers: 4,
+                        maximum_in_flight_tasks: 4,
+                        intervals_per_task: 1,
+                        ..ParallelOptions::default()
+                    },
+                )?;
+                while let Some(batch) = cursor.next_batch()? {
+                    for at in 0..batch.len() {
+                        let row = batch.row(at).ok_or("row")?;
+                        for d in 0..20 {
+                            if let Some(key) = row.key(d) {
+                                digest = step(digest, u64::from(key.get()));
+                            }
+                        }
+                        for field in ValueField::ALL.iter() {
+                            if let Some(value) = row.value(*field) {
+                                if !matches!(value, Value::NumberBits(_)) {
+                                    specials += 1;
+                                }
+                                value_word(&mut digest, value);
+                            }
+                        }
+                        count += 1;
+                    }
+                }
+                index = Some(cursor.into_index()?);
+            }
+        }
+        let _ = index_path;
+        let _ = index_options;
+        let record = format!(
+            "{{\"mode\":\"{mode}\",\"count\":{count},\"specials\":{specials},\"digest\":\"{digest:016x}\",\"seconds\":{}}}",
+            start.elapsed().as_secs_f64()
+        );
+        Ok((record, count, specials, digest, index.ok_or("index lost")?))
+    }
+    fn special(
+        source: &std::ffi::OsStr,
+        index_path: &std::ffi::OsStr,
+        symbol_id: u32,
+        n: u64,
+    ) -> R<()> {
+        check_cap()?;
+        let reader = open_reader(source)?;
+        let symbol = reader.symbol(SymbolId::new(symbol_id)?)?;
+        let index_options = IndexOptions {
+            record_stride: 1,
+            maximum_index_bytes: 12 * 1024 * 1024 * 1024,
+            maximum_open_files: 2,
+            page_cache_bytes: 1024,
+            ..IndexOptions::default()
+        };
+        let mut builder = reader.index_builder(&symbol, index_path, index_options)?;
+        let built = builder.finish()?;
+        require(built.complete && built.published, "special build")?;
+        drop(builder);
+        let index = reader
+            .open_index(&symbol, index_path, index_options, IndexPolicy::UseIfValid)?
+            .index
+            .ok_or("strict index unavailable")?;
+        let mut modes = Vec::new();
+        let mut index = Some(index);
+        let mut reference = None;
+        for mode in ["serial", "indexed", "parallel"] {
+            let (record, count, specials, digest, owner) = generic_scan(
+                &reader,
+                &symbol,
+                mode,
+                index_path,
+                index_options,
+                index.take(),
+            )?;
+            require(count == n, "special count")?;
+            if let Some((_, _, first)) = reference.as_ref() {
+                require(
+                    digest == *first,
+                    "special-value digest differs across modes",
+                )?;
+            } else {
+                reference = Some((count, specials, digest));
+            }
+            require(specials > 0, "fixture must contain special values")?;
+            modes.push(record);
+            index = Some(owner);
+        }
+        let vm = vm_peak()?;
+        require(
+            vm <= CAP && reader.budget_statistics().peak_bytes <= ROOT,
+            "cap exceeded",
+        )?;
+        println!(
+            "{{\"mode\":\"special\",\"count\":{n},\"specials\":{},\"modes\":[{}],{}}}",
+            reference.ok_or("reference")?.1,
+            modes.join(","),
+            tail(&reader, vm)
+        );
+        Ok(())
+    }
     pub fn run() -> R<()> {
         let args: Vec<_> = std::env::args_os().collect();
         let mode = args.get(1).and_then(|a| a.to_str()).ok_or("mode")?;
@@ -336,6 +515,20 @@ mod worker {
                 "bounded acceptance recipe",
             )?;
             return serial(source, metadata, n);
+        }
+        if mode == "special" {
+            if args.len() != 6 {
+                return Err("usage: special SOURCE INDEX SYMBOL COUNT".into());
+            }
+            let symbol_id: u32 = args[4].to_str().ok_or("symbol")?.parse()?;
+            let n: u64 = args[5].to_str().ok_or("count")?.parse()?;
+            require((1..=1_000_000).contains(&n), "bounded special recipe")?;
+            return special(
+                args.get(2).ok_or("source")?,
+                args.get(3).ok_or("index")?,
+                symbol_id,
+                n,
+            );
         }
         if mode == "parallel" {
             if args.len() != 10 {
