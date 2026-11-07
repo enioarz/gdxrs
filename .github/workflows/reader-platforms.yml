@@ -82,7 +82,17 @@ jobs:
         if: failure()
         run: |
           python - <<'PYFAIL'
+          import json
           from pathlib import Path
+          for path in Path('.work/reports').glob('reader-check-*.json'):
+              record = json.loads(path.read_text(encoding='utf-8'))
+              timeout = record.get('timeout')
+              if timeout:
+                  for stream in ['stdout', 'stderr']:
+                      tail = timeout.get(stream, '')[-12000:]
+                      if tail:
+                          tail = tail.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                          print('::error title=Timed-out reader ' + stream + '::' + tail)
           for name in ['native-tests', 'native-release', 'native-reader']:
               path = Path('.work') / (name + '.log')
               if path.exists():
