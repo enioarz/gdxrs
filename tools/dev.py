@@ -68,6 +68,16 @@ def report_check(name, operation):
             exit_code=exc.exit_code
             if exit_code==2: record['status']='blocked'
         print(f"ERROR: {exc}", file=sys.stderr)
+        if isinstance(exc, subprocess.TimeoutExpired):
+            tails = {}
+            for name, output in [('stdout', exc.stdout), ('stderr', exc.stderr)]:
+                if isinstance(output, bytes):
+                    output = output.decode('utf-8', errors='replace')
+                tails[name] = (output or '')[-12000:]
+                if tails[name]:
+                    print(tails[name], file=sys.stderr)
+            record['timeout'] = {'command': list(map(str, exc.cmd)),
+                                 'seconds': exc.timeout, **tails}
         if isinstance(exc, subprocess.CalledProcessError):
             exit_code = exc.returncode if exc.returncode > 0 else 1
             if exc.stdout:

@@ -1,6 +1,7 @@
 """Runner behavior tests, not GDX library tests."""
 
 import importlib.util
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -39,6 +40,28 @@ class Reports(unittest.TestCase):
     def test_missing_tool_is_failure(self):
         with self.assertRaises(FileNotFoundError):
             dev.run(["/no/such/gdxrs-tool"])
+
+    def test_timeout_retains_bounded_partial_output_without_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            stderr = io.StringIO()
+            with patch.object(dev, 'WORK', Path(directory)), patch.object(dev, 'ROOT', Path(directory)), \
+                 patch.object(dev, 'revision', return_value='test'), patch.object(dev.sys, 'stderr', stderr):
+                def fail():
+                    raise subprocess.TimeoutExpired(['cargo', 'test'], 180,
+                        output=b'x' * 20000 + b'blocked-test', stderr=b'compiler-tail\xff')
+                self.assertEqual(dev.report_check('timeout', fail), 1)
+            reports = list(Path(directory).glob('reports/*.json'))
+            self.assertEqual(len(reports), 1)
+            report = json.loads(reports[0].read_text())
+            self.assertEqual(report['status'], 'failed')
+            self.assertEqual(report['exit_code'], 1)
+            self.assertIsNone(report['result'])
+            self.assertEqual(report['timeout']['seconds'], 180)
+            self.assertEqual(report['timeout']['command'], ['cargo', 'test'])
+            self.assertEqual(len(report['timeout']['stdout']), 12000)
+            self.assertTrue(report['timeout']['stdout'].endswith('blocked-test'))
+            self.assertIn('compiler-tail', report['timeout']['stderr'])
+            self.assertIn('blocked-test', stderr.getvalue())
 
     def test_unexpected_error_records_failure(self):
         with tempfile.TemporaryDirectory() as directory:

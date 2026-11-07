@@ -229,7 +229,10 @@ fn parallel_zero_limit_and_empty_selection_do_not_launch_or_read_records() {
         assert_eq!(cursor.statistics().decoded_rows, 0);
         assert!(cursor.statistics().complete);
         assert_eq!(reader.io_statistics().bytes_read, before.bytes_read);
+        cursor.cancellation_handle().request_cancel();
         cursor.close().unwrap();
+        assert!(cursor.statistics().complete);
+        assert!(!cursor.statistics().cancelled);
     }
 }
 
@@ -320,5 +323,8 @@ fn parallel_validated_session_reuse_does_not_repeat_source_hashing() {
     // Universe scans use synthetic rows. Any full-source identity pass here
     // would be visible as GDX source reads rather than just sidecar pages.
     assert_eq!(reader.io_statistics().bytes_read, before);
+    next.cancellation_handle().request_cancel();
     next.close().unwrap();
+    assert!(next.statistics().complete);
+    assert!(!next.statistics().cancelled);
 }

@@ -133,7 +133,9 @@ impl Signal {
     }
     fn request_stop(&self, user: bool) {
         let _gate = self.lock();
-        if user {
+        // The first stop commits completion/failure/cancellation. A retained
+        // handle cannot retroactively cancel a terminal query.
+        if user && !self.stop.load(Ordering::Acquire) {
             self.user_cancelled.store(true, Ordering::Release);
         }
         self.stop.store(true, Ordering::Release);
@@ -632,6 +634,7 @@ impl ParallelScanCursor {
         };
         if lazy {
             cursor.status.complete = true;
+            cursor.signal.request_stop(false);
             return Ok(cursor);
         }
         for slot in 0..admitted {
