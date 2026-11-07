@@ -159,4 +159,4 @@ the sequence and shared-root, stack, queue, order and cancellation requirements.
 | [037](037-bounded-ordinal-ranges.md) | Exact bounded half-open ordinal-range cursors | 036 | Complete for serial ranges; PR #32 merged at `7f7e19a`; [evidence](../docs/evidence/037.md) |
 | [038](038-ordered-parallel-scans.md) | Explicit admitted workers, bounded ordered delivery and cancellation | 037 | Complete for explicit worker functionality; PR #33 awaits review; [evidence](../docs/evidence/038.md) |
 | [039](039-measured-scan-policy.md) | Measured observable serial/indexed/parallel choices | 038 | Complete for measured-policy scope; [evidence](../docs/evidence/039.md) |
-| [040](040-m6-acceptance.md) | Ordered performance, cancellation and oversized containment gates | 036–039 | Pending; 039 prerequisite now complete |
+| [040](040-m6-acceptance.md) | Ordered performance, cancellation and oversized containment gates | 036–039 | Complete for measured scope; PR #36; [evidence](../docs/evidence/040.md) |
