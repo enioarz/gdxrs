@@ -146,6 +146,20 @@ def test_suite_counts(output):
     return [int(row[0]) for row in summaries]
 
 
+def reader_test_suite(args):
+    started = time.monotonic()
+    result = run(args, capture=True, timeout=600)
+    elapsed = time.monotonic() - started
+    counts = test_suite_counts(result.stdout)
+    durations = [float(value) for value in re.findall(
+        r"test result: ok\.[^\n]*finished in ([0-9.]+)s", result.stdout)]
+    if len(durations) != len(counts):
+        raise CheckFailure("reader suite duration summaries are incomplete")
+    return {"command": args, "timeout_seconds": 600, "elapsed_seconds": elapsed,
+            "unit_integration_doctest_groups_passed": counts,
+            "unit_integration_doctest_groups_elapsed_seconds": durations}
+
+
 def reader_check():
     bootstrap = check_bootstrap()
     run(["cargo", "clippy", "--locked", "--all-targets", "--no-default-features", "--", "-D", "warnings"])
@@ -160,9 +174,7 @@ def reader_check():
     suites = []
     for features in ([], ["--no-default-features"], ["--all-features"], ["--no-default-features", "--features", "index"]):
         args = ["cargo", "test", "--locked", *features]
-        result = run(args, capture=True)
-        counts = test_suite_counts(result.stdout)
-        suites.append({"command": args, "unit_integration_doctest_groups_passed": counts})
+        suites.append(reader_test_suite(args))
     # Small frozen fixtures only: collecting the textual comparison here is
     # development tooling, never part of the production reader or dump example.
     paths = sorted((ROOT/"tests/fixtures/v7").glob("*.gdx"))
