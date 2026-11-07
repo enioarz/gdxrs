@@ -114,3 +114,62 @@ fn resumed_failure_is_sticky_and_does_not_decode_the_record_prefix() {
     assert_eq!(suffix.next_batch().err().unwrap().kind, ErrorKind::Io);
     assert_eq!(suffix.statistics(), ScanStatistics::default());
 }
+
+#[cfg(feature = "compression")]
+#[test]
+fn close_retains_the_acknowledged_prefix_for_later_checkpoint_export() {
+    let reader = Reader::open("tests/fixtures/v7/blocks.gdx", OpenOptions::default()).unwrap();
+    let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
+    let mut total_scan = reader.scan(&symbol, reader.scan_options()).unwrap();
+    let mut total = 0u64;
+    while let Some(batch) = total_scan.next_batch().unwrap() {
+        total += batch.len() as u64;
+    }
+    let mut scan = reader.scan(&symbol, reader.scan_options()).unwrap();
+    let acknowledged = scan.next_batch().unwrap().unwrap().len() as u64;
+    assert!(acknowledged > 0);
+    assert_eq!(scan.checkpoint().unwrap().row_ordinal(), acknowledged);
+    scan.close().unwrap();
+    let point = scan.checkpoint().unwrap();
+    assert_eq!(point.row_ordinal(), acknowledged);
+    assert!(scan.next_batch().unwrap().is_none());
+    drop(scan);
+    let mut suffix = reader
+        .scan_from_checkpoint(&symbol, &point, reader.scan_options())
+        .unwrap();
+    let mut resumed = 0u64;
+    while let Some(batch) = suffix.next_batch().unwrap() {
+        resumed += batch.len() as u64;
+    }
+    assert_eq!(resumed, total - acknowledged);
+}
+
+#[cfg(feature = "compression")]
+#[test]
+fn close_after_resume_retains_the_extended_prefix() {
+    let reader = Reader::open("tests/fixtures/v7/blocks.gdx", OpenOptions::default()).unwrap();
+    let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
+    let mut head = reader
+        .scan(
+            &symbol,
+            ScanOptions {
+                limit: Some(1),
+                ..reader.scan_options()
+            },
+        )
+        .unwrap();
+    head.next_batch().unwrap().unwrap();
+    let point = head.checkpoint().unwrap();
+    assert_eq!(point.row_ordinal(), 1);
+    drop(head);
+    let mut suffix = reader
+        .scan_from_checkpoint(&symbol, &point, reader.scan_options())
+        .unwrap();
+    let consumed = suffix.next_batch().unwrap().unwrap().len() as u64;
+    assert!(consumed > 0);
+    let before = suffix.checkpoint().unwrap().row_ordinal();
+    assert_eq!(before, 1 + consumed);
+    suffix.close().unwrap();
+    assert_eq!(suffix.checkpoint().unwrap().row_ordinal(), before);
+    assert!(suffix.next_batch().unwrap().is_none());
+}

@@ -80,5 +80,6 @@ pub use index::{
     CheckpointIndex, IndexBuilder, IndexInterval, IndexOpen, IndexOptions, IndexPolicy,
     IndexPublication, IndexScanMode, IndexStatistics, IndexStatus, IndexedScanStatistics,
     ParallelAdmission, ParallelCancellation, ParallelOptions, ParallelScanCursor,
-    ParallelStatistics,
+    ParallelStatistics, PlannedAlternative, PlannedScan, PlannedStatistics, ScanChoice,
+    ScanMeasurements, ScanPlan, ScanPolicy,
 };

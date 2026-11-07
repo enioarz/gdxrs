@@ -19,10 +19,15 @@ mod wire;
 use wire::*;
 mod generate;
 mod parallel;
+mod policy;
 mod query;
 pub use parallel::{
     ParallelAdmission, ParallelCancellation, ParallelOptions, ParallelScanCursor,
     ParallelStatistics,
+};
+pub use policy::{
+    PlannedAlternative, PlannedScan, PlannedStatistics, ScanChoice, ScanMeasurements, ScanPlan,
+    ScanPolicy,
 };
 mod store;
 pub(crate) use query::Plan;
@@ -666,5 +671,7 @@ impl CheckpointIndex {
     }
 }
 
+#[cfg(test)]
+mod policy_tests;
 #[cfg(test)]
 mod tests;

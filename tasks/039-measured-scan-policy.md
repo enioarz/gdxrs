@@ -1,7 +1,7 @@
 # 039 — Measured explicit scan policy
 
 Milestone: M6. Prerequisite: 038 complete/reviewed with measured costs.
-Status: pending.
+Status: implemented for the measured-policy scope; PR #35 is under review. See [qualification](../docs/evidence/039.md), [code quality follow-up](../docs/evidence/039-code-quality.md) and [cost/calibration review fixes](../docs/evidence/039-cost-calibration-fixes.md).
 
 Use reproducible measurements to choose between serial, indexed and parallel scans
 within caller-specified limits. Include build/strict reopen costs and already-valid
