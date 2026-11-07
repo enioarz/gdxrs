@@ -345,12 +345,18 @@ impl ScanCursor {
     pub fn statistics(&self) -> ScanStatistics {
         self.statistics
     }
-    /// Stop at the acknowledged prefix: release decoder and batch buffers and
-    /// report any sticky error. Idempotent; later next_batch calls return None
-    /// or repeat the sticky error, never another row.
+    /// Stop at the acknowledged prefix: retain the decoder position so a later
+    /// checkpoint export still reports it, release decoder and batch buffers
+    /// and report any sticky error. Idempotent; later next_batch calls return
+    /// None or repeat the sticky error, never another row.
     pub fn close(&mut self) -> Result<()> {
         if let Some(error) = &self.error {
             return Err(error.clone());
+        }
+        let point = self.decoder.as_mut().map(Decoder::checkpoint).transpose();
+        match point {
+            Ok(point) => self.position = point.or(self.position),
+            Err(error) => return Err(self.fail(error)),
         }
         self.done = true;
         self.decoder = None;
