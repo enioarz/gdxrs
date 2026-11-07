@@ -32,6 +32,7 @@ class PolicyGuards(unittest.TestCase):
     def test_containment_is_required(self):
         for change in [lambda t: t['result'].update(root_peak=p.m5.BUDGET + 1),
                        lambda t: t['result'].update(os_cap_verified=False),
+                       lambda t: t['result'].update(vm_peak_bytes=0),
                        lambda t: t['result'].update(vm_peak_bytes=p.m5.CAP + 1),
                        lambda t: t.update(peak_rss_bytes=p.m5.CAP + 1),
                        lambda t: t.update(sampled_peak_fds=7),
@@ -58,6 +59,29 @@ class PolicyGuards(unittest.TestCase):
             change(bad)
             with self.assertRaises(ValueError):
                 p.validate_case(bad)
+
+    def test_each_query_shape_and_worker_measurement_occurs_once(self):
+        for change in [
+            lambda c: c['result']['shapes'].append(copy.deepcopy(c['result']['shapes'][0])),
+            lambda c: c['result']['parallel_seconds'].pop(),
+            lambda c: c['result']['parallel_seconds'].append(1.0),
+        ]:
+            bad = case('records', 4096)
+            change(bad)
+            with self.assertRaises(ValueError):
+                p.validate_case(bad)
+
+    def test_planned_times_are_finite_and_nonnegative(self):
+        for shape in range(4):
+            for duration in [float('nan'), float('inf'), -1.0]:
+                bad = case('records', 4096)
+                bad['result']['shapes'][shape]['seconds'] = duration
+                with self.assertRaises(ValueError):
+                    p.validate_case(bad)
+        bad = case('records', 4096)
+        bad['result']['shapes'][0]['seconds'] = 0.0
+        with self.assertRaises(ValueError):
+            p.validate_case(bad)
 
     def test_qualify_requires_growing_complete_families(self):
         cases = [case(k, n) for k in p.KINDS for n in [4096, 16384]]

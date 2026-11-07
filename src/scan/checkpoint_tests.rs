@@ -118,11 +118,7 @@ fn resumed_failure_is_sticky_and_does_not_decode_the_record_prefix() {
 #[cfg(feature = "compression")]
 #[test]
 fn close_retains_the_acknowledged_prefix_for_later_checkpoint_export() {
-    let reader = Reader::open(
-        "tests/fixtures/v7/blocks.gdx",
-        OpenOptions::default(),
-    )
-    .unwrap();
+    let reader = Reader::open("tests/fixtures/v7/blocks.gdx", OpenOptions::default()).unwrap();
     let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
     let mut total_scan = reader.scan(&symbol, reader.scan_options()).unwrap();
     let mut total = 0u64;
@@ -151,11 +147,7 @@ fn close_retains_the_acknowledged_prefix_for_later_checkpoint_export() {
 #[cfg(feature = "compression")]
 #[test]
 fn close_after_resume_retains_the_extended_prefix() {
-    let reader = Reader::open(
-        "tests/fixtures/v7/blocks.gdx",
-        OpenOptions::default(),
-    )
-    .unwrap();
+    let reader = Reader::open("tests/fixtures/v7/blocks.gdx", OpenOptions::default()).unwrap();
     let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
     let mut head = reader
         .scan(

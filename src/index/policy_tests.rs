@@ -335,6 +335,77 @@ fn serial_close_stops_at_the_acknowledged_prefix() {
 }
 
 #[test]
+fn planned_indexed_and_parallel_scans_require_consistent_ready_sessions() {
+    let temp = Temp::new();
+    let reader = Reader::open("tests/fixtures/v7/semantics-0.gdx", OpenOptions::default()).unwrap();
+    let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
+    let selection = reader.selection(&symbol, &[]).unwrap();
+    for (choice_index, choice) in [ScanChoice::Indexed, ScanChoice::Parallel { workers: 2 }]
+        .into_iter()
+        .enumerate()
+    {
+        let policy = ScanPolicy {
+            choice_override: Some(choice),
+            ..ScanPolicy::default()
+        };
+        for open in [
+            None,
+            Some(IndexOpen {
+                status: IndexStatus::Ready,
+                index: None,
+            }),
+        ] {
+            assert_eq!(
+                reader
+                    .scan_planned(
+                        &symbol,
+                        &selection,
+                        reader.scan_options(),
+                        open,
+                        &policy,
+                        &measurements(),
+                    )
+                    .err()
+                    .unwrap()
+                    .kind,
+                ErrorKind::InvalidOptions
+            );
+        }
+        for (status_index, status) in [
+            IndexStatus::Off,
+            IndexStatus::Missing,
+            IndexStatus::Rejected(Error::new(ErrorKind::InvalidIndex, "test rejection")),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let mut open = ready_open(
+                &reader,
+                &symbol,
+                &temp,
+                &format!("invalid-session-{choice_index}-{status_index}"),
+            );
+            open.status = status;
+            assert_eq!(
+                reader
+                    .scan_planned(
+                        &symbol,
+                        &selection,
+                        reader.scan_options(),
+                        Some(open),
+                        &policy,
+                        &measurements(),
+                    )
+                    .err()
+                    .unwrap()
+                    .kind,
+                ErrorKind::InvalidOptions
+            );
+        }
+    }
+}
+
+#[test]
 fn planned_scans_preserve_exact_results_across_every_choice() {
     let (temp, reader) = planned_reader();
     let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();

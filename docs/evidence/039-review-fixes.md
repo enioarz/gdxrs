@@ -2,7 +2,7 @@
 
 Review of PR #35 at `7aa67c7` reported four P2 and two P3 findings; all are fixed
 on branch `vibe/m6-policy-039-51c6b4` at `b8da11c` and pushed. The original
-[039 evidence](039.md) at `124920f` is retained unchanged.
+[039 evidence](039.md) at `124920f` is retained with a clarification of the filtered test count.
 
 ## Fixes
 
@@ -28,7 +28,7 @@ on branch `vibe/m6-policy-039-51c6b4` at `b8da11c` and pushed. The original
 
 ## Validation at `b8da11c`
 
-- `cargo test --locked --lib --all-features`: 235 passed (24 policy tests);
+- `cargo test --locked --lib --all-features`: 235 passed (10 policy tests; the broader `policy_` filter also matches 14 existing value-policy tests);
   `--no-default-features --features index` policy tests pass.
 - `cargo clippy --locked --all-targets` clean for default, `--all-features` and
   `--no-default-features --features index`.

@@ -9,6 +9,7 @@ pub enum ScanChoice {
     Parallel { workers: usize },
 }
 impl ScanChoice {
+    /// Requested worker count; serial and indexed choices use one caller thread.
     pub fn workers(&self) -> usize {
         match self {
             Self::Parallel { workers } => *workers,
@@ -41,8 +42,8 @@ pub struct ScanMeasurements {
     pub build_seconds: f64,
 }
 
-/// Explicit conservative policy limits. No hidden or unmeasured threshold: every
-/// bound is a caller-specified field.
+/// Explicit conservative policy limits. Every bound is visible and adjustable;
+/// defaults are guardrails, not universal performance guarantees.
 #[derive(Clone, Copy, Debug)]
 pub struct ScanPolicy {
     /// Explicit override; when set, every other rule only validates the choice.
@@ -60,7 +61,8 @@ pub struct ScanPolicy {
     /// strictly below this value.
     pub min_prune_fraction: f64,
     /// Parallel requires a measured advantage of at least this factor over
-    /// serial before admission; guards against admission pressure.
+    /// serial before admission. Actual memory admission remains fallible in the
+    /// parallel cursor; a timing estimate is not a resource reservation.
     pub required_parallel_advantage: f64,
 }
 impl Default for ScanPolicy {
@@ -153,6 +155,21 @@ impl ScanPolicy {
                 reason: "",
             },
         ];
+        // Keep accounting identical for overrides, conservative serial choices
+        // and cost-based choices. A serial plan never incurs an index reopen.
+        let finish = |chosen: PlannedAlternative, alternatives| ScanPlan {
+            choice: chosen.choice,
+            estimated_seconds: chosen.estimated_seconds,
+            reopen_seconds_charged: if !matches!(chosen.choice, ScanChoice::Serial)
+                && reopen_charge.is_finite()
+            {
+                reopen_charge
+            } else {
+                0.0
+            },
+            build_break_even_queries: Self::break_even(m),
+            alternatives,
+        };
         let forced_serial =
             limit.is_some_and(|l| l <= self.head_limit) || m.rows <= self.small_rows;
         if let Some(choice) = self.choice_override {
@@ -170,27 +187,11 @@ impl ScanPolicy {
                 ScanChoice::Parallel { .. } => 2,
             };
             for (i, alt) in alternatives.iter_mut().enumerate() {
-                alt.allowed = false;
+                alt.allowed = i == index;
                 alt.reason = "explicit override";
-                if i == index {
-                    alt.allowed = true;
-                    alt.reason = "explicit override";
-                }
             }
             alternatives[index].choice = choice;
-            let chosen = alternatives[index];
-            let uses_index = !matches!(choice, ScanChoice::Serial);
-            return Ok(ScanPlan {
-                choice,
-                estimated_seconds: chosen.estimated_seconds,
-                reopen_seconds_charged: if uses_index && reopen_charge.is_finite() {
-                    reopen_charge
-                } else {
-                    0.0
-                },
-                build_break_even_queries: Self::break_even(self, m),
-                alternatives,
-            });
+            return Ok(finish(alternatives[index], alternatives));
         }
         if forced_serial {
             alternatives[0].reason = if m.rows <= self.small_rows {
@@ -200,13 +201,7 @@ impl ScanPolicy {
             };
             alternatives[1].reason = "conservative serial for head/zero or small input";
             alternatives[2].reason = "conservative serial for head/zero or small input";
-            return Ok(ScanPlan {
-                choice: ScanChoice::Serial,
-                estimated_seconds: serial_cost,
-                reopen_seconds_charged: 0.0,
-                build_break_even_queries: Self::break_even(self, m),
-                alternatives,
-            });
+            return Ok(finish(alternatives[0], alternatives));
         }
         let indexable = reopen_charge.is_finite();
         if indexable {
@@ -241,20 +236,9 @@ impl ScanPolicy {
                     .unwrap_or(std::cmp::Ordering::Equal)
                     .then(ia.cmp(ib))
             })
-            .map(|(i, a)| (i, *a))
+            .map(|(_, a)| *a)
             .ok_or_else(|| Error::new(ErrorKind::InvalidOptions, "no allowed scan choice"))?;
-        let uses_index = !matches!(chosen.1.choice, ScanChoice::Serial);
-        Ok(ScanPlan {
-            choice: chosen.1.choice,
-            estimated_seconds: chosen.1.estimated_seconds,
-            reopen_seconds_charged: if uses_index && reopen_charge.is_finite() {
-                reopen_charge
-            } else {
-                0.0
-            },
-            build_break_even_queries: Self::break_even(self, m),
-            alternatives,
-        })
+        Ok(finish(chosen, alternatives))
     }
     fn validate(&self) -> Result<()> {
         if !(1..=8).contains(&self.max_workers)
@@ -271,7 +255,7 @@ impl ScanPolicy {
         }
         Ok(())
     }
-    fn break_even(&self, m: &ScanMeasurements) -> Option<u64> {
+    fn break_even(m: &ScanMeasurements) -> Option<u64> {
         if !m.session_valid {
             return None;
         }
@@ -326,10 +310,39 @@ impl PlannedScan {
     }
 }
 
+fn require_ready_index(open: Option<IndexOpen>) -> Result<CheckpointIndex> {
+    match open {
+        Some(IndexOpen {
+            status: IndexStatus::Ready,
+            index: Some(index),
+        }) => Ok(index),
+        _ => Err(Error::new(
+            ErrorKind::InvalidOptions,
+            "planned indexed/parallel scan requires an explicit Ready index session",
+        )),
+    }
+}
+
 impl Reader {
     /// Plan from explicit measurements, then execute the chosen exact scan. An
     /// `Indexed`/`Parallel` choice requires the caller's already opened
     /// `IndexOpen` with a Ready session; nothing is built or opened implicitly.
+    ///
+    /// ```no_run
+    /// use gdxrs::{IndexOpen, Reader, Result, ScanMeasurements, ScanPolicy,
+    ///             Selection, SymbolHandle};
+    /// fn consume(reader: &Reader, symbol: &SymbolHandle, selection: &Selection,
+    ///            index: IndexOpen, measurements: &ScanMeasurements) -> Result<()> {
+    ///     let (plan, mut scan) = reader.scan_planned(
+    ///         symbol, selection, reader.scan_options(), Some(index),
+    ///         &ScanPolicy::default(), measurements)?;
+    ///     println!("Chosen scan: {:?}", plan.choice);
+    ///     while let Some(batch) = scan.next_batch()? {
+    ///         println!("{} rows", batch.len());
+    ///     }
+    ///     scan.close()
+    /// }
+    /// ```
     pub fn scan_planned(
         &self,
         symbol: &SymbolHandle,
@@ -346,35 +359,13 @@ impl Reader {
                 PlannedScan::Serial(Box::new(self.scan_selected(symbol, selection, options)?))
             }
             ScanChoice::Indexed => {
-                let open = open.ok_or_else(|| {
-                    Error::new(
-                        ErrorKind::InvalidOptions,
-                        "indexed plan requires an explicit open",
-                    )
-                })?;
-                if !matches!(open.status, IndexStatus::Ready) || open.index.is_none() {
-                    return Err(Error::new(
-                        ErrorKind::InvalidOptions,
-                        "indexed plan requires a Ready session; never opened implicitly",
-                    ));
-                }
+                let open = IndexOpen::ready(require_ready_index(open)?);
                 PlannedScan::Serial(Box::new(
                     self.scan_selected_indexed(symbol, selection, options, open)?,
                 ))
             }
             ScanChoice::Parallel { workers } => {
-                let open = open.ok_or_else(|| {
-                    Error::new(
-                        ErrorKind::InvalidOptions,
-                        "parallel plan requires an explicit open",
-                    )
-                })?;
-                let index = open.index.ok_or_else(|| {
-                    Error::new(
-                        ErrorKind::InvalidOptions,
-                        "parallel plan requires a Ready session; never opened implicitly",
-                    )
-                })?;
+                let index = require_ready_index(open)?;
                 PlannedScan::Parallel(Box::new(self.scan_selected_parallel(
                     symbol,
                     selection,

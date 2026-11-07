@@ -1,6 +1,7 @@
 """Task 039: measured explicit scan policy, end-to-end comparisons (Linux only)."""
 import json
 import math
+import os
 import platform
 import shutil
 import subprocess
@@ -20,7 +21,7 @@ KINDS = ('records', 'compressed', 'metadata')
 TOLERANCE = 1.5
 
 
-def counts_for(kind, profile):
+def counts_for(profile):
     return [4096, 16384] if profile == 'smoke' else [1_000_000, 4_000_000]
 
 
@@ -29,7 +30,7 @@ def validate_containment(trial):
     if (trial['exit_code'] or r['root_limit'] != m5.BUDGET or not 0 < r['root_peak'] <= m5.BUDGET
             or not r['os_cap_verified'] or trial['os_cap']['soft_bytes'] != m5.CAP
             or trial['os_cap']['hard_bytes'] != m5.CAP
-            or not 0 < trial['peak_rss_bytes'] <= m5.CAP or r['vm_peak_bytes'] > m5.CAP
+            or not 0 < trial['peak_rss_bytes'] <= m5.CAP or not 0 < r['vm_peak_bytes'] <= m5.CAP
             or trial['sampled_peak_fds'] > 6):
         raise ValueError('policy worker shared-root/process/descriptor containment missing')
 
@@ -40,16 +41,19 @@ def validate_case(case):
                   'leading_seconds', 'parallel_seconds', 'shapes']:
         if field not in r:
             raise ValueError('missing measured field ' + field)
-    if not all(math.isfinite(v) and v > 0 for v in
+    if len(r['parallel_seconds']) != 3 or not all(math.isfinite(v) and v > 0 for v in
                [r['serial_seconds'], r['build_seconds'], r['reopen_seconds'],
                 r['indexed_seconds'], r['leading_seconds'], *r['parallel_seconds']]):
         raise ValueError('invalid policy measurement')
     if r['parallel_digest'] != r['serial_digest'] or r['count'] != case['count']:
         raise ValueError('parallel/serial ordered digest mismatch')
     shapes = {s['shape']: s for s in r['shapes']}
-    if set(shapes) != {'all', 'leading', 'head', 'zero'}:
+    if len(r['shapes']) != 4 or set(shapes) != {'all', 'leading', 'head', 'zero'}:
         raise ValueError('all four policy query shapes are mandatory')
     for name, s in shapes.items():
+        if (not math.isfinite(s['seconds']) or s['seconds'] < 0
+                or (name != 'zero' and s['seconds'] == 0)):
+            raise ValueError('invalid planned duration: ' + name)
         if s['count'] != {'all': case['count'], 'leading': r['leading_count'],
                           'head': min(13, case['count']), 'zero': 0}[name]:
             raise ValueError('planned shape count mismatch: ' + name)
@@ -93,7 +97,7 @@ def check(run, profile):
     worker.chmod(0o700)
     cases = []
     for kind in KINDS:
-        for n in counts_for(kind, profile):
+        for n in counts_for(profile):
             source = area / f'{kind}-{n}.gdx'
             index = area / f'{kind}-{n}.index'
             estimate = n * 140
@@ -148,7 +152,7 @@ def check(run, profile):
                 compiler=run(['rustc', '--version', '--verbose'], capture=True).stdout,
                 hardware=dict(platform=platform.platform(), cpu=next(
                     line.split(':', 1)[1].strip() for line in Path('/proc/cpuinfo').read_text().splitlines()
-                    if line.startswith('model name'))), cpus=__import__('os').cpu_count(),
+                    if line.startswith('model name'))), cpus=os.cpu_count(),
                 storage=run(['df', '-T', ROOT], capture=True).stdout,
                 library_budget=m5.BUDGET, rust_process_cap=m5.CAP,
                 cache_policy='Fresh OS-capped process per case with advisory per-file fsync/FADV_DONTNEED; device caches uncontrolled',

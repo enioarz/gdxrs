@@ -33,3 +33,15 @@ parallel. `scan_planned` requires the caller's Ready `IndexOpen` for
 indexed/parallel choices and preserves exact filters, global limits, source trust
 and acknowledged progress across every choice. No automatic release or universal
 threshold is implied; task 040 gates performance and oversized acceptance.
+
+
+Defaults are adjustable guardrails rather than universal performance guarantees.
+Measurements should represent the intended query and concurrency. The planner's
+parallel cost estimate does not reserve memory; dispatch still performs the
+explicit worker admission checks and reports resource failures. Both indexed and
+parallel dispatch require a consistent Ready status with an index owner.
+
+The `Reader::scan_planned` Rustdoc contains a compiling complete example. Calling
+`close()` stops subsequent batches and retains raw cursor checkpoint positions;
+errors stay sticky. The policy benchmark's report validator rejects duplicate query
+shapes, missing worker measurements and non-finite/negative planned durations.
