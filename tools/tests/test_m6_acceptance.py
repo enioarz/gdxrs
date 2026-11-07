@@ -70,6 +70,8 @@ def case(kind='records', n=4096):
         p['digest'] = a.expected_prefix(kind, count)['digest'] if count else f'{a.scale.INITIAL:016x}'
         if query == 'all':
             p['digest'] = 'aa'
+        if query == 'zero':
+            p.update(seconds=0.0, first_seconds=0.0, batch_seconds=0.0, sink_seconds=0.0)
         return p
     t = dict(serial=dict(trial(), result=serial_result(n)),
              build=build_result(n), session=session_result(n),
