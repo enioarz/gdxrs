@@ -238,6 +238,103 @@ fn ready_open(reader: &Reader, symbol: &SymbolHandle, temp: &Temp, name: &str) -
 }
 
 #[test]
+fn policy_allows_verified_empty_symbols() {
+    let mut m = measurements();
+    m.rows = 0;
+    m.selected_rows = 0;
+    for limit in [None, Some(0)] {
+        let plan = policy().plan(&m, limit).unwrap();
+        assert_eq!(plan.choice, ScanChoice::Serial);
+        assert_eq!(plan.reopen_seconds_charged, 0.0);
+    }
+    m.selected_rows = 1;
+    assert!(policy().plan(&m, None).is_err());
+}
+
+#[test]
+fn serial_plans_never_report_reopen_charges() {
+    let mut m = measurements();
+    m.session_valid = false;
+    m.indexed_selected_seconds = 100.0;
+    m.parallel_full_scan_seconds = 100.0;
+    let p = ScanPolicy {
+        allow_strict_reopen: true,
+        ..policy()
+    };
+    let plan = p.plan(&m, None).unwrap();
+    assert_eq!(plan.choice, ScanChoice::Serial);
+    assert_eq!(plan.reopen_seconds_charged, 0.0);
+    let p = ScanPolicy {
+        choice_override: Some(ScanChoice::Serial),
+        allow_strict_reopen: true,
+        ..policy()
+    };
+    let plan = p.plan(&m, None).unwrap();
+    assert_eq!(plan.choice, ScanChoice::Serial);
+    assert_eq!(plan.reopen_seconds_charged, 0.0);
+    let p = ScanPolicy {
+        choice_override: Some(ScanChoice::Indexed),
+        allow_strict_reopen: true,
+        ..policy()
+    };
+    let plan = p.plan(&m, None).unwrap();
+    assert_eq!(plan.reopen_seconds_charged, 2.0);
+}
+
+#[test]
+fn policy_rejects_zero_worker_override_and_nan_prune_fraction() {
+    let p = ScanPolicy {
+        choice_override: Some(ScanChoice::Parallel { workers: 0 }),
+        ..policy()
+    };
+    assert!(p.plan(&measurements(), None).is_err());
+    for bad in [f64::NAN, f64::INFINITY, -0.5] {
+        let p = ScanPolicy {
+            min_prune_fraction: bad,
+            ..policy()
+        };
+        assert!(p.plan(&measurements(), None).is_err());
+    }
+}
+
+#[test]
+fn serial_close_stops_at_the_acknowledged_prefix() {
+    let (temp, reader) = planned_reader();
+    let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();
+    let empty = reader.selection(&symbol, &[]).unwrap();
+    let policy = ScanPolicy {
+        choice_override: Some(ScanChoice::Serial),
+        ..ScanPolicy::default()
+    };
+    let (plan, mut scan) = reader
+        .scan_planned(
+            &symbol,
+            &empty,
+            reader.scan_options(),
+            None,
+            &policy,
+            &measurements(),
+        )
+        .unwrap();
+    assert_eq!(plan.choice, ScanChoice::Serial);
+    let first = scan.next_batch().unwrap().expect("first batch");
+    assert!(!first.is_empty());
+    let acknowledged = match scan.statistics() {
+        PlannedStatistics::Serial(s) => s.returned_rows,
+        _ => panic!("serial statistics expected"),
+    };
+    scan.close().unwrap();
+    scan.close().unwrap();
+    assert!(scan.next_batch().unwrap().is_none());
+    assert!(scan.next_batch().unwrap().is_none());
+    match scan.statistics() {
+        PlannedStatistics::Serial(s) => assert_eq!(s.returned_rows, acknowledged),
+        _ => panic!("serial statistics expected"),
+    }
+    let _ = temp;
+}
+
+#[test]
 fn planned_scans_preserve_exact_results_across_every_choice() {
     let (temp, reader) = planned_reader();
     let symbol = reader.symbol(SymbolId::new(1).unwrap()).unwrap();

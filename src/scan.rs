@@ -345,6 +345,18 @@ impl ScanCursor {
     pub fn statistics(&self) -> ScanStatistics {
         self.statistics
     }
+    /// Stop at the acknowledged prefix: release decoder and batch buffers and
+    /// report any sticky error. Idempotent; later next_batch calls return None
+    /// or repeat the sticky error, never another row.
+    pub fn close(&mut self) -> Result<()> {
+        if let Some(error) = &self.error {
+            return Err(error.clone());
+        }
+        self.done = true;
+        self.decoder = None;
+        self.batch = None;
+        Ok(())
+    }
     pub(crate) fn selected(
         reader: Reader,
         handle: SymbolHandle,

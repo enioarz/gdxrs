@@ -105,8 +105,7 @@ impl ScanPolicy {
     /// never scans a source or directory to decide.
     pub fn plan(&self, m: &ScanMeasurements, limit: Option<u64>) -> Result<ScanPlan> {
         self.validate()?;
-        if m.rows == 0
-            || m.selected_rows > m.rows
+        if m.selected_rows > m.rows
             || ![
                 m.serial_full_scan_seconds,
                 m.indexed_selected_seconds,
@@ -158,7 +157,7 @@ impl ScanPolicy {
             limit.is_some_and(|l| l <= self.head_limit) || m.rows <= self.small_rows;
         if let Some(choice) = self.choice_override {
             if let ScanChoice::Parallel { workers } = choice
-                && workers > self.max_workers
+                && (workers == 0 || workers > self.max_workers)
             {
                 return Err(Error::new(
                     ErrorKind::InvalidOptions,
@@ -180,10 +179,11 @@ impl ScanPolicy {
             }
             alternatives[index].choice = choice;
             let chosen = alternatives[index];
+            let uses_index = !matches!(choice, ScanChoice::Serial);
             return Ok(ScanPlan {
                 choice,
                 estimated_seconds: chosen.estimated_seconds,
-                reopen_seconds_charged: if reopen_charge.is_finite() {
+                reopen_seconds_charged: if uses_index && reopen_charge.is_finite() {
                     reopen_charge
                 } else {
                     0.0
@@ -210,7 +210,11 @@ impl ScanPolicy {
         }
         let indexable = reopen_charge.is_finite();
         if indexable {
-            let prune_fraction = m.selected_rows as f64 / m.rows as f64;
+            let prune_fraction = if m.rows == 0 {
+                0.0
+            } else {
+                m.selected_rows as f64 / m.rows as f64
+            };
             if prune_fraction < self.min_prune_fraction {
                 alternatives[1].allowed = true;
                 alternatives[1].reason = "pruning estimate within limit";
@@ -239,10 +243,11 @@ impl ScanPolicy {
             })
             .map(|(i, a)| (i, *a))
             .ok_or_else(|| Error::new(ErrorKind::InvalidOptions, "no allowed scan choice"))?;
+        let uses_index = !matches!(chosen.1.choice, ScanChoice::Serial);
         Ok(ScanPlan {
             choice: chosen.1.choice,
             estimated_seconds: chosen.1.estimated_seconds,
-            reopen_seconds_charged: if reopen_charge.is_finite() {
+            reopen_seconds_charged: if uses_index && reopen_charge.is_finite() {
                 reopen_charge
             } else {
                 0.0
@@ -253,6 +258,7 @@ impl ScanPolicy {
     }
     fn validate(&self) -> Result<()> {
         if !(1..=8).contains(&self.max_workers)
+            || !self.min_prune_fraction.is_finite()
             || self.min_prune_fraction <= 0.0
             || self.min_prune_fraction > 1.0
             || !self.required_parallel_advantage.is_finite()
@@ -310,10 +316,11 @@ impl PlannedScan {
         }
     }
     /// Fallible cancellation/cleanup; parallel joins workers, serial stops at the
-    /// acknowledged prefix. Idempotent per underlying cursor semantics.
+    /// acknowledged prefix and releases its buffers. Idempotent; sticky errors
+    /// are reported, never hidden.
     pub fn close(&mut self) -> Result<()> {
         match self {
-            Self::Serial(_) => Ok(()),
+            Self::Serial(cursor) => cursor.close(),
             Self::Parallel(cursor) => cursor.close(),
         }
     }

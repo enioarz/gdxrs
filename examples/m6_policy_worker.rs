@@ -274,6 +274,7 @@ mod worker {
             };
             let policy = ScanPolicy::default();
             let again = policy.plan(&measurements, limit)?;
+            let construct = Instant::now();
             let (plan, mut scan) = reader.scan_planned(
                 &symbol,
                 selection,
@@ -289,7 +290,8 @@ mod worker {
                 &measurements,
             )?;
             require(plan.choice == again.choice, "policy not deterministic")?;
-            let (seconds, count, digest) = timed(|| drain(&ctx, &mut scan, base))?;
+            let (count, digest) = drain(&ctx, &mut scan, base)?;
+            let seconds = construct.elapsed().as_secs_f64();
             index = match scan {
                 PlannedScan::Serial(_) => reader
                     .open_index(&symbol, &index_path, index_options, IndexPolicy::UseIfValid)?
