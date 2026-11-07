@@ -59,7 +59,7 @@ def validate_serial(trial, expected):
     times = ['seconds', 'open_seconds', 'setup_seconds', 'first_seconds', 'batch_seconds',
              'sink_seconds', 'close_seconds']
     if any(not math.isfinite(r[k]) or r[k] < 0 for k in times) or r['seconds'] <= 0 \
-            or sum(r[k] for k in times[1:]) > r['seconds'] + 1e-9 \
+            or sum(r[k] for k in ['open_seconds', 'setup_seconds', 'batch_seconds', 'sink_seconds', 'close_seconds']) > r['seconds'] + 1e-9 \
             or not 0 < r['first_seconds'] <= r['seconds'] or r['batches'] <= 0 \
             or r['decoded_rows'] != r['count'] or r['returned_rows'] != r['count']:
         raise ValueError('invalid serial phase accounting')
@@ -82,8 +82,12 @@ def validate_phase(p, workers, query, expected, kind):
     if query == 'cancel' and not 0 < p['count'] <= (65536 if kind == 'metadata' else 1024):
         raise ValueError('unbounded cancelled prefix')
     if any(not math.isfinite(p[k]) or p[k] < 0
-           for k in ['seconds', 'first_seconds', 'batch_seconds', 'sink_seconds']) \
-            or p['seconds'] <= 0 or not 0 < p['first_seconds'] <= p['seconds'] \
+           for k in ['seconds', 'first_seconds', 'batch_seconds', 'sink_seconds']):
+        raise ValueError('invalid parallel phase accounting')
+    if query == 'zero':
+        if p['first_seconds'] != 0 or p['seconds'] < 0:
+            raise ValueError('zero query must be lazy')
+    elif p['seconds'] <= 0 or not 0 < p['first_seconds'] <= p['seconds'] \
             or p['batch_seconds'] + p['sink_seconds'] > p['seconds'] + 1e-9:
         raise ValueError('invalid parallel phase accounting')
 
