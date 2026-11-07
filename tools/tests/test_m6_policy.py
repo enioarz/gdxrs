@@ -1,5 +1,6 @@
 import copy
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[1]))
@@ -82,6 +83,26 @@ class PolicyGuards(unittest.TestCase):
         bad['result']['shapes'][0]['seconds'] = 0.0
         with self.assertRaises(ValueError):
             p.validate_case(bad)
+
+    def test_inputs_are_retired_only_after_result_and_identity_validation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source, index = Path(directory) / 'source.gdx', Path(directory) / 'index'
+            source.write_bytes(b'owned source')
+            index.write_bytes(b'owned index')
+            good = case('records', 4096)
+            good['source'] = p.writer_scale.hash_record(source)
+            bad = copy.deepcopy(good)
+            bad['result']['shapes'][0]['digest'] = 'wrong'
+            with self.assertRaises(ValueError):
+                p.validate_and_retire(bad, source, index)
+            self.assertTrue(source.exists() and index.exists())
+            source.write_bytes(b'changed source')
+            with self.assertRaisesRegex(ValueError, 'mutated source'):
+                p.validate_and_retire(good, source, index)
+            self.assertTrue(source.exists() and index.exists())
+            source.write_bytes(b'owned source')
+            p.validate_and_retire(good, source, index)
+            self.assertFalse(source.exists() or index.exists())
 
     def test_qualify_requires_growing_complete_families(self):
         cases = [case(k, n) for k in p.KINDS for n in [4096, 16384]]

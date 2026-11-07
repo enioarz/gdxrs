@@ -80,6 +80,15 @@ def qualify(cases):
                 raise ValueError('policy RSS exceeds process cap')
 
 
+def validate_and_retire(case, source, index):
+    """Keep owned inputs available until their result and identity checks pass."""
+    validate_case(case)
+    if writer_scale.hash_record(source) != case['source']:
+        raise ValueError('policy run mutated source')
+    source.unlink()
+    index.unlink()
+
+
 def check(run, profile):
     if sys.platform != 'linux' or profile not in ['smoke', 'small']:
         raise ValueError('m6-policy requires Linux smoke/small')
@@ -96,6 +105,12 @@ def check(run, profile):
     shutil.copyfile(ROOT / 'target/release/examples/m6_policy_worker', worker)
     worker.chmod(0o700)
     cases = []
+
+    def progress():
+        (area / 'progress.json').write_text(json.dumps(
+            dict(source_revision=revision, source_hashes=hashes, cases=cases,
+                 policy_qualified=False), indent=2) + '\n')
+
     for kind in KINDS:
         for n in counts_for(profile):
             source = area / f'{kind}-{n}.gdx'
@@ -131,17 +146,16 @@ def check(run, profile):
             case = dict(kind=kind, count=n, source=identity, recipe=recipe,
                         native_validation=validation, trials=[])
             cases.append(case)
+            progress()
             scale.evict(source)
             trial = scale.measure([worker, source, index,
                                    'metadata' if kind == 'metadata' else 'records', n],
                                   area, f'{kind}-{n}-policy', timeout=7200)
-            validate_containment(trial)
             case['trials'].append(trial)
             case['result'] = trial['result']
-            if writer_scale.hash_record(source) != identity:
-                raise ValueError('policy run mutated source')
-            source.unlink()
-            index.unlink()
+            progress()
+            validate_containment(trial)
+            validate_and_retire(case, source, index)
     qualify(cases)
     if hashes != {p: oracle.file_digest(ROOT / p) for p in SOURCES}:
         raise ValueError('measured sources changed during policy comparisons')
