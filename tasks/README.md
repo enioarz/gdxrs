@@ -1,6 +1,6 @@
 # Numbered implementation tasks
 
-These specifications break **M0–M6** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
+These specifications break **M0–M7** into bounded units of work. Task evidence distinguishes completed implementation from future work. Read the root [AGENTS.md](../AGENTS.md) and [architecture plan](../IMPLEMENTATION_PLAN.md) first.
 
 ## Execution order
 
@@ -160,3 +160,25 @@ the sequence and shared-root, stack, queue, order and cancellation requirements.
 | [038](038-ordered-parallel-scans.md) | Explicit admitted workers, bounded ordered delivery and cancellation | 037 | Complete for explicit worker functionality; PR #33 awaits review; [evidence](../docs/evidence/038.md) |
 | [039](039-measured-scan-policy.md) | Measured observable serial/indexed/parallel choices | 038 | Complete for measured-policy scope; [evidence](../docs/evidence/039.md) |
 | [040](040-m6-acceptance.md) | Ordered performance, cancellation and oversized containment gates | 036–039 | Complete for measured scope; PR #36; [evidence](../docs/evidence/040.md) |
+
+
+## M7 — planned Polars integration (separate repository)
+
+The user requested the M7 task list on 2026-11-07. This is planning only; all tasks
+remain pending and existing M6 gates retain their status. Implementation follows
+reviewed/merged task 040 and lives in [enioarz/polars-gdx](https://github.com/enioarz/polars-gdx),
+as specified by [the architecture plan](../IMPLEMENTATION_PLAN.md#9-future-polars-integration).
+No Polars, Arrow or PyO3 dependency belongs in the core. These task IDs remain the
+cross-repository references; implementation evidence belongs in `polars-gdx` and
+must identify both repositories' revisions. Any required core change gets a
+separate scoped task/PR rather than being hidden in adapter work.
+
+| Task | Scope | Prerequisites | Status |
+| --- | --- | --- | --- |
+| [041](041-polars-integration-contract.md) | Behavior inventory, pinned versions and end-to-end resource contract | 040 complete/reviewed and merged | Pending |
+| [042](042-polars-backend-adapter.md) | Selectable backend and metadata/record semantic parity | 041 complete/reviewed | Pending |
+| [043](043-polars-schema-dictionary-modes.md) | Stable schemas, explicit Enum admission and bounded label modes | 042 complete/reviewed | Pending |
+| [044](044-polars-streaming-batch-source.md) | Real owned batches, batch-size limits and incremental delivery | 043 complete/reviewed | Pending |
+| [045](045-polars-predicate-limit-pushdown.md) | Sound pushdown, residuals and global accepted-row limits | 044 complete/reviewed | Pending |
+| [046](046-polars-scan-lifecycle.md) | Thread admission, ownership, cancellation, joins and cleanup | 045 complete/reviewed | Pending |
+| [047](047-m7-polars-acceptance.md) | Native/version matrix, oversized streaming sinks and migration gate | 041–046 complete/reviewed | Pending |
