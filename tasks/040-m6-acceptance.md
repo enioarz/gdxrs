@@ -1,7 +1,9 @@
 # 040 — M6 performance and containment acceptance
 
 Milestone: M6. Prerequisite: 036–039 complete/reviewed.
-Status: pending.
+Status: implemented for the measured scope; PR #36 is under review. See
+[qualification](../docs/evidence/040.md) and
+[timing/replay validation fixes](../docs/evidence/040-validator-fixes.md).
 
 Qualify ordered/cancelable parallel scans on growing independently oversized raw,
 compressed and metadata-bearing workloads under one 256 MiB root and enforced

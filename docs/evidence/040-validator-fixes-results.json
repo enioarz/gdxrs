@@ -1,0 +1,264 @@
+{
+  "schema": 1,
+  "task": "040-validator-fixes",
+  "implementation_revision": "20271414b5caea205498e39e5067a95673054c36",
+  "reviewed_revision": "e66fbb4cb46edb1d0373ecbd36c20955cb333763",
+  "m0": {
+    "report": ".work/reports/m0-check-a181c14cc32c47789a9247298d5b1a76.json",
+    "sha256": "b80e8ff94b011d538a32999da7e3d324050b67f63624e27efd66a721c9b587fd",
+    "status": "passed",
+    "tooling_tests": 91
+  },
+  "smoke": {
+    "report": ".work/reports/m6-acceptance-94fe06229c8d41098fdc9686a5aaa1aa.json",
+    "sha256": "dc5b5d7fdb278d31acd08d698c502c1ef50788944d8411da3b5b085a1904fb93",
+    "status": "passed",
+    "revision": "20271414b5caea205498e39e5067a95673054c36",
+    "source_hashes": {
+      "Cargo.lock": "79b6da2e1a5199bef3fd3530c821866a607ee19c2b5a284eafd1a61462c75c0f",
+      "Cargo.toml": "4370dba79fd73031a54ef970206923fd63198239429a12ca9ab0690e832da694",
+      "examples/m5_worker.rs": "1ef13a15879bd0bf8cd02848b2af2b2c20d93b3f4e21ece39eee8f6a29b7596e",
+      "examples/m6_acceptance_worker.rs": "ae9b0fb35d3725e17057c61a8b14888dadd2f1a74a45b78eae6dde00d715e845",
+      "rust-toolchain.toml": "d13306be0ecda81ce779baa290ffb417380d525928477f16200884b5169cca33",
+      "src/budget.rs": "98072e51569a5e737cc8a8fdc04a495230a243e9fe1406410d206aba3af49bb0",
+      "src/data_error.rs": "7137328e17e9b4716294e4f3c4b2bca8a032bbd9d572db830a0667d7abb769c4",
+      "src/error.rs": "4b095659696ed0f1aaf1cf7d7e4357d988097b98fb07efebec7415c51bbf1659",
+      "src/format.rs": "a27798d867b09d675860ce3726d3d26594453abaa6f63ae55cf3008db10a7a81",
+      "src/index/generate.rs": "8b63f74b3598d8648c2d9e3f8a7774f6f02220220ed39c2293cac6676cf4d1e7",
+      "src/index/mod.rs": "e54cbdafc34152e1d1e02e268be76931a1513e957e7a14204e3aeef6d348bec3",
+      "src/index/parallel.rs": "ed432b36883a6211e3f01c9341748c9ff17602b79711e654e206e5637ce369d6",
+      "src/index/parallel/tests.rs": "82bf353b7087add8e11d2460f9f245680f73966664752ba5c633774642c26e1b",
+      "src/index/policy.rs": "d905fb91a61371aba65974b57f94b5bd70a13070c204cbf0060e1369fd76c403",
+      "src/index/policy_tests.rs": "4cf42666d45d8cd937932c7273e0822fc403d540ab8045434228254a7996a462",
+      "src/index/query.rs": "4c3747f369d813d5886905cc9cea5926d734984df3399fff9b7d12d52802ca27",
+      "src/index/store.rs": "1b74a1cf9e719380c87750e56c8f4d3823ac6e634998773b197e656df4dc9cc5",
+      "src/index/tests.rs": "a610c935039ce69deeae05543e3eaf3c01ff29a9a7ddb3a56633d5878ad63a25",
+      "src/index/wire.rs": "e1f8778da3047f838cc39f3db0b625a3d412a82efefd79d57ebd8423a559dc2a",
+      "src/labels.rs": "885176333b642cc71a07ba98104b5cfe9378a1b326b712f46e42665723edf86b",
+      "src/large.rs": "3893f49571f4afdb85f8822cb41e356a4d9bfa71d2809fe671f467cb2a21280d",
+      "src/lib.rs": "264437659ab0d615d9a32f76625368ce62341836fe02e73a6e130e938f4caa8a",
+      "src/mapped.rs": "7e9b360d28707cd9c462a6798781e7a9da24ceb7558c95823cc4216b463b7a82",
+      "src/metadata.rs": "575c386aca7bd5127890a799040c669fb6a146e99b093756ca7308221f9e176e",
+      "src/metadata_operations.rs": "cb0abb8a261a10acad312b6f056db1d7a9c079c809b73c9b20809cf7e957ea3f",
+      "src/model.rs": "14dad15940d3eb470f1dd770b37082f57bd9629cbf91ba4db931b192aabef2fb",
+      "src/reader.rs": "63334f528286026a9104e9d698dda584ea536c41884e1b595ee6a37277b94b42",
+      "src/records.rs": "877e7177e38a3ab2980addffd1456c5c9fb71d6a5c8a9030ca8a85e09b94b688",
+      "src/records/checkpoint.rs": "83bba7979ba9c0bc7e7b388073b09bc5f2fdc0d414ef2439a2a72712c76298fd",
+      "src/records/checkpoint/index_wire.rs": "0ed7b48cd9e3252dc4872c378796e3a5573337db368b17a9d289ad806367c0b2",
+      "src/records/checkpoint/tests.rs": "37b7cc61a641e4aefee46e72e87ca858e6a7f43d9329b339ade99a3590e13c80",
+      "src/scan.rs": "e45b4f49479c788a5c9f93ed724bac0e17ab0a20f78cfa577b761dfc0296e408",
+      "src/scan/checkpoint_tests.rs": "d999f7735e3bf50eb1d6dd9e9dea157ffb81fd6a2b608154e5fa8900b1dc1a1d",
+      "src/scan/range_tests.rs": "e18b0db2de921166a7dcfb0e272f2348148d9ab8989ecd33f8fac66a30c31a36",
+      "src/selection.rs": "3fb66e05bc3805679699677f579d8e9079c2027bc36a53445f72f85c40e81d67",
+      "src/source.rs": "4fcae2c2fc6cb63723c400dd45d8da80d764c307c2f8a3382868bbec12fd4e7a",
+      "src/spill/mod.rs": "f0872c5800198c02b5a08b08f19be15d73a3392d5a4528733239a7ec71c3407d",
+      "src/spill/run.rs": "35f28fbf67f7e0281f62009eb992f5bf7a9ea50b0c8e028922f8a4758b6b75d2",
+      "src/spill/tests.rs": "fc97b1d2c20bbf5f73a5d05a69ad5bd57fa762253bd368c272c312b88fe814b8",
+      "src/stream.rs": "b6e71f8b4f2fb79f22763bf6dcfdaca5f4be8b05eacbc598276d9bd5cb29b928",
+      "src/value_policy.rs": "10b7820df3d3614cf7a1b54f1f9ad3a003d4b3b17309a09d3b6f05b396ba5ca9",
+      "src/value_session.rs": "fa37498e64ae059f6b2d7a2394c3d63b4131019d28b4fb71ff2977adaad0883d",
+      "src/write/append.rs": "4e9878a8826077f275a7404d4f96a8e3c322329b6d585f3ce9ff68b63abd5a59",
+      "src/write/append_tests.rs": "6e7320c3f84078f8af2fa80a469830d136ad6f8479553710255bf2abe9ab51a5",
+      "src/write/codec_tests.rs": "b8c5650a8a51808acb94bd71a247d0207dd69eeba9c994197a8d3dba5042fbc2",
+      "src/write/encoder.rs": "61a6d435b31007dfec545edc5b05825a1c4d640320e879ca2b3b449759d739b8",
+      "src/write/finalization_tests.rs": "5e640bc99ccc776fd82435455b0b2961024f2c9e08bb820dd8d594622e50e765",
+      "src/write/mapped_tests.rs": "a753f8fbb9f37a79d1e39a75237b1868c4f7901619bcc44cff8f9ee7d27af328",
+      "src/write/metadata.rs": "d5a67bb26b376996d57732962d6f31d803ee079e8f8c7cfc874f6ac0974a4190",
+      "src/write/metadata/append.rs": "80cd7898d0019fee15a4f1d58b61818fc7a69524d231680dcf7f226de1d7fe6c",
+      "src/write/metadata/deferred.rs": "9cf4e0bc70f2749c362bc41c5bc222b628bc4c856cdaa32870426c6c89540a33",
+      "src/write/metadata/edit.rs": "d79efd6a9a3f2ff2f2b69659ad839ca7b82af04e4650f4d5e6da415f8fc8d84e",
+      "src/write/metadata/mapped.rs": "863fabe376fbaa634983716b9ce537aded3aca83eaec8f2e4b1a312e4f4ff7b9",
+      "src/write/metadata/operations.rs": "c3c0e66c1c359c368ba0e8e3e01cb5035b87edf108ecd7efd260cc40fb911c6a",
+      "src/write/metadata/values.rs": "88894de985a22e751c130be4f40eeccf09c059f1d9bbdc9e94525992ac0909a4",
+      "src/write/metadata_operations_tests.rs": "d473faff1e09c58707a6d9704b2534efc808ad3978c1dea3685221039d1cbe7d",
+      "src/write/metadata_tests.rs": "f456265488ad8465b36dee799838381471863d2794912c1644bd2d5841896650",
+      "src/write/mod.rs": "24b6a98a0899a46258837608b1a3430abdc0ec4a4024af1abc5eba843b0f2157",
+      "src/write/record_tests.rs": "e240c5a83a8eaf5d9a81ab00e063be44ceeefe25feb8840acb66d0fe0bd6396f",
+      "src/write/records.rs": "93922c4c993af8db49705f07485f7573d9bc266036e78e47c2ae7a5b5f0fb04c",
+      "src/write/records/deferred.rs": "954f2c7806c5281cd06a26104e16e355800abbfcacbe0721e04cae95fdd4252c",
+      "src/write/records/deferred_tests.rs": "373194eb991c23fda22a1b25724bf771fe6c57d229fa5f2ae9f3078685e1e6ca",
+      "src/write/records/mapped.rs": "e726383daea843c73a01c7f5caa8f70138afccca26205f12bdba4869cc0f7dd9",
+      "src/write/records/string_tests.rs": "a090cf5a61955dfc86843c1ba7ea3b2392e53196c541cdb5634c5afa637e9980",
+      "src/write/records/strings.rs": "6ebe875b0759a460c5e280b4e73a1a24efe3c637b5399c8ee6602eb79988485c",
+      "src/write/records/unsorted.rs": "b7adf7c50fd30ba2e78d5010b3819bb6a9eacdf85bdcab21613190d6c49ea3dc",
+      "src/write/records/unsorted_tests.rs": "b528d3da1d11bc937ea41afead7bee099dbbf679ba7e713aacd1efb19a4cea54",
+      "src/write/store.rs": "00096fbe3d1d0f9cd24f9e3fcbedc01b65102f06ea4f832c0cfd3edb67909f21",
+      "src/write/store/cache.rs": "5cac14c92cf35bda0bed7fd6c327e71c1288f1bdd9ca2bf2a321802ed4d49ffd",
+      "src/write/tests.rs": "a4534e919731e4c277ff72c7d58ef7d46333d98f2961adeb426a5a3ed89060b8",
+      "src/write/value_policy_tests.rs": "3ee7a62e85f4a03c93eccfeb326deb3177d05a9ae434f85f309da400aed436fc",
+      "tools/dev.py": "639b394480d51aa65503494ea73938b0add699acfd5b52919cb78ef64299f170",
+      "tools/m5_scale.py": "c1319e7bfb31d3025a2a1913bb8d93edbddbe15c8cad153566b3bb8ee92aeb01",
+      "tools/m6_acceptance.py": "e35260ba9609fd9bfdaa2612be9589819836c161504acd7d7dec7496319664d1",
+      "tools/scale.py": "f856902ce2c400934b585156ab21f235b0e18493bcc8e69845745e88aefeb44a",
+      "tools/scale/CMakeLists.txt": "1346acd38f1264ded8c5b8bf1ea23ebba1b46c5c5b5dce56ac3f2705cf7745da",
+      "tools/scale/driver.cpp": "74e85966503eedd39f4e9fb89658d1b9ca82b82503ba32155d23c353f76671d6",
+      "tools/tests/test_m6_acceptance.py": "330006c5406c8f03dc8f7c1bc973b3e986b544b8caec2713ebd2786af99531dc",
+      "tools/writer_scale.py": "f15ec5fec1101edb167b6fe1863aedb027fb7cd8e1d0d916bd215c554603a4fd"
+    },
+    "binary_hashes": {
+      "m6_acceptance_worker": "e8b501d1bb8aa5369f3c343f57914f46913a5a008abdc25dcf155ec1bc6665db",
+      "m5_worker": "5fa8014c3e79dd11129af5f9335e65f09116715242cfdaf763c9c6f9ef99d3b6"
+    },
+    "oracle": {
+      "identity": "b28f8cb0e43762deb6c3b346b532fecf56e0dffd4051df62fa41ec0b44c06718",
+      "source_fingerprint": "1c4844bca1cf0b5df89516f72b8fbc68a342845375f9f9a00c929c04b0b0e208",
+      "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+      "cmake": "cmake version 3.31.10",
+      "pins": {
+        "schema": 1,
+        "gdx": {
+          "url": "https://github.com/GAMS-dev/gdx.git",
+          "commit": "9e2a8c8932412010cd7d2f94727d1740143bf3da",
+          "license": "MIT"
+        },
+        "zlib": {
+          "url": "https://github.com/madler/zlib.git",
+          "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
+          "license": "Zlib"
+        },
+        "unused_submodules": {
+          "src/apigenerator": "a2db931c5066d7e2253c68609b8d17a5be2016a4"
+        },
+        "build_options": [
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DNO_TESTS=ON",
+          "-DNO_EXAMPLES=ON",
+          "-DNO_TOOLS=ON",
+          "-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=TRUE",
+          "-DGDX_THREAD_SAFE=OFF"
+        ]
+      },
+      "executable": "/workspace/gdxrs/.work/oracle/builds/b28f8cb0e43762deb6c3b346b532fecf56e0dffd4051df62fa41ec0b44c06718/driver/gdxrs-oracle",
+      "executable_sha256": "79b9f3574597cf60339ecc12f0da24633f10c68e28ea208e78c0d5ee38fc249b"
+    },
+    "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
+    "hardware": {
+      "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+      "cpu": "AMD EPYC 9V74 80-Core Processor"
+    },
+    "cases": [
+      {
+        "kind": "records",
+        "count": 4096,
+        "source": {
+          "bytes": 582094,
+          "sha256": "f49f019aa1e6dca19254e522e415eb0235eaeb6a83deaa41951bfbe2977b303e"
+        },
+        "trials": 3,
+        "parallel_phases": 27,
+        "max_root_peak": 20760072,
+        "max_rss_bytes": 11964416,
+        "max_fds": 4
+      },
+      {
+        "kind": "records",
+        "count": 16384,
+        "source": {
+          "bytes": 2130382,
+          "sha256": "842ff0bcbf5810cbf70e6bf44dfd29129cafd3d5a4709c10221c2aa2992f83bb"
+        },
+        "trials": 3,
+        "parallel_phases": 27,
+        "max_root_peak": 20760072,
+        "max_rss_bytes": 12419072,
+        "max_fds": 4
+      },
+      {
+        "kind": "compressed",
+        "count": 4096,
+        "source": {
+          "bytes": 46266,
+          "sha256": "e051148ddb8d2c27ae2b91c50f711464c50976126f0781145ed34b8c91e2d57b"
+        },
+        "trials": 3,
+        "parallel_phases": 27,
+        "max_root_peak": 21284352,
+        "max_rss_bytes": 12894208,
+        "max_fds": 4
+      },
+      {
+        "kind": "compressed",
+        "count": 16384,
+        "source": {
+          "bytes": 176210,
+          "sha256": "a5fe0e015555bfd7241c21f46bc9358f96c84969eb6d42fa665c8fab6ba12794"
+        },
+        "trials": 3,
+        "parallel_phases": 27,
+        "max_root_peak": 21284352,
+        "max_rss_bytes": 13332480,
+        "max_fds": 5
+      },
+      {
+        "kind": "metadata",
+        "count": 4096,
+        "source": {
+          "bytes": 262383,
+          "sha256": "e818491cb12148f169f9358de87369c3586b56781a586d5e1135b6900c480042"
+        },
+        "trials": 3,
+        "parallel_phases": 27,
+        "max_root_peak": 19996104,
+        "max_rss_bytes": 13885440,
+        "max_fds": 4
+      },
+      {
+        "kind": "metadata",
+        "count": 16384,
+        "source": {
+          "bytes": 1048815,
+          "sha256": "e168f3404e3357735d75220de2bb5d5be691e6cf0983264922b80fc0ee66746c"
+        },
+        "trials": 3,
+        "parallel_phases": 27,
+        "max_root_peak": 19996104,
+        "max_rss_bytes": 14254080,
+        "max_fds": 4
+      }
+    ],
+    "special_values": {
+      "fixture": "tests/fixtures/v7/semantics-0.gdx",
+      "symbol": 7,
+      "count": 16,
+      "specials": 9,
+      "modes": [
+        {
+          "mode": "serial",
+          "count": 16,
+          "specials": 9,
+          "digest": "da0248326a9f0b10",
+          "seconds": 4.0389e-05
+        },
+        {
+          "mode": "indexed",
+          "count": 16,
+          "specials": 9,
+          "digest": "da0248326a9f0b10",
+          "seconds": 1.8407e-05
+        },
+        {
+          "mode": "parallel",
+          "count": 16,
+          "specials": 9,
+          "digest": "da0248326a9f0b10",
+          "seconds": 0.002453528
+        }
+      ]
+    }
+  },
+  "replay": {
+    "checker_revision": "20271414b5caea205498e39e5067a95673054c36",
+    "retained_report": "docs/evidence/040-results.json",
+    "retained_report_sha256": "9e242e8e877c864b28e855dd3ac5fbfb065d250dcc55d408f9f71bc58b86696a",
+    "measured_revision": "795a50f83f75f2a7c9fabff840a8848a8c9ed780",
+    "cases": 6,
+    "trials": 18,
+    "valid_report_requalified": true,
+    "valid_performance_aggregation": true,
+    "invalid_report_mutations_rejected": 21,
+    "scope": "Revalidation of retained measurements, not a fresh scale execution"
+  },
+  "focused_acceptance_tests": 9,
+  "rust_changes": false,
+  "fresh_scale_execution": false
+}
