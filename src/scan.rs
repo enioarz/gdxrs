@@ -5,7 +5,7 @@ use crate::{
 };
 use std::mem::size_of;
 
-struct Batch {
+pub(crate) struct Batch {
     keys: [Option<Buffer<UelId>>; 20],
     values: [Option<Buffer<Value>>; 5],
     dimensions: [u8; 20],
@@ -15,6 +15,31 @@ struct Batch {
     rows: usize,
 }
 impl Batch {
+    #[cfg(feature = "index")]
+    pub(crate) fn view(&self) -> BatchView<'_> {
+        BatchView { batch: self }
+    }
+    #[cfg(feature = "index")]
+    pub(crate) fn len(&self) -> usize {
+        self.rows
+    }
+    #[cfg(feature = "index")]
+    pub(crate) fn truncate(&mut self, rows: usize) -> Result<()> {
+        if rows > self.rows {
+            return Err(Error::new(
+                ErrorKind::InvalidCount,
+                "invalid parallel batch truncation",
+            ));
+        }
+        for column in self.keys.iter_mut().flatten() {
+            column.data.truncate(rows);
+        }
+        for column in self.values.iter_mut().flatten() {
+            column.data.truncate(rows);
+        }
+        self.rows = rows;
+        Ok(())
+    }
     fn new(reader: &Reader, key_mask: u32, value_mask: u8, capacity: usize) -> Result<Self> {
         let mut batch = Self {
             keys: std::array::from_fn(|_| None),
@@ -402,7 +427,7 @@ impl ScanCursor {
             _state: state,
         })
     }
-    fn fill(&mut self) -> Result<bool> {
+    fn fill<const POLL: bool>(&mut self) -> Result<bool> {
         if self.done {
             return Ok(false);
         }
@@ -440,9 +465,13 @@ impl ScanCursor {
             capacity = capacity.min(usize::try_from(raw_left).unwrap_or(usize::MAX).max(1));
         }
         let mut accepted = 0;
+        let initial_decoded = self.statistics.decoded_rows;
         #[cfg(feature = "index")]
         let initial_remaining = self.remaining;
         while accepted < capacity {
+            if POLL && self.statistics.decoded_rows - initial_decoded >= 1024 {
+                break;
+            }
             if let Some(range) = &self.range
                 && range.next == range.end
                 && range.end < range.total
@@ -547,7 +576,7 @@ impl ScanCursor {
             self.decoder = None;
         }
         let nonempty = self.batch.as_ref().is_some_and(|b| b.rows != 0);
-        if !nonempty {
+        if !nonempty && (!POLL || self.done || self.remaining == 0) {
             self.batch = None;
         }
         self.reader.source.check_unchanged()?;
@@ -564,7 +593,7 @@ impl ScanCursor {
         }
         #[cfg(feature = "index")]
         let before = self.reader.io_statistics();
-        let result = self.fill();
+        let result = self.fill::<false>();
         #[cfg(feature = "index")]
         let result = {
             let io = self
@@ -585,6 +614,66 @@ impl ScanCursor {
                 Ok(None)
             }
             Err(e) => Err(self.fail(e)),
+        }
+    }
+}
+#[cfg(feature = "index")]
+pub(crate) enum ParallelStep {
+    Batch,
+    Pending,
+    Complete,
+}
+#[cfg(feature = "index")]
+impl ScanCursor {
+    pub(crate) fn prepare_parallel(&mut self, batch_row_limit: Option<u64>) -> Result<()> {
+        if self.done
+            || self.remaining == 0
+            || self.selection.as_ref().is_some_and(Selection::is_empty)
+        {
+            return Ok(());
+        }
+        if let Some(limit) = batch_row_limit {
+            self.capacity = self
+                .capacity
+                .min(usize::try_from(limit).unwrap_or(usize::MAX).max(1));
+        }
+        self.reader.source.check_unchanged()?;
+        let position = self.position.as_ref().ok_or_else(|| {
+            Error::new(ErrorKind::InvalidOptions, "parallel range lacks checkpoint")
+        })?;
+        self.decoder = Some(Decoder::resume(
+            &self.reader,
+            &self.handle.inner.record,
+            position,
+        )?);
+        let capacity = self.range.as_ref().map_or(self.capacity, |r| {
+            self.capacity
+                .min(usize::try_from(r.end - r.next).unwrap_or(usize::MAX).max(1))
+        });
+        self.batch = Some(Batch::new(
+            &self.reader,
+            self.key_mask,
+            self.value_mask,
+            capacity,
+        )?);
+        Ok(())
+    }
+    pub(crate) fn recycle_parallel(&mut self, batch: Batch) {
+        self.batch = Some(batch);
+    }
+    pub(crate) fn parallel_step(&mut self) -> Result<(ParallelStep, Option<Batch>)> {
+        if let Some(e) = &self.error {
+            return Err(e.clone());
+        }
+        match self.fill::<true>() {
+            Ok(true) => self
+                .batch
+                .take()
+                .map(|batch| (ParallelStep::Batch, Some(batch)))
+                .ok_or_else(|| Error::new(ErrorKind::AllocationFailed, "parallel batch missing")),
+            Ok(false) if self.done => Ok((ParallelStep::Complete, None)),
+            Ok(false) => Ok((ParallelStep::Pending, None)),
+            Err(error) => Err(self.fail(error)),
         }
     }
 }

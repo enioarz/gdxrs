@@ -578,3 +578,7 @@ mod sidecars;
 #[cfg(feature = "index")]
 #[path = "reader/indexed.rs"]
 mod indexed;
+
+#[cfg(feature = "index")]
+#[path = "reader/parallel.rs"]
+mod parallel;

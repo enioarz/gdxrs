@@ -1,6 +1,7 @@
 """Runner behavior tests, not GDX library tests."""
 
 import importlib.util
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -40,6 +41,28 @@ class Reports(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             dev.run(["/no/such/gdxrs-tool"])
 
+    def test_timeout_retains_bounded_partial_output_without_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            stderr = io.StringIO()
+            with patch.object(dev, 'WORK', Path(directory)), patch.object(dev, 'ROOT', Path(directory)), \
+                 patch.object(dev, 'revision', return_value='test'), patch.object(dev.sys, 'stderr', stderr):
+                def fail():
+                    raise subprocess.TimeoutExpired(['cargo', 'test'], 180,
+                        output=b'x' * 20000 + b'blocked-test', stderr=b'compiler-tail\xff')
+                self.assertEqual(dev.report_check('timeout', fail), 1)
+            reports = list(Path(directory).glob('reports/*.json'))
+            self.assertEqual(len(reports), 1)
+            report = json.loads(reports[0].read_text())
+            self.assertEqual(report['status'], 'failed')
+            self.assertEqual(report['exit_code'], 1)
+            self.assertIsNone(report['result'])
+            self.assertEqual(report['timeout']['seconds'], 180)
+            self.assertEqual(report['timeout']['command'], ['cargo', 'test'])
+            self.assertEqual(len(report['timeout']['stdout']), 12000)
+            self.assertTrue(report['timeout']['stdout'].endswith('blocked-test'))
+            self.assertIn('compiler-tail', report['timeout']['stderr'])
+            self.assertIn('blocked-test', stderr.getvalue())
+
     def test_unexpected_error_records_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(dev,"WORK",Path(directory)),patch.object(dev,"ROOT",Path(directory)),patch.object(dev,"revision",return_value="test"):
@@ -66,6 +89,35 @@ class DependencyAudit(unittest.TestCase):
 
 
 class ReaderSuites(unittest.TestCase):
+    def test_reader_tests_have_a_separate_deadline_and_record_durations(self):
+        summaries = ''.join(
+            f'test result: ok. {count} passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in {duration}s\n'
+            for count, duration in [(190, '142.68'), (48, '37.14'), (6, '0.02'), (7, '0.15')])
+        summaries += 'test src/scan.rs - scan::BatchView (line 73) - compile fail ... ok\n'
+        args = ['cargo', 'test', '--locked']
+        with patch.object(dev, 'run', return_value=subprocess.CompletedProcess(args, 0, summaries)) as run, \
+             patch.object(dev.time, 'monotonic', side_effect=[10.0, 192.5]):
+            result = dev.reader_test_suite(args)
+        run.assert_called_once_with(args, capture=True, timeout=600)
+        self.assertEqual(result['timeout_seconds'], 600)
+        self.assertEqual(result['elapsed_seconds'], 182.5)
+        self.assertEqual(result['unit_integration_doctest_groups_passed'], [190, 48, 6, 7])
+        self.assertEqual(result['unit_integration_doctest_groups_elapsed_seconds'], [142.68, 37.14, 0.02, 0.15])
+        with patch.object(dev.subprocess, 'run') as child:
+            dev.run(['cargo', 'check'])
+        self.assertEqual(child.call_args.kwargs['timeout'], 180)
+
+    def test_reader_duration_reporting_preserves_failure_guards(self):
+        args = ['cargo', 'test', '--locked', '--all-features']
+        with patch.object(dev, 'run', side_effect=subprocess.TimeoutExpired(args, 600)):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                dev.reader_test_suite(args)
+        summary = 'test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;\n'
+        output = summary * 4 + 'test src/scan.rs - scan::BatchView (line 73) - compile fail ... ok\n'
+        with patch.object(dev, 'run', return_value=subprocess.CompletedProcess(args, 0, output)):
+            with self.assertRaisesRegex(dev.CheckFailure, 'duration summaries'):
+                dev.reader_test_suite(args)
+
     def test_rustdoc_groups_require_real_borrowing_test_and_no_skips(self):
         summary = "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n"
         borrowing = "test src/scan.rs - scan::BatchView (line 73) - compile fail ... ok\n"

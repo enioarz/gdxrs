@@ -79,4 +79,6 @@ mod index;
 pub use index::{
     CheckpointIndex, IndexBuilder, IndexInterval, IndexOpen, IndexOptions, IndexPolicy,
     IndexPublication, IndexScanMode, IndexStatistics, IndexStatus, IndexedScanStatistics,
+    ParallelAdmission, ParallelCancellation, ParallelOptions, ParallelScanCursor,
+    ParallelStatistics,
 };
