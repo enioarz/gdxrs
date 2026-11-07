@@ -98,11 +98,56 @@ def oversized(kind, n):
 
 
 class AcceptanceGuards(unittest.TestCase):
+    def test_index_timings_are_validated_before_qualification_and_reporting(self):
+        good = [oversized(k, n) for k in a.KINDS for n in [33_600_000, 67_200_000]]
+        for stage, phase_index in [('build', 0), ('session', 0), ('session', 1)]:
+            for seconds in [float('nan'), float('inf'), -float('inf'), -1.0, 0.0]:
+                with self.subTest(stage=stage, phase=phase_index, seconds=seconds):
+                    bad = copy.deepcopy(good)
+                    bad[0]['trials'][0][stage]['result']['phases'][phase_index]['seconds'] = seconds
+                    with self.assertRaisesRegex(ValueError, 'invalid index phase duration'):
+                        a.validate_trial(bad[0], bad[0]['trials'][0])
+                    with self.assertRaisesRegex(ValueError, 'invalid index phase duration'):
+                        a.qualify(bad)
+                    with self.assertRaisesRegex(ValueError, 'invalid index phase duration'):
+                        a.performance(bad[0])
+
+    def test_index_admission_is_enforced_when_replaying_reports(self):
+        good = [oversized(k, n) for k in a.KINDS for n in [33_600_000, 67_200_000]]
+        for stage in ['build', 'session']:
+            for field, value in [('index_quota', 10**20), ('handle_limit', 1000),
+                                 ('cache_limit', 10**20)]:
+                with self.subTest(stage=stage, field=field):
+                    bad = copy.deepcopy(good)
+                    bad[0]['trials'][0][stage]['result'][field] = value
+                    with self.assertRaisesRegex(ValueError, 'index byte/handle/cache admission'):
+                        a.validate_trial(bad[0], bad[0]['trials'][0])
+                    with self.assertRaisesRegex(ValueError, 'index byte/handle/cache admission'):
+                        a.qualify(bad)
+                    with self.assertRaisesRegex(ValueError, 'index byte/handle/cache admission'):
+                        a.performance(bad[0])
+
+    def test_index_phase_counts_are_exact(self):
+        for stage in ['build', 'session']:
+            for count in [0, 1, 2, 3]:
+                if count == (1 if stage == 'build' else 2):
+                    continue
+                with self.subTest(stage=stage, count=count):
+                    bad = case()
+                    phases = bad['trials'][0][stage]['result']['phases']
+                    phases[:] = [copy.deepcopy(phases[0]) for _ in range(count)]
+                    with self.assertRaises(ValueError):
+                        a.validate_trial(bad, bad['trials'][0])
+
     def test_valid_case_passes_scale_guards(self):
         cases = [oversized('records', 4096), oversized('records', 16384),
                  oversized('compressed', 4096), oversized('compressed', 16384),
                  oversized('metadata', 33_600_000), oversized('metadata', 67_200_000)]
         a.qualify(cases)
+        result = a.performance(cases[0])
+        self.assertEqual(result['build_seconds']['median'], 20.0)
+        self.assertEqual(result['reopen_seconds']['median'], 2.0)
+        self.assertEqual(result['indexed_all_seconds']['median'], 5.0)
 
     def test_containment_is_required(self):
         for change in [lambda t: t['result'].update(root_peak=a.m5.BUDGET + 1),

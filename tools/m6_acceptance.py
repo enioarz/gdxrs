@@ -111,6 +111,14 @@ def validate_trial(case, t):
             raise ValueError('missing trial phase ' + name)
         validate_containment(t[name])
     validate_serial(t['serial'], case['expected_all'])
+    for name, expected_phases in [('build', 1), ('session', 2)]:
+        # Replayed reports must enforce the same index admission as live runs.
+        m5.validate_worker(t[name])
+        phases = m5.phases(t[name])
+        if len(phases) != expected_phases:
+            raise ValueError('index phase count mismatch: ' + name)
+        if any(not math.isfinite(p['seconds']) or p['seconds'] <= 0 for p in phases):
+            raise ValueError('invalid index phase duration: ' + name)
     built = m5.phases(t['build'])[0]
     opened = m5.phases(t['session'])[0]
     indexed = m5.phases(t['session'])[1]
@@ -157,6 +165,9 @@ def qualify(cases):
 
 
 def performance(case):
+    # Do not publish costs from unvalidated trials, including report replays.
+    for t in case['trials']:
+        validate_trial(case, t)
     serial = [t['serial']['result']['seconds'] for t in case['trials']]
     out = dict(serial_seconds=m5.samples(serial),
                serial_phases={name: m5.samples([t['serial']['result'][name] for t in case['trials']])
