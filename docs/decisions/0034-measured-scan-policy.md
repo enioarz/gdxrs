@@ -23,7 +23,8 @@ serial by `required_parallel_advantage` (admission pressure). Otherwise the
 allowed alternative with the lowest estimated cost wins, ties resolving serial,
 indexed, parallel. The plan reports every alternative with its cost, disposition
 and reason, the charged reopen seconds, and the build+reopen break-even in queries
-when the warm saving is positive.
+against the chosen indexed/parallel warm cost when the saving against serial is
+positive and a validated session exists. Serial plans report no break-even.
 
 ## Execution and invariants
 
@@ -48,6 +49,10 @@ each case measures serial, build, strict reopen, warm indexed and 2/4/8-worker
 parallel scans, feeds those measurements to the real policy, executes the planned
 scan for all/leading/head/zero shapes and requires exact ordered digests, the
 conservative serial choice for head/zero, and planned timings within 1.5x of the
-measured best for all/leading. All workers keep the 256 MiB root and enforced,
+measured best across serial, indexed and all three worker counts for all/leading.
+Parallel calibration and planned execution both use the default one interval per
+task and a maximum in-flight task count equal to the worker count. Reports retain
+actual dispatched task counts to detect configuration drift.
+All workers keep the 256 MiB root and enforced,
 self-checked 512 MiB Linux address-space cap. No automatic release, general
 throughput parity or universal threshold is claimed.

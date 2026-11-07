@@ -36,7 +36,12 @@ threshold is implied; task 040 gates performance and oversized acceptance.
 
 
 Defaults are adjustable guardrails rather than universal performance guarantees.
-Measurements should represent the intended query and concurrency. The planner's
+Measurements should represent the intended query and concurrency. The
+parallel measurement must use the selected worker count (including overrides),
+one interval per task and at most that many in-flight tasks, matching dispatch.
+Build break-even uses the chosen indexed or parallel warm saving against serial;
+serial plans, missing validated sessions and nonpositive savings report `None`.
+The planner's
 parallel cost estimate does not reserve memory; dispatch still performs the
 explicit worker admission checks and reports resource failures. Both indexed and
 parallel dispatch require a consistent Ready status with an index owner.
@@ -45,3 +50,5 @@ The `Reader::scan_planned` Rustdoc contains a compiling complete example. Callin
 `close()` stops subsequent batches and retains raw cursor checkpoint positions;
 errors stay sticky. The policy benchmark's report validator rejects duplicate query
 shapes, missing worker measurements and non-finite/negative planned durations.
+Its measured-best comparison includes every measured worker count (2, 4 and 8),
+and calibration reports verify one dispatched task per index interval.

@@ -56,6 +56,39 @@ fn policy_prefers_measured_cheapest_allowed_choice() {
 }
 
 #[test]
+fn policy_break_even_uses_the_chosen_alternative() {
+    let mut m = measurements();
+    m.indexed_selected_seconds = 9.0;
+    assert_eq!(
+        policy().plan(&m, None).unwrap().choice,
+        ScanChoice::Parallel { workers: 8 }
+    );
+    for (choice, expected) in [
+        (ScanChoice::Serial, None),
+        (ScanChoice::Indexed, Some(22)),
+        (ScanChoice::Parallel { workers: 8 }, Some(4)),
+    ] {
+        let p = ScanPolicy {
+            choice_override: Some(choice),
+            ..policy()
+        };
+        assert_eq!(p.plan(&m, None).unwrap().build_break_even_queries, expected);
+    }
+    assert_eq!(
+        policy().plan(&m, None).unwrap().build_break_even_queries,
+        Some(4)
+    );
+    let p = ScanPolicy {
+        choice_override: Some(ScanChoice::Parallel { workers: 2 }),
+        ..policy()
+    };
+    for seconds in [10.0, 12.0] {
+        m.parallel_full_scan_seconds = seconds;
+        assert_eq!(p.plan(&m, None).unwrap().build_break_even_queries, None);
+    }
+}
+
+#[test]
 fn policy_charges_strict_reopen_and_never_builds_without_a_session() {
     let mut m = measurements();
     m.session_valid = false;
@@ -430,6 +463,7 @@ fn planned_scans_preserve_exact_results_across_every_choice() {
         ] {
             built += 1;
             let open = ready_open(&reader, &symbol, &temp, &format!("index-{built}"));
+            let intervals = open.index.as_ref().unwrap().interval_count();
             let policy = ScanPolicy {
                 choice_override: Some(choice),
                 ..ScanPolicy::default()
@@ -449,6 +483,12 @@ fn planned_scans_preserve_exact_results_across_every_choice() {
                 .unwrap();
             assert_eq!(plan.choice, choice);
             results.push((choice, name, digest(&mut scan)));
+            if matches!(choice, ScanChoice::Parallel { .. }) && name == "all" {
+                let PlannedStatistics::Parallel(work) = scan.statistics() else {
+                    panic!("parallel statistics expected");
+                };
+                assert_eq!(work.tasks_dispatched, intervals);
+            }
         }
     }
     for name in ["all", "selected", "head"] {

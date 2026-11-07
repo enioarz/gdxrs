@@ -14,7 +14,8 @@ def trial(count=4096):
                             vm_peak_bytes=100000, count=count, serial_seconds=10.0, build_seconds=20.0,
                             reopen_seconds=2.0, indexed_seconds=1.0, leading_seconds=0.1,
                             leading_count=32, serial_digest='aa', leading_digest='bb', parallel_seconds=[4.0, 3.0, 2.0],
-                            parallel_digest='aa',
+                            parallel_digest='aa', index_intervals=16,
+                            parallel_tasks_dispatched=[16, 16, 16],
                             shapes=[dict(shape='all', choice='indexed', workers=0, seconds=1.0, count=count, digest='aa'),
                                     dict(shape='leading', choice='indexed', workers=0, seconds=0.1, count=32, digest='bb'),
                                     dict(shape='head', choice='serial', workers=0, seconds=0.5, count=min(13, count), digest='cc'),
@@ -29,6 +30,20 @@ def case(kind, n):
 class PolicyGuards(unittest.TestCase):
     def test_valid_case_passes(self):
         p.validate_case(case('records', 4096))
+
+    def test_every_measured_worker_count_competes_for_best_time(self):
+        for workers in range(3):
+            bad = case('records', 4096)
+            bad['result']['parallel_seconds'][workers] = 0.01
+            with self.assertRaisesRegex(ValueError, 'measured best'):
+                p.validate_case(bad)
+
+    def test_calibration_matches_planned_task_grouping(self):
+        for intervals, tasks in [(16, [4, 4, 4]), (16, [16, 16]), (0, [0, 0, 0])]:
+            bad = case('records', 4096)
+            bad['result'].update(index_intervals=intervals, parallel_tasks_dispatched=tasks)
+            with self.assertRaisesRegex(ValueError, 'one interval per task'):
+                p.validate_case(bad)
 
     def test_containment_is_required(self):
         for change in [lambda t: t['result'].update(root_peak=p.m5.BUDGET + 1),

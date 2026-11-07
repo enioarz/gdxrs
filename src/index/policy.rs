@@ -33,7 +33,8 @@ pub struct ScanMeasurements {
     pub serial_full_scan_seconds: f64,
     /// Measured warm indexed seconds for this query shape.
     pub indexed_selected_seconds: f64,
-    /// Measured parallel full ordered scan seconds at `max_workers`.
+    /// Measured parallel full ordered scan seconds at `max_workers`, or at the
+    /// explicitly overridden worker count when forcing a parallel choice.
     pub parallel_full_scan_seconds: f64,
     /// Measured strict reopen seconds of an existing sidecar.
     pub strict_reopen_seconds: f64,
@@ -96,7 +97,8 @@ pub struct ScanPlan {
     /// Strict-reopen seconds charged to the chosen plan.
     pub reopen_seconds_charged: f64,
     /// Queries needed to amortize a measured build plus strict reopen against the
-    /// measured warm saving, when the saving is positive.
+    /// chosen indexed/parallel alternative's warm saving, when a validated
+    /// session exists and the saving is positive. Serial plans report None.
     pub build_break_even_queries: Option<u64>,
     /// Fixed order: serial, indexed, parallel.
     pub alternatives: [PlannedAlternative; 3],
@@ -167,7 +169,7 @@ impl ScanPolicy {
             } else {
                 0.0
             },
-            build_break_even_queries: Self::break_even(m),
+            build_break_even_queries: Self::break_even(m, chosen.choice),
             alternatives,
         };
         let forced_serial =
@@ -255,11 +257,16 @@ impl ScanPolicy {
         }
         Ok(())
     }
-    fn break_even(m: &ScanMeasurements) -> Option<u64> {
+    fn break_even(m: &ScanMeasurements, choice: ScanChoice) -> Option<u64> {
         if !m.session_valid {
             return None;
         }
-        let saving = m.serial_full_scan_seconds - m.indexed_selected_seconds;
+        let warm_seconds = match choice {
+            ScanChoice::Serial => return None,
+            ScanChoice::Indexed => m.indexed_selected_seconds,
+            ScanChoice::Parallel { .. } => m.parallel_full_scan_seconds,
+        };
+        let saving = m.serial_full_scan_seconds - warm_seconds;
         if saving > 0.0 {
             Some(
                 ((m.build_seconds + m.strict_reopen_seconds) / saving)

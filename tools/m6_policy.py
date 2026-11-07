@@ -38,13 +38,17 @@ def validate_containment(trial):
 def validate_case(case):
     r = case['result']
     for field in ['serial_seconds', 'build_seconds', 'reopen_seconds', 'indexed_seconds',
-                  'leading_seconds', 'parallel_seconds', 'shapes']:
+                  'leading_seconds', 'parallel_seconds', 'index_intervals',
+                  'parallel_tasks_dispatched', 'shapes']:
         if field not in r:
             raise ValueError('missing measured field ' + field)
     if len(r['parallel_seconds']) != 3 or not all(math.isfinite(v) and v > 0 for v in
                [r['serial_seconds'], r['build_seconds'], r['reopen_seconds'],
                 r['indexed_seconds'], r['leading_seconds'], *r['parallel_seconds']]):
         raise ValueError('invalid policy measurement')
+    if (r['index_intervals'] <= 0 or len(r['parallel_tasks_dispatched']) != 3
+            or any(tasks != r['index_intervals'] for tasks in r['parallel_tasks_dispatched'])):
+        raise ValueError('parallel calibration must use one interval per task')
     if r['parallel_digest'] != r['serial_digest'] or r['count'] != case['count']:
         raise ValueError('parallel/serial ordered digest mismatch')
     shapes = {s['shape']: s for s in r['shapes']}
@@ -61,7 +65,7 @@ def validate_case(case):
         if shapes[name]['choice'] != 'serial':
             raise ValueError('conservative serial required for ' + name)
     for name, measured in [('all', r['indexed_seconds']), ('leading', r['leading_seconds'])]:
-        best = min(r['serial_seconds'], measured, r['parallel_seconds'][2])
+        best = min(r['serial_seconds'], measured, *r['parallel_seconds'])
         if shapes[name]['seconds'] > TOLERANCE * best:
             raise ValueError('planned ' + name + ' choice is not within tolerance of the measured best')
     for name, digest in [('all', r['serial_digest']), ('leading', r['leading_digest'])]:

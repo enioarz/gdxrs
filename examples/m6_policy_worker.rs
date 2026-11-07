@@ -216,6 +216,8 @@ mod worker {
             .index
             .ok_or("strict index unavailable")?;
         let mut parallel_seconds = Vec::new();
+        let mut parallel_tasks = Vec::new();
+        let index_intervals = index.interval_count();
         let mut parallel_digest = 0u64;
         for workers in [2usize, 4, 8] {
             let start = Instant::now();
@@ -227,11 +229,19 @@ mod worker {
                 ParallelOptions {
                     workers,
                     maximum_in_flight_tasks: workers,
-                    intervals_per_task: 4,
                     ..ParallelOptions::default()
                 },
             )?));
             let (count, digest) = drain(&ctx, &mut scan, 0)?;
+            let PlannedStatistics::Parallel(work) = scan.statistics() else {
+                return Err("parallel calibration statistics missing".into());
+            };
+            // Calibration uses the same default task grouping as scan_planned.
+            require(
+                work.tasks_dispatched == index_intervals,
+                "calibration task grouping",
+            )?;
+            parallel_tasks.push(work.tasks_dispatched.to_string());
             index = recover(scan)?;
             let seconds = start.elapsed().as_secs_f64();
             require(
@@ -344,12 +354,13 @@ mod worker {
         let budget = reader.budget_statistics();
         require(vm <= CAP && budget.peak_bytes <= ROOT, "cap exceeded")?;
         println!(
-            "{{\"count\":{n},\"serial_seconds\":{serial_seconds},\"serial_digest\":\"{serial_digest:016x}\",\"build_seconds\":{build_seconds},\"reopen_seconds\":{reopen_seconds},\"indexed_seconds\":{indexed_seconds},\"leading_seconds\":{leading_seconds},\"leading_count\":{leading_count},\"leading_digest\":\"{leading_digest:016x}\",\"parallel_seconds\":[{}],\"parallel_digest\":\"{parallel_digest:016x}\",\"shapes\":[{}],\"root_limit\":{ROOT},\"root_peak\":{},\"os_cap_verified\":true,\"vm_peak_bytes\":{vm}}}",
+            "{{\"count\":{n},\"serial_seconds\":{serial_seconds},\"serial_digest\":\"{serial_digest:016x}\",\"build_seconds\":{build_seconds},\"reopen_seconds\":{reopen_seconds},\"indexed_seconds\":{indexed_seconds},\"leading_seconds\":{leading_seconds},\"leading_count\":{leading_count},\"leading_digest\":\"{leading_digest:016x}\",\"parallel_seconds\":[{}],\"parallel_tasks_dispatched\":[{}],\"index_intervals\":{index_intervals},\"parallel_digest\":\"{parallel_digest:016x}\",\"shapes\":[{}],\"root_limit\":{ROOT},\"root_peak\":{},\"os_cap_verified\":true,\"vm_peak_bytes\":{vm}}}",
             parallel_seconds
                 .iter()
                 .map(|s| s.to_string())
                 .collect::<Vec<_>>()
                 .join(","),
+            parallel_tasks.join(","),
             shapes.join(","),
             budget.peak_bytes
         );
